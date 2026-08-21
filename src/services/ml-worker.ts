@@ -190,6 +190,11 @@ class MLWorkerManager {
           pending.reject(new Error(`Worker error: ${error.message}`));
           this.pendingRequests.delete(id);
         }
+
+        // Terminate the errored worker and reset state so the next call
+        // re-initializes instead of posting into a dead worker and waiting
+        // out the full request timeout on every subsequent call.
+        this.cleanup();
       };
     });
   }
