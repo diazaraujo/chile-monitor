@@ -180,7 +180,12 @@ export function computeAsset(meta, ctx, prevAsset, opts = {}) {
   // component is rebuilding. Restart it so downstream charts do not join two
   // non-comparable regimes into one continuous sparkline.
   const sparkScore   = shiftAndAppend(opts.suppressOiDelta || !currentOiValid ? [] : prevAsset?.sparkScore, composite);
-  const sparkVol     = shiftAndAppend(prevAsset?.sparkVol,     Number.isFinite(dayNotional) ? dayNotional : 0);
+  // Never append a synthetic zero for an invalid poll (mirrors the OI rule
+  // above): a 0 among the 12 baseline samples deflates the average and
+  // fabricates phantom volume-spike scores. Keep the prior window instead.
+  const sparkVol     = Number.isFinite(dayNotional)
+    ? shiftAndAppend(prevAsset?.sparkVol, dayNotional)
+    : prevAsset?.sparkVol;
 
   // Warmup stays TRUE until both baselines are usable — cold-start OR insufficient
   // volume history OR a complete one-hour OI window. Clears only when the asset
