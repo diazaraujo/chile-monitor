@@ -280,5 +280,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   publishAll()
     .then(() => console.log(`\n=== Done (${Date.now() - runStartedAt}ms) ===`))
     .finally(() => closePool())
-    .catch(console.error);
+    // Mirror scrape.ts: failed publishes must fail the cron, not exit 0.
+    .catch((err) => {
+      console.error(err);
+      process.exitCode = 1;
+    });
 }
