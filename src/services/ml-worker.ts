@@ -360,21 +360,21 @@ export class MLWorkerManager {
               : await this.ensureReadyNow().catch(() => false);
           }
         } finally {
-          if (
+          const isStaleRecovery =
             recoveryGeneration !== this.lifecycleGeneration
-            || this.recoveryPromise !== recoveryPromise
-          ) {
+            || this.recoveryPromise !== recoveryPromise;
+          if (isStaleRecovery) {
             resolveAttempt(false);
-            return;
-          }
-          this.recoveryScheduled = false;
-          this.recoveryPromise = null;
-          this.recoveryResolve = null;
-          resolveAttempt(recovered);
-          if (recovered) {
-            this.scheduleRecoveryBudgetReset();
-          } else if (this.enabled) {
-            this.scheduleRecovery();
+          } else {
+            this.recoveryScheduled = false;
+            this.recoveryPromise = null;
+            this.recoveryResolve = null;
+            resolveAttempt(recovered);
+            if (recovered) {
+              this.scheduleRecoveryBudgetReset();
+            } else if (this.enabled) {
+              this.scheduleRecovery();
+            }
           }
         }
       })();
