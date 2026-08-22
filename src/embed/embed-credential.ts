@@ -37,7 +37,16 @@ export function waitForEmbeddingApiKey(
   timeoutMs = EMBED_CREDENTIAL_WAIT_MS,
   host: EmbedCredentialHost = window,
 ): Promise<string | null> {
-  return new Promise((resolve) => {
+    // The embedding parent's origin (referrer is the parent document for
+    // iframes). When policy strips it we degrade to the source-only check
+    // rather than breaking legitimate embeds.
+    let parentOrigin = '';
+    try {
+      parentOrigin = new URL(document.referrer).origin;
+    } catch {
+      parentOrigin = '';
+    }
+    return new Promise((resolve) => {
     let settled = false;
     const finish = (key: string | null): void => {
       if (settled) return;
@@ -47,6 +56,7 @@ export function waitForEmbeddingApiKey(
     };
     const onMessage = (event: MessageEvent): void => {
       if (event.source !== host.parent) return;
+      if (parentOrigin && event.origin !== parentOrigin) return;
       const key = readEmbeddingApiKey(event.data);
       if (key) finish(key);
     };
@@ -54,7 +64,7 @@ export function waitForEmbeddingApiKey(
     try {
       host.parent.postMessage(
         { source: EMBED_CREDENTIAL_SOURCE, type: EMBED_CREDENTIAL_READY_TYPE },
-        '*',
+        parentOrigin || '*',
       );
     } catch {
       // Tests and sandboxed frames may lack a parent postMessage target.

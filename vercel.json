@@ -432,7 +432,7 @@
       "headers": [{ "key": "Origin-Trial", "value": "AqiFXm04IbEu9A6lyFLqcak7kRZSMdS4tvOKu4wVwM7JJCgiYKnl0qljSIOi4qkT9rtm21mPNVB/Jg9c4irnggQAAABXeyJvcmlnaW4iOiJodHRwczovL2VuZXJneS53b3JsZG1vbml0b3IuYXBwOjQ0MyIsImZlYXR1cmUiOiJXZWJNQ1AiLCJleHBpcnkiOjE3OTQ4NzM2MDB9" }]
     },
     {
-      "source": "/((?!docs|embed|embed\\.html).*)",
+      "source": "/((?!docs|embed|embed\\.html|wm-widget-sandbox\\.html).*)",
       "headers": [
         { "key": "Content-Signal", "value": "ai-train=no, search=yes, ai-input=yes" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },

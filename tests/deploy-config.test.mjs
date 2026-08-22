@@ -42,7 +42,7 @@ const dockerignoreSource = readFileSync(resolve(__dirname, '../.dockerignore'), 
 const vercelIgnoreSource = readFileSync(resolve(__dirname, '../scripts/vercel-ignore.sh'), 'utf-8');
 const variantDashboardSource = readFileSync(resolve(__dirname, '../src/config/variant-dashboard-html.ts'), 'utf-8');
 const SPA_HTML_CACHE_SOURCE = '/((?!api|mcp|a2a|ask|oauth|assets|blog|docs|countries|chokepoints|crises|tools|research|reference|changelog|sources|use-cases|src|tmp|server|embed|embed\\.html|favico|map-styles|data|textures|pro|sw\\.js|workbox-[a-f0-9]+\\.js|manifest\\.webmanifest|offline\\.html|robots\\.txt|robots\\.www\\.txt|robots\\.variant\\.txt|robots\\.api\\.txt|sitemap\\.xml|schemamap\\.xml|sandbox|llms\\.txt|llms-full\\.txt|llms\\*\\.txt|openapi\\.yaml|openapi\\.json|auth\\.md|pricing\\.md|support\\.md|ai-search\\.md|agents\\.md|developers\\.md|developers/llms\\.txt|mcp-server\\.md|openapi\\.md|sdks\\.md|agent\\.txt|\\.well-known|wm-widget-sandbox\\.html|mcp-grant\\.html|mcp-grant|.*\\.md$).*)';
-const GLOBAL_SECURITY_HEADER_SOURCE = '/((?!docs|embed|embed\\.html).*)';
+const GLOBAL_SECURITY_HEADER_SOURCE = '/((?!docs|embed|embed\\.html|wm-widget-sandbox\\.html).*)';
 const APP_ROOT_HOST_PATTERN = '^(?:(?:www|tech|finance|commodity|happy|energy)\\.)?worldmonitor\\.app$';
 const WEBMCP_PRODUCTION_HOST_PATTERN = '^(?:www|tech|finance|commodity|happy|energy)\\.worldmonitor\\.app$';
 const WEBMCP_PRODUCTION_HOSTS = [
@@ -2425,11 +2425,25 @@ describe('embeddable map route guardrails', () => {
     assert.equal(getCacheHeaderValue(SPA_HTML_CACHE_SOURCE), 'private, no-cache, must-revalidate');
   });
 
-  it('keeps the global security header anti-framing rule off the embed entry', () => {
-    assert.equal(GLOBAL_SECURITY_HEADER_SOURCE, '/((?!docs|embed|embed\\.html).*)');
+  it('keeps the global security header anti-framing rule off the embed entries', () => {
+    // Both /embed (partner iframe) and /wm-widget-sandbox.html (agent widget
+    // sandbox) need cross-origin framing + their own dedicated CSP; the
+    // global SAMEORIGIN/dashboard-CSP rule must skip both.
+    assert.equal(GLOBAL_SECURITY_HEADER_SOURCE, '/((?!docs|embed|embed\\.html|wm-widget-sandbox\\.html).*)');
     const globalXfo = getHeaderValueForSource(GLOBAL_SECURITY_HEADER_SOURCE, 'X-Frame-Options');
     assert.equal(globalXfo, 'SAMEORIGIN');
   });
+
+  for (const source of ['/wm-widget-sandbox.html']) {
+    it(`${source} keeps its dedicated headers instead of inheriting app XFO/CSP`, () => {
+      const globalHeaders = getHeadersForSource(GLOBAL_SECURITY_HEADER_SOURCE);
+      assert.equal(
+        globalHeaders.filter((h) => h.source === source).length,
+        0,
+        `${source} must not match the global security-header rule`,
+      );
+    });
+  }
 
   for (const source of ['/embed', '/embed.html']) {
     it(`${source} allows cross-origin iframe embedding without inheriting app XFO`, () => {
