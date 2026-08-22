@@ -800,13 +800,24 @@ async fn open_live_channels_window_command(
     if let Some(ref url) = base_url {
         if !url.is_empty() {
             let parsed = Url::parse(url).map_err(|_| "Invalid base URL".to_string())?;
-            match parsed.scheme() {
-                "http" => match parsed.host_str() {
-                    Some("localhost") | Some("127.0.0.1") => {}
-                    _ => return Err("base_url http only allowed for localhost".to_string()),
+            // The live-channels webview holds trusted-window IPC privileges
+            // (persistent-cache read/write, port discovery, open_url), so its
+            // origin must be first-party — "any https" would hand those to a
+            // remote page if the main window is ever compromised.
+            let allowed = match parsed.scheme() {
+                "http" => matches!(parsed.host_str(), Some("localhost") | Some("127.0.0.1")),
+                "https" => match parsed.host_str() {
+                    Some(host) => {
+                        host == "worldmonitor.app" || host.ends_with(".worldmonitor.app")
+                    }
+                    None => false,
                 },
-                "https" => {}
-                _ => return Err("base_url must be http(s)".to_string()),
+                _ => false,
+            };
+            if !allowed {
+                return Err(
+                    "base_url must be worldmonitor.app (or localhost over http)".to_string(),
+                );
             }
         }
     }
@@ -1459,14 +1470,17 @@ fn start_local_api(app: &AppHandle) -> Result<(), String> {
             *port_slot = Some(confirmed_port);
         }
     } else {
+        // Fail CLOSED. The default port is only a guess: the sidecar moves to
+        // an ephemeral port on EADDRINUSE, and an unrelated local process may
+        // be squatting 46123. Sending LOCAL_API_TOKEN bearer traffic to an
+        // unverified listener would hand the token to whoever owns the port.
+        // Commands surface "sidecar is not ready" until the sidecar actually
+        // reports its port via the port file.
         append_desktop_log(
             app,
             "WARN",
-            "sidecar port file not found within timeout, using default",
+            "sidecar port file not found within timeout; refusing to target the default port unverified",
         );
-        if let Ok(mut port_slot) = state.port.lock() {
-            *port_slot = Some(DEFAULT_LOCAL_API_PORT);
-        }
     }
 
     Ok(())
