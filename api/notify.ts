@@ -20,9 +20,18 @@ import {
 } from './_idempotency.js';
 import { validateBearerToken } from '../server/auth-session';
 import { checkTierProEntitlement } from '../server/_shared/pro-entitlement';
+import { checkScopedRateLimit } from '../server/_shared/rate-limit';
 
 const VALID_SEVERITIES = new Set(['critical', 'high', 'medium', 'low', 'info']);
 const INTERNAL_EVENT_TYPES = new Set(['flush_quiet_held', 'channel_welcome', 'watchlist_story_alert']);
+
+// Publishes create relay-side delivery obligations and LPUSH onto the SHARED
+// wm:events:queue, so unlike low-stakes reads this limiter must bound both
+// rate and payload size (user-prefs.ts is the contract reference).
+export const NOTIFY_WRITE_RATE_LIMIT = 30;
+export const NOTIFY_WRITE_RATE_SCOPE = 'notify-write';
+export const NOTIFY_WRITE_RATE_WINDOW = '60 s' as const;
+export const NOTIFY_MAX_PAYLOAD_BYTES = 16 * 1024;
 
 export function isInternalNotifyEventType(eventType: string): boolean {
   return INTERNAL_EVENT_TYPES.has(eventType);
@@ -69,6 +78,29 @@ export default async function handler(req: Request): Promise<Response> {
     return jsonResponse({ error: 'pro_required', message: 'Event publishing is available on the Pro plan.', upgradeUrl: 'https://worldmonitor.app/pro' }, 403, cors);
   }
 
+  const scoped = await checkScopedRateLimit(
+    NOTIFY_WRITE_RATE_SCOPE,
+    NOTIFY_WRITE_RATE_LIMIT,
+    NOTIFY_WRITE_RATE_WINDOW,
+    session.userId,
+  );
+  // Unlike user-prefs, a limiter outage here should NOT fail open: each
+  // accepted publish fans out to relay subscribers. Fail closed (429 with
+  // retry hint) when the limiter cannot confirm allowance.
+  if (!scoped.allowed || scoped.degraded) {
+    const retryAfter = scoped.reset > 0 ? Math.max(1, Math.ceil((scoped.reset - Date.now()) / 1000)) : 30;
+    return jsonResponse(
+      { error: 'RATE_LIMITED' },
+      429,
+      {
+        ...cors,
+        'X-RateLimit-Limit': String(scoped.limit),
+        'X-RateLimit-Remaining': '0',
+        'Retry-After': String(retryAfter),
+      },
+    );
+  }
+
   let body: { eventType?: unknown; payload?: unknown; severity?: unknown; variant?: unknown };
   try {
     body = await req.json();
@@ -88,6 +120,11 @@ export default async function handler(req: Request): Promise<Response> {
   // and scan dedup; user-submitted copies would bypass that pipeline.
   if (isInternalNotifyEventType(body.eventType)) {
     return jsonResponse({ error: 'Reserved event type' }, 403, cors);
+  }
+
+  // Bound the serialized event before it reaches the shared queue.
+  if (new TextEncoder().encode(JSON.stringify(body)).length > NOTIFY_MAX_PAYLOAD_BYTES) {
+    return jsonResponse({ error: `payload too large (max ${NOTIFY_MAX_PAYLOAD_BYTES} bytes)` }, 413, cors);
   }
 
   if (typeof body.payload !== 'object' || body.payload === null || Array.isArray(body.payload)) {
