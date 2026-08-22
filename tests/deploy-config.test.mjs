@@ -2434,16 +2434,16 @@ describe('embeddable map route guardrails', () => {
     assert.equal(globalXfo, 'SAMEORIGIN');
   });
 
-  for (const source of ['/wm-widget-sandbox.html']) {
-    it(`${source} keeps its dedicated headers instead of inheriting app XFO/CSP`, () => {
-      const globalHeaders = getHeadersForSource(GLOBAL_SECURITY_HEADER_SOURCE);
-      assert.equal(
-        globalHeaders.filter((h) => h.source === source).length,
-        0,
-        `${source} must not match the global security-header rule`,
-      );
-    });
-  }
+  it('/wm-widget-sandbox.html keeps its dedicated headers instead of inheriting app XFO/CSP', () => {
+    const source = '/wm-widget-sandbox.html';
+    assert.equal(
+      sourceToRegExp(GLOBAL_SECURITY_HEADER_SOURCE).test(source),
+      false,
+      `${source} must not match the global security-header rule`,
+    );
+    assert.equal(getHeaderValueForSource(source, 'X-Frame-Options'), null);
+    assert.match(getHeaderValueForSource(source, 'Content-Security-Policy') ?? '', /default-src 'none'/);
+  });
 
   for (const source of ['/embed', '/embed.html']) {
     it(`${source} allows cross-origin iframe embedding without inheriting app XFO`, () => {

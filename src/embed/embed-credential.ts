@@ -36,17 +36,9 @@ function readEmbeddingApiKey(data: unknown): string | null {
 export function waitForEmbeddingApiKey(
   timeoutMs = EMBED_CREDENTIAL_WAIT_MS,
   host: EmbedCredentialHost = window,
+  parentOrigin = readEmbeddingParentOrigin(),
 ): Promise<string | null> {
-    // The embedding parent's origin (referrer is the parent document for
-    // iframes). When policy strips it we degrade to the source-only check
-    // rather than breaking legitimate embeds.
-    let parentOrigin = '';
-    try {
-      parentOrigin = new URL(document.referrer).origin;
-    } catch {
-      parentOrigin = '';
-    }
-    return new Promise((resolve) => {
+  return new Promise((resolve) => {
     let settled = false;
     const finish = (key: string | null): void => {
       if (settled) return;
@@ -71,4 +63,15 @@ export function waitForEmbeddingApiKey(
     }
     host.setTimeout(() => finish(null), timeoutMs);
   });
+}
+
+function readEmbeddingParentOrigin(): string {
+  // For an iframe, the referrer identifies the embedding document. If policy
+  // strips it, retain the existing source-only check so legitimate embeds do
+  // not fail closed without a usable origin signal.
+  try {
+    return new URL(document.referrer).origin;
+  } catch {
+    return '';
+  }
 }

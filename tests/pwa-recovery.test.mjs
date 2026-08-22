@@ -149,7 +149,9 @@ describe('offline Retry CSP', () => {
   it('ships the Retry script hash on Vercel and both nginx dashboard CSP surfaces', () => {
     const vercel = JSON.parse(readFileSync(resolve(ROOT, 'vercel.json'), 'utf8'));
     const vercelCsp = vercel.headers
-      .find((entry) => entry.source === '/((?!docs|embed|embed\\.html).*)')
+      .find((entry) => entry.headers?.some(
+        (header) => header.key === 'X-Frame-Options' && header.value === 'SAMEORIGIN',
+      ))
       ?.headers.find((header) => header.key === 'Content-Security-Policy')?.value;
     const nginxSources = [
       readFileSync(resolve(ROOT, 'docker/nginx-security-headers.conf'), 'utf8'),
