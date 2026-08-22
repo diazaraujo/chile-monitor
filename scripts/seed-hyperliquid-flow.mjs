@@ -92,6 +92,15 @@ function parsePositiveOpenInterest(value) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : Number.NaN;
 }
 
+function parseNonNegativeNotional(value) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) && value >= 0 ? value : Number.NaN;
+  }
+  if (typeof value !== 'string' || value.trim() === '') return Number.NaN;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : Number.NaN;
+}
+
 function trailingValidOiSamples(values) {
   if (!Array.isArray(values)) return [];
   let start = values.length;
@@ -128,7 +137,9 @@ export function computeAsset(meta, ctx, prevAsset, opts = {}) {
   const currentOiValid = Number.isFinite(currentOi);
   const markPx = Number(ctx.markPx);
   const oraclePx = Number(ctx.oraclePx);
-  const dayNotional = Number(ctx.dayNtlVlm);
+  // `Number(null)` and `Number('')` both produce zero. Unlike a reported zero,
+  // those malformed upstream shapes must not extend the volume baseline.
+  const dayNotional = parseNonNegativeNotional(ctx.dayNtlVlm);
   const prevOi = prevAsset?.openInterest ?? null;
   const prevOiSamples = opts.suppressOiDelta
     ? []

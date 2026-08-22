@@ -18,6 +18,23 @@
 /* global self, caches, URL */
 
 const OFFLINE_URL = '/offline.html';
+const NAVIGATION_TIMEOUT_MS = 5_000;
+
+function fetchNavigation(request) {
+  const controller = new AbortController();
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      controller.abort();
+      reject(new Error('Navigation network timeout'));
+    }, NAVIGATION_TIMEOUT_MS);
+  });
+
+  return Promise.race([
+    fetch(request, { signal: controller.signal }),
+    timeout,
+  ]).finally(() => clearTimeout(timeoutId));
+}
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
@@ -53,7 +70,7 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith((async () => {
     try {
-      return await fetch(request);
+      return await fetchNavigation(request);
     } catch (networkError) {
       const cached = await caches.match(OFFLINE_URL, { ignoreSearch: true });
       if (cached) return cached;
