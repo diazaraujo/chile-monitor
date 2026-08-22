@@ -1125,17 +1125,14 @@ mod sanitize_path_tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn delayed_sidecar_test_child() -> Child {
-        if cfg!(windows) {
-            Command::new("cmd")
-                .args(["/C", "ping -n 30 127.0.0.1 > NUL"])
-                .spawn()
-                .expect("spawn test child")
-        } else {
-            Command::new("sh")
-                .args(["-c", "sleep 30"])
-                .spawn()
-                .expect("spawn test child")
-        }
+        Command::new(std::env::current_exe().expect("resolve test executable"))
+            .args([
+                "--exact",
+                "sanitize_path_tests::sidecar_readiness_child_waits",
+                "--ignored",
+            ])
+            .spawn()
+            .expect("spawn test child")
     }
 
     fn unique_test_dir() -> PathBuf {
@@ -1146,6 +1143,12 @@ mod sanitize_path_tests {
                 .expect("system time after epoch")
                 .as_nanos()
         ))
+    }
+
+    #[test]
+    #[ignore = "spawned as a long-lived child by the sidecar readiness test"]
+    fn sidecar_readiness_child_waits() {
+        std::thread::sleep(std::time::Duration::from_secs(30));
     }
 
     #[test]
