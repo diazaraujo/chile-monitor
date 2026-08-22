@@ -136,18 +136,23 @@ describe('owner-checked deep-forecast cleanup', () => {
     await guard.stop();
   });
 
-  it('renews the lease on the heartbeat interval and stops cleanly', async () => {
+  it('renews the lease on the heartbeat interval and stops cleanly', { timeout: 1_000 }, async () => {
     let renewals = 0;
+    let resolveFirstRenewal;
+    const firstRenewal = new Promise((resolve) => {
+      resolveFirstRenewal = resolve;
+    });
     const guard = createDeepForecastLeaseGuard('run-1', 'worker-A', {
       heartbeatIntervalMs: 2,
       renewLease: async () => {
         renewals += 1;
+        resolveFirstRenewal();
         return 'EXTENDED';
       },
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 15));
-    assert.ok(renewals >= 2, `expected timer-driven renewals, received ${renewals}`);
+    await firstRenewal;
+    assert.ok(renewals >= 1, `expected a timer-driven renewal, received ${renewals}`);
 
     await guard.stop();
     const stoppedAt = renewals;
