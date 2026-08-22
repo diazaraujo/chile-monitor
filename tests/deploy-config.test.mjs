@@ -803,9 +803,17 @@ describe('deploy/cache configuration guardrails', () => {
     assert.doesNotMatch(viteConfigSource, /navigateFallbackDenylist:\s*\[/);
   });
 
-  it('uses network-only runtime caching for navigation requests', () => {
-    assert.match(viteConfigSource, /request\.mode === 'navigate'/);
-    assert.match(viteConfigSource, /handler:\s*'NetworkOnly'/);
+  it('delegates navigation requests to the SW script with an offline fallback', () => {
+    // Navigations are handled by public/sw-navigation.js: network-first with
+    // NO cache write (a cached index.html outlives its hashed chunks across
+    // deploys -> blank offline reloads), falling back to the precached
+    // offline.html when the network is unreachable.
+    assert.match(viteConfigSource, /importScripts:\s*\[[^\]]*'\/sw-navigation\.js'/);
+    assert.doesNotMatch(viteConfigSource, /html-navigation/);
+    const navScript = readFileSync(resolve(__dirname, '../public/sw-navigation.js'), 'utf-8');
+    assert.match(navScript, /request\.mode !== 'navigate'/);
+    assert.match(navScript, /OFFLINE_URL = '\/offline\.html'/);
+    assert.match(navScript, /caches\.match\(OFFLINE_URL/);
   });
 
   it('contains variant-specific metadata fields used by html replacement and manifest', () => {
