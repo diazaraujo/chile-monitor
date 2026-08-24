@@ -145,6 +145,14 @@ class PayloadTooLargeError extends Error {
 // limit, and cost six scheduled seed-fire-detections runs misdiagnosed as a NASA
 // FIRMS connectivity problem. Keep reading and discarding instead so the request
 // completes normally and the 413 the handler writes is actually delivered.
+//
+// Event-driven rather than the shorter `for await (const chunk of req)` for one
+// reason: draining to 'end' lets the request COMPLETE, so the connection stays
+// reusable. Measured — a second request on the same socket after a 413 succeeds.
+// Abandoning the body instead (a `break`) does deliver the status, but ends the
+// connection. The single req.destroy() is also explicit and greppable here, and
+// a test pins it to the drain-cap branch and nowhere else — which matters,
+// because destroying before a response is written is the whole #7099 bug.
 function readBody(req, limit = MAX_BODY_BYTES, drainLimit = OVERSIZE_DRAIN_BYTES) {
   return new Promise((resolve, reject) => {
     // Well-behaved clients declare Content-Length, so the cheapest and most
