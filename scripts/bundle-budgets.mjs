@@ -154,7 +154,7 @@ export function measureDistChunks(distDir) {
 }
 
 export function buildBudgetSnapshot(measured) {
-  const chunks = {};
+  const chunks = Object.create(null);
   for (const name of Object.keys(measured.chunks).sort()) {
     const { raw, gzip, brotli, files } = measured.chunks[name];
     chunks[name] = { raw, gzip, brotli, files };

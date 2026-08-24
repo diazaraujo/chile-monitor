@@ -111,11 +111,19 @@ describe('measureDistChunks', () => {
   });
 
   test('a chunk named after an Object.prototype key is measured, not swallowed', () => {
-    const dist = makeDistFixture({ 'toString-Ab12Cd34.js': 3_000, 'main-DYSz1bMh.js': 10_000 });
+    const dist = makeDistFixture({
+      'toString-Ab12Cd34.js': 3_000,
+      '__proto__-Ef56Gh78.js': 2_000,
+      'main-DYSz1bMh.js': 10_000,
+    });
     const measured = measureDistChunks(dist);
     assert.equal(measured.chunks.toString.raw, 3_000);
     assert.equal(measured.chunks.toString.files, 1);
+    assert.equal(measured.chunks.__proto__.raw, 2_000);
+    assert.equal(measured.chunks.__proto__.files, 1);
     const budget = buildBudgetSnapshot(measured);
+    assert.ok(Object.hasOwn(budget.chunks, '__proto__'));
+    assert.deepEqual(validateBudgetSnapshot(budget), []);
     assert.equal(compareBundleBudgets(measured, budget).ok, true);
     // And when it appears only in the build, it must be flagged as new.
     const budgetWithout = buildBudgetSnapshot(
