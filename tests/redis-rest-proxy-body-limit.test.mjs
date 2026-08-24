@@ -20,6 +20,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import net from 'node:net';
 import crypto from 'node:crypto';
+import { EventEmitter } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -150,10 +151,12 @@ function fakeRes(overrides = {}) {
   const rec = {
     writableEnded: false,
     destroyed: false,
+    headersSent: false,
     socket: { destroyed: false, remoteAddress: '127.0.0.1' },
     calls: [],
     writeHead(status) { rec.calls.push(['writeHead', status]); },
     end(body) { rec.calls.push(['end', body]); },
+    destroy() { rec.calls.push(['destroy']); },
     ...overrides,
   };
   return rec;
@@ -290,6 +293,24 @@ describe('redis-rest proxy body limit (#7099)', () => {
     await waitFor(() => seen.includes('\r\n\r\n'));
     sock.destroy();
     assert.match(seen, /^HTTP\/1\.1 200 /, 'the connection must still be usable after a 413');
+  });
+
+  it('rejects the readBody promise itself when the request errors', async () => {
+    const { readBody } = buildHelpers();
+    // Asserting only that a LATER request still works passes even if this
+    // promise never settles — the leak is invisible from outside. Await the
+    // promise directly so a dropped 'error' handler shows up as a timeout here.
+    const fake = new EventEmitter();
+    fake.headers = {};
+    fake.socket = { remoteAddress: '127.0.0.1' };
+    fake.off = fake.removeListener;
+    const pending = readBody(fake, 1024, 2048);
+    fake.emit('data', Buffer.alloc(16));
+    fake.emit('error', new Error('client gone'));
+    await assert.rejects(
+      Promise.race([pending, delay(2000).then(() => { throw new Error('readBody never settled'); })]),
+      /client gone/,
+    );
   });
 
   it('settles rather than hanging when the client aborts mid-body', async () => {
@@ -434,6 +455,18 @@ describe('redis-rest proxy body limit (#7099)', () => {
       assert.equal(JSON.parse(res.calls[1][1]).error, 'Internal error');
     });
 
+    it('does not write a second time when headers are already sent', () => {
+      const { respondError } = buildHelpers();
+      // Neither ended nor destroyed, so the writability guard alone lets this
+      // through — and the second writeHead() throws ERR_HTTP_HEADERS_SENT from
+      // inside an async catch, which exits the process.
+      let destroyed = false;
+      const res = fakeRes({ headersSent: true, destroy() { destroyed = true; } });
+      respondError(res, new Error('boom'));
+      assert.deepEqual(res.calls, [], 'must not write headers twice');
+      assert.equal(destroyed, true, 'an un-finishable response must be torn down');
+    });
+
     for (const [label, overrides] of [
       ['a finished response', { writableEnded: true }],
       ['a destroyed response', { destroyed: true }],
@@ -542,6 +575,41 @@ describe('redis-rest proxy body limit (#7099)', () => {
   });
 
   describe('wiring', () => {
+    it('the whole proxy destroys a request at exactly one site', () => {
+      // Scoping this count to readBody's extracted source was the hole: a
+      // `respondError(res, err); req.destroy();` added to the handler's own catch
+      // writes the 413 and then kills an incomplete upload, so a slow client gets
+      // EPIPE and #7099 is back — invisible to a readBody-only scan, and the
+      // mirrored probe server never executes the real catch. Count across the
+      // entire file so any new destroy has to be justified here.
+      const destroys = [...proxyCode.matchAll(/\breq\.destroy\(/g)];
+      assert.equal(
+        destroys.length,
+        1,
+        'the proxy must destroy a request at exactly one site (readBody\'s drain-cap backstop)',
+      );
+      assert.ok(
+        sources.readBody.includes('req.destroy('),
+        'the single destroy must live in readBody, not in a request handler',
+      );
+    });
+
+    it('the request handler catch does nothing but delegate to respondError', () => {
+      // Anything else in the catch runs AFTER the status is chosen but while the
+      // response may still be in flight — the exact window where an added
+      // req.destroy()/res.destroy() turns a clean 413 into a transport error.
+      // Anchored on the handler's own indentation (`  } catch` closing into
+      // `  }\n});`) so it cannot drift onto the deeper /pipeline inner catch,
+      // whose body legitimately does other work.
+      const handlerCatch = proxyCode.match(/\n {2}\} catch \(err\) \{\n([\s\S]*?)\n {2}\}\n\}\);/);
+      assert.ok(handlerCatch, 'could not locate the request handler catch block');
+      assert.equal(
+        handlerCatch[1].trim(),
+        'respondError(res, err);',
+        'the handler catch must contain only respondError(res, err)',
+      );
+    });
+
     it('readBody destroys the socket only past the drain cap, never on first overflow', () => {
       const body = sources.readBody.replace(/^\s*\/\/.*$/gm, '');
       const destroys = [...body.matchAll(/req\.destroy\(\)/g)];

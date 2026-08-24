@@ -162,6 +162,14 @@ function readBody(req, limit = MAX_BODY_BYTES, drainLimit = OVERSIZE_DRAIN_BYTES
     // finishes, so the caller reads the status instead of a reset. Without this,
     // anything past drainLimit falls to the destroy branch below and the caller
     // is back to a statusless EPIPE — the #7099 symptom.
+    //
+    // Accepted trade-off: Node's dump is not bounded by drainLimit, so a client
+    // that declares a huge body still gets those bytes read and discarded. That
+    // costs bandwidth, not memory (nothing is buffered), and reaching it needs
+    // both SRH_TOKEN and access to a port compose binds to 127.0.0.1 — a caller
+    // who has those can issue Redis commands anyway. Bounding it instead would
+    // mean closing the connection on every oversize request, losing the
+    // keep-alive property the drain below exists to preserve.
     const declared = Number(req.headers['content-length']);
     if (Number.isFinite(declared) && declared > limit) {
       const err = new PayloadTooLargeError(limit);
@@ -223,14 +231,25 @@ function readBody(req, limit = MAX_BODY_BYTES, drainLimit = OVERSIZE_DRAIN_BYTES
 // will never pass). Everything else stays a 500.
 function respondError(res, err) {
   const status = Number.isInteger(err?.statusCode) ? err.statusCode : 500;
-  // Log BEFORE the writability guard: when the socket already died the client
-  // gets nothing, and this line is then the only surviving record of the
-  // rejection. #7099 was a six-run misdiagnosis precisely because the container
-  // log said nothing while the caller saw an unexplained transport failure —
-  // `docker compose logs redis-rest` must corroborate every rejection.
+  // Log BEFORE any guard that can return early: when the response can no longer
+  // be written the client gets nothing, and this line is then the only surviving
+  // record of the rejection. #7099 was a six-run misdiagnosis precisely because
+  // the container log said nothing while the caller saw an unexplained transport
+  // failure — `docker compose logs redis-rest` must corroborate every rejection.
   if (status === 413) {
     const from = err.remoteAddress || res.socket?.remoteAddress || 'unknown';
     console.warn(`Rejected oversized request body from ${from}: ${err.message}`);
+  }
+  // headersSent is checked separately from the writability guard below: if
+  // something threw between writeHead() and end(), the response is neither ended
+  // nor destroyed, so that guard passes and a second writeHead() throws
+  // ERR_HTTP_HEADERS_SENT — from inside an async handler's catch, i.e. an
+  // unhandled rejection that exits the process. No current path reaches it (every
+  // writeHead/end pair here is synchronous and adjacent); this keeps a future one
+  // from turning a handled error into a crash.
+  if (res.headersSent) {
+    res.destroy();
+    return;
   }
   if (res.writableEnded || res.destroyed || res.socket?.destroyed) return;
   res.writeHead(status);
