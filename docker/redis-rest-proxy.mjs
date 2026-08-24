@@ -43,14 +43,22 @@ client.on('error', (err) => console.error('Redis error:', err.message));
 await client.connect();
 console.log(`Connected to Redis at ${maskRedisUrl(REDIS_URL)}`);
 
+// Compare BYTE lengths, not String.length. String.length counts UTF-16 code
+// units while timingSafeEqual compares bytes, and Node parses header values as
+// latin1 — so `Bearer aaa…<0xFF>` matches TOKEN.length while Buffer.from() makes
+// it one byte longer, and timingSafeEqual throws RangeError
+// ERR_CRYPTO_TIMING_SAFE_EQUAL_LENGTH. That throw happens above the request
+// handler's try block, so it became an unhandled rejection and Node exited:
+// one unauthenticated request killed the container. Verified on node 24.
 function checkAuth(req) {
   if (!TOKEN) return true;
   const auth = req.headers.authorization || '';
   const prefix = 'Bearer ';
   if (!auth.startsWith(prefix)) return false;
-  const provided = auth.slice(prefix.length);
-  if (provided.length !== TOKEN.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(TOKEN));
+  const provided = Buffer.from(auth.slice(prefix.length));
+  const expected = Buffer.from(TOKEN);
+  if (provided.length !== expected.length) return false;
+  return crypto.timingSafeEqual(provided, expected);
 }
 
 // Command safety: allowlist of expected Redis commands.
@@ -79,14 +87,20 @@ async function runCommand(args) {
   return client.sendCommand([cmd, ...cmdArgs.map(String)]);
 }
 
-// Every stock seeder may publish up to MAX_PAYLOAD_BYTES (5 MB, see
-// scripts/_seed-utils.mjs) per key, and atomicPublish sends that payload as a JSON
-// *string* nested inside ["SET", key, <payload>, "EX", ttl] — so escaping makes the
-// wire body strictly larger than the payload (~1.14x on real fire data, 2x in the
-// worst case of a payload that is nothing but quotes). The previous 1 MB cap sat
-// below every stock seeder's ceiling, not just the fire seeder's: on a self-hosted
-// install `wildfire:fires:v1` was simply never written (#7099). 16 MB clears the
-// 2x worst case with room to spare.
+// Every seeder that publishes through atomicPublish (scripts/_seed-utils.mjs) is
+// capped at MAX_PAYLOAD_BYTES (5 MB) per key, and atomicPublish sends that payload
+// as a JSON *string* nested inside ["SET", key, <payload>, "EX", ttl] — so escaping
+// makes the wire body strictly larger than the payload (~1.14x on real fire data,
+// 2x in the worst case of a payload that is nothing but quotes). 16 MB clears that
+// 2x worst case with room to spare; the previous 1 MB cap sat below the ceiling of
+// every such seeder, not just the fire seeder's, so on a self-hosted install
+// `wildfire:fires:v1` was simply never written (#7099).
+//
+// The 5 MB bound covers atomicPublish only. seed-forecasts.mjs and
+// backtest-resilience-outcomes.mjs each keep a local redisSet() that writes to this
+// proxy with no size check, so they are outside the arithmetic above — both
+// already degrade gracefully on a 4xx (nonRetryable + warn), and both write small
+// cache values in practice.
 const DEFAULT_MAX_BODY_BYTES = 16 * 1024 * 1024; // 16 MB
 
 function resolveMaxBodyBytes(env = process.env) {
@@ -107,7 +121,14 @@ const MAX_BODY_BYTES = resolveMaxBodyBytes();
 // How much of an over-cap body we are willing to read and throw away so the caller
 // can finish writing and actually read our 413. Discarded, never buffered — but
 // still bounded, so a hostile client cannot use the proxy as an unbounded sink.
-const OVERSIZE_DRAIN_BYTES = MAX_BODY_BYTES * 2;
+//
+// The floor matters: derived purely from the cap, lowering SRH_MAX_BODY_BYTES would
+// shrink the window in which a 413 is still deliverable, so a 2 MB cap would answer
+// a normal 5.98 MB atomicPublish body with a destroyed socket — the exact #7099
+// symptom, re-created by the very knob SELF_HOSTING.md offers as the safe way to
+// tune this. Draining buffers nothing, so holding the floor at the default costs
+// bandwidth only.
+const OVERSIZE_DRAIN_BYTES = Math.max(MAX_BODY_BYTES * 2, DEFAULT_MAX_BODY_BYTES);
 
 class PayloadTooLargeError extends Error {
   constructor(limit) {
@@ -126,6 +147,21 @@ class PayloadTooLargeError extends Error {
 // completes normally and the 413 the handler writes is actually delivered.
 function readBody(req, limit = MAX_BODY_BYTES, drainLimit = OVERSIZE_DRAIN_BYTES) {
   return new Promise((resolve, reject) => {
+    // Well-behaved clients declare Content-Length, so the cheapest and most
+    // reliable rejection is before a single byte is buffered: no drain budget is
+    // spent, and the 413 is deliverable no matter how far over the cap the body
+    // is. Node's own resOnFinish dumps the unread body once the response
+    // finishes, so the caller reads the status instead of a reset. Without this,
+    // anything past drainLimit falls to the destroy branch below and the caller
+    // is back to a statusless EPIPE — the #7099 symptom.
+    const declared = Number(req.headers['content-length']);
+    if (Number.isFinite(declared) && declared > limit) {
+      const err = new PayloadTooLargeError(limit);
+      err.remoteAddress = req.socket?.remoteAddress;
+      reject(err);
+      return;
+    }
+
     let chunks = [];
     let totalLength = 0;
     let overflowed = false;
@@ -149,8 +185,13 @@ function readBody(req, limit = MAX_BODY_BYTES, drainLimit = OVERSIZE_DRAIN_BYTES
       }
       if (overflowed) {
         if (totalLength > drainLimit) {
+          // Read the peer address BEFORE destroying — afterwards req.socket is
+          // gone, and this is exactly the branch where the client receives no
+          // response and the log line is the only surviving record.
+          const err = new PayloadTooLargeError(limit);
+          err.remoteAddress = req.socket?.remoteAddress;
           req.destroy();
-          settle(new PayloadTooLargeError(limit));
+          settle(err);
         }
         return;
       }
@@ -173,8 +214,17 @@ function readBody(req, limit = MAX_BODY_BYTES, drainLimit = OVERSIZE_DRAIN_BYTES
 // atomicPublish aborts immediately instead of burning its retries on a limit that
 // will never pass). Everything else stays a 500.
 function respondError(res, err) {
-  if (res.writableEnded || res.destroyed || res.socket?.destroyed) return;
   const status = Number.isInteger(err?.statusCode) ? err.statusCode : 500;
+  // Log BEFORE the writability guard: when the socket already died the client
+  // gets nothing, and this line is then the only surviving record of the
+  // rejection. #7099 was a six-run misdiagnosis precisely because the container
+  // log said nothing while the caller saw an unexplained transport failure —
+  // `docker compose logs redis-rest` must corroborate every rejection.
+  if (status === 413) {
+    const from = err.remoteAddress || res.socket?.remoteAddress || 'unknown';
+    console.warn(`Rejected oversized request body from ${from}: ${err.message}`);
+  }
+  if (res.writableEnded || res.destroyed || res.socket?.destroyed) return;
   res.writeHead(status);
   res.end(JSON.stringify({ error: err?.message || 'Internal error' }));
 }
