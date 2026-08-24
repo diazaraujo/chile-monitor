@@ -18,7 +18,7 @@
  * Both modes read an EXISTING dist/ and never build. The dist must come from
  * the same build CI runs, or the numbers are for a different product:
  *
- *   npm run build:pro && VITE_VARIANT=full ./node_modules/.bin/vite build
+ *   VITE_VARIANT=full ./node_modules/.bin/vite build
  *
  * ENV PARITY MATTERS: budgets are seeded from a build with no .env/.env.local
  * present, because that is what CI builds. Local VITE_ vars change dead-code
@@ -27,37 +27,30 @@
  * .env.local aside (they are symlinks in worktrees) or the snapshot will fail
  * in CI.
  *
- * Scope: JS chunks in dist/assets — the payload the issue's DebugBear
- * evidence points at. Hashed rollup chunks aggregate under their stable name;
- * an un-hashed .js emitted there is tracked under its literal filename rather
- * than silently ignored. dist-root PWA files (sw.js, workbox-*.js) are
- * excluded: sw.js embeds the precache manifest, so its bytes churn with every
- * content hash and would make the gate flaky without adding signal. The /pro
- * subapp payload (dist/pro/assets, built by build:pro from pro-test/) and the
- * embeddable dist-root embed.js are DELIBERATELY out of scope here — they are
- * separate build pipelines with their own dependency trees; gating them needs
- * their own snapshot sections (tracked as a follow-up issue, referenced in
- * the #7111 PR).
+ * Scope: JS assets referenced by dist/dashboard.html — the initial /dashboard
+ * payload the issue's DebugBear evidence observes. This includes the entry
+ * module and Vite's modulepreload links, but not lazy chunks that are only
+ * fetched after the page starts. Hashed rollup chunks aggregate under their
+ * stable name; an un-hashed .js emitted there is tracked under its literal
+ * filename rather than silently ignored. The /pro subapp payload
+ * (dist/pro/assets, built by build:pro from pro-test/) and the embeddable
+ * dist-root embed.js are DELIBERATELY out of scope here — they are separate
+ * product surfaces with their own build pipelines and follow-up tracking in
+ * #7119.
  *
  * Gate semantics:
- *   - RAW bytes are the gated number. gzip/brotli are recorded per chunk for
- *     reviewer visibility but not gated: compressed output varies with the
- *     zlib build, while raw bytes are identical across environments and are a
- *     superset signal (compressed growth requires raw growth).
- *   - Per chunk, allowed drift is max(DEFAULT_TOLERANCE_BYTES, budget.raw *
- *     DEFAULT_TOLERANCE_PCT / 100) in EITHER direction. Growth past it is the
- *     regression this gate exists for. Shrinkage past it also fails, asking
- *     for a re-seed — a stale, too-generous budget would let the next +151 KB
- *     creep back in invisibly, which is the #7111 failure mode itself.
+ *   - RAW bytes are the only gated number. The snapshot also records the file
+ *     count so code-splitting changes remain visible without storing compressed
+ *     outputs that are not enforced.
+ *   - Per chunk, allowed growth is max(DEFAULT_TOLERANCE_BYTES, budget.raw *
+ *     DEFAULT_TOLERANCE_PCT / 100). Growth past it is the regression this gate
+ *     exists for. Shrinkage past the same band is reported as a warning so an
+ *     optimization does not block a PR; re-seeding can ratchet the budget down.
  *   - New chunks and vanished chunks fail until the snapshot is regenerated,
  *     so code-splitting changes surface as a reviewable JSON diff in the PR.
- *   - The total is gated with its own MUCH tighter tolerance,
- *     max(TOTAL_TOLERANCE_BYTES, 0.25%). At 2% the total's slack (~300 KB on
- *     a ~15 MB total) would be twice the +151 KB incident this gate exists to
- *     catch, and the ~250 per-chunk byte floors alone would allow ~500 KB of
- *     smeared growth. The total is a sum of deterministic numbers, so a tight
- *     bound does not flake; legitimate growth just requires the re-seed that
- *     makes it visible in the PR diff.
+ *   - The initial-payload total is gated with its own tighter tolerance,
+ *     max(TOTAL_TOLERANCE_BYTES, 0.25%). Legitimate growth requires the
+ *     re-seed that makes it visible in the PR diff.
  *   - Tolerances are code constants. The snapshot records them for reader
  *     context, and check mode REJECTS a snapshot whose recorded tolerances
  *     disagree with the constants — a hand-edited "tolerancePct": 50 must red
@@ -71,9 +64,8 @@
  *      unparseable, or untrustworthy (fails validateBudgetSnapshot)
  */
 
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:zlib';
 import { isMainModule } from './lib/main-module.mjs';
 
 export const DEFAULT_TOLERANCE_PCT = 2;
@@ -84,7 +76,7 @@ export const TOTAL_TOLERANCE_BYTES = 16384;
 
 const DEFAULT_DIST_DIR = 'dist';
 const DEFAULT_BUDGET_PATH = 'scripts/shared/bundle-budgets.json';
-const BUILD_COMMAND = 'npm run build:pro && VITE_VARIANT=full ./node_modules/.bin/vite build';
+const BUILD_COMMAND = 'VITE_VARIANT=full ./node_modules/.bin/vite build';
 
 /**
  * 'main-DYSz1bMh.js' -> 'main'. Vite content hashes are exactly 8 chars of
@@ -98,14 +90,35 @@ export function chunkNameFromFileName(fileName) {
   return match ? match[1] : null;
 }
 
+export function initialDashboardAssetNames(distDir) {
+  const dashboardPath = join(distDir, 'dashboard.html');
+  let html;
+  try {
+    html = readFileSync(dashboardPath, 'utf8');
+  } catch (error) {
+    throw new Error(`cannot read ${dashboardPath} — run: ${BUILD_COMMAND}: ${error.message}`);
+  }
+
+  const assets = new Set();
+  for (const match of html.matchAll(/(?:src|href)=["']([^"']+\.js(?:[?#][^"']*)?)["']/gi)) {
+    const url = match[1].split(/[?#]/, 1)[0];
+    const marker = url.lastIndexOf('/assets/');
+    const fileName = marker >= 0
+      ? url.slice(marker + '/assets/'.length)
+      : url.startsWith('assets/')
+        ? url.slice('assets/'.length)
+        : null;
+    if (fileName && !fileName.includes('/')) assets.add(fileName);
+  }
+  if (assets.size === 0) {
+    throw new Error(`no initial JS assets referenced by ${dashboardPath} — run: ${BUILD_COMMAND}`);
+  }
+  return [...assets].sort();
+}
+
 export function measureDistChunks(distDir) {
   const assetsDir = join(distDir, 'assets');
-  let entries;
-  try {
-    entries = readdirSync(assetsDir);
-  } catch {
-    throw new Error(`cannot read ${assetsDir} — run: ${BUILD_COMMAND}`);
-  }
+  const entries = initialDashboardAssetNames(distDir);
 
   // Several rollup chunks can legitimately share a stable name in ONE build
   // (a real `VITE_VARIANT=full` build emits nine distinct `index-*.js`), so
@@ -117,7 +130,7 @@ export function measureDistChunks(distDir) {
   // "constructor") would otherwise hit the inherited property, skip the ??=
   // assignment, and be silently mismeasured.
   const chunks = Object.create(null);
-  for (const fileName of entries.sort()) {
+  for (const fileName of entries) {
     // An UN-hashed .js in dist/assets (a plugin emitting a fixed-name asset)
     // still ships to users, so it is tracked under its literal filename
     // rather than silently ignored. .js.br / .js.map siblings stay excluded.
@@ -125,30 +138,25 @@ export function measureDistChunks(distDir) {
       ?? (fileName.endsWith('.js') ? fileName : null);
     if (!name) continue;
     const filePath = join(assetsDir, fileName);
-    if (!statSync(filePath).isFile()) continue;
+    let fileStat;
+    try {
+      fileStat = statSync(filePath);
+    } catch (error) {
+      throw new Error(`dashboard entry references missing ${filePath} — ${error.message}`);
+    }
+    if (!fileStat.isFile()) {
+      throw new Error(`dashboard entry references non-file asset ${filePath}`);
+    }
     const buffer = readFileSync(filePath);
-    const entry = (chunks[name] ??= { raw: 0, gzip: 0, brotli: 0, files: 0 });
+    const entry = (chunks[name] ??= { raw: 0, files: 0 });
     entry.files += 1;
     entry.raw += buffer.length;
-    entry.gzip += gzipSync(buffer, { level: 9 }).length;
-    entry.brotli += brotliCompressSync(buffer, {
-      params: {
-        [zlibConstants.BROTLI_PARAM_QUALITY]: 11,
-        [zlibConstants.BROTLI_PARAM_SIZE_HINT]: buffer.length,
-      },
-    }).length;
   }
 
   const names = Object.keys(chunks);
-  if (names.length === 0) {
-    throw new Error(`no JS chunks in ${assetsDir} — run: ${BUILD_COMMAND}`);
-  }
-
-  const total = { raw: 0, gzip: 0, brotli: 0 };
+  const total = { raw: 0 };
   for (const name of names) {
     total.raw += chunks[name].raw;
-    total.gzip += chunks[name].gzip;
-    total.brotli += chunks[name].brotli;
   }
   return { chunks, total };
 }
@@ -156,12 +164,12 @@ export function measureDistChunks(distDir) {
 export function buildBudgetSnapshot(measured) {
   const chunks = Object.create(null);
   for (const name of Object.keys(measured.chunks).sort()) {
-    const { raw, gzip, brotli, files } = measured.chunks[name];
-    chunks[name] = { raw, gzip, brotli, files };
+    const { raw, files } = measured.chunks[name];
+    chunks[name] = { raw, files };
   }
   return {
     comment:
-      'Client bundle-size budgets (#7111). Gated on raw bytes: per chunk '
+      'Initial /dashboard bundle-size budgets (#7111). Gated on raw bytes: per chunk '
       + `±max(${DEFAULT_TOLERANCE_BYTES} B, ${DEFAULT_TOLERANCE_PCT}%), total `
       + `±max(${TOTAL_TOLERANCE_BYTES} B, ${TOTAL_TOLERANCE_PCT}%). Tolerance fields here are `
       + 'informational — the gate enforces its own constants and rejects a snapshot that disagrees. '
@@ -171,7 +179,7 @@ export function buildBudgetSnapshot(measured) {
     toleranceBytes: DEFAULT_TOLERANCE_BYTES,
     totalTolerancePct: TOTAL_TOLERANCE_PCT,
     totalToleranceBytes: TOTAL_TOLERANCE_BYTES,
-    total: { ...measured.total },
+    total: { raw: measured.total.raw },
     chunks,
   };
 }
@@ -227,12 +235,13 @@ export function validateBudgetSnapshot(budget) {
 
 export function compareBundleBudgets(measured, budget) {
   const failures = [];
+  const warnings = [];
   const reseed = 'rerun the build above, then `npm run bundle:budgets`, and commit the snapshot diff';
 
   for (const problem of validateBudgetSnapshot(budget)) {
     failures.push(`snapshot invalid: ${problem} — ${reseed}`);
   }
-  if (failures.length > 0) return { ok: false, failures };
+  if (failures.length > 0) return { ok: false, failures, warnings };
 
   for (const [name, budgeted] of Object.entries(budget.chunks)) {
     const built = Object.hasOwn(measured.chunks, name) ? measured.chunks[name] : undefined;
@@ -253,7 +262,7 @@ export function compareBundleBudgets(measured, budget) {
         + `(allowed drift ${kb(slack)}). If the growth is intended, ${reseed}`,
       );
     } else if (-delta > slack) {
-      failures.push(
+      warnings.push(
         `chunk "${name}" shrank ${kb(-delta)}: ${kb(budgeted.raw)} budgeted -> ${kb(built.raw)} built. `
         + `Ratchet the budget down so the headroom cannot silently refill — ${reseed}`,
       );
@@ -270,15 +279,19 @@ export function compareBundleBudgets(measured, budget) {
 
   const totalSlack = slackFor(budget.total.raw, TOTAL_TOLERANCE_PCT, TOTAL_TOLERANCE_BYTES);
   const totalDelta = measured.total.raw - budget.total.raw;
-  if (Math.abs(totalDelta) > totalSlack) {
-    const direction = totalDelta > 0 ? 'grew' : 'shrank';
+  if (totalDelta > totalSlack) {
     failures.push(
-      `total JS payload ${direction} ${kb(Math.abs(totalDelta))}: ${kb(budget.total.raw)} budgeted -> `
+      `total JS payload grew ${kb(totalDelta)}: ${kb(budget.total.raw)} budgeted -> `
       + `${kb(measured.total.raw)} built (allowed drift ${kb(totalSlack)}) — ${reseed}`,
+    );
+  } else if (-totalDelta > totalSlack) {
+    warnings.push(
+      `total JS payload shrank ${kb(-totalDelta)}: ${kb(budget.total.raw)} budgeted -> `
+      + `${kb(measured.total.raw)} built (allowed drift ${kb(totalSlack)}) — Ratchet the budget down — ${reseed}`,
     );
   }
 
-  return { ok: failures.length === 0, failures };
+  return { ok: failures.length === 0, failures, warnings };
 }
 
 function parseArgs(argv) {
@@ -326,7 +339,7 @@ function main() {
     writeFileSync(resolve(args.budget), `${JSON.stringify(snapshot, null, 2)}\n`);
     console.log(
       `bundle-budgets: wrote ${Object.keys(snapshot.chunks).length} chunk budgets `
-      + `(total ${kb(snapshot.total.raw)} raw / ${kb(snapshot.total.gzip)} gzip) to ${args.budget}`,
+      + `(initial payload ${kb(snapshot.total.raw)} raw) to ${args.budget}`,
     );
     return;
   }
@@ -355,6 +368,7 @@ function main() {
     for (const failure of result.failures) console.error(`  - ${failure}`);
     process.exit(1);
   }
+  for (const warning of result.warnings) console.warn(`bundle:check WARNING — ${warning}`);
   console.log(
     `bundle:check OK — ${Object.keys(budget.chunks).length} chunks within `
     + `±max(${DEFAULT_TOLERANCE_BYTES} B, ${DEFAULT_TOLERANCE_PCT}%), total within `

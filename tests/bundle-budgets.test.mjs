@@ -13,6 +13,7 @@ import {
   buildBudgetSnapshot,
   chunkNameFromFileName,
   compareBundleBudgets,
+  initialDashboardAssetNames,
   measureDistChunks,
   validateBudgetSnapshot,
 } from '../scripts/bundle-budgets.mjs';
@@ -29,11 +30,17 @@ after(() => {
   for (const root of fixtures) rmSync(root, { recursive: true, force: true });
 });
 
-/** Repeating-pattern content: compressible, like real minified JS. */
+/** Repeating-pattern content resembling minified JS. */
 function chunkContent(bytes) {
-  return 'export const x = "worldmonitor bundle budget fixture ";\n'.repeat(
-    Math.ceil(bytes / 56),
-  ).slice(0, bytes);
+  return 'export const x = "worldmonitor bundle budget fixture ";\n'.repeat(Math.ceil(bytes / 56)).slice(0, bytes);
+}
+
+function writeDashboardIndex(root, files) {
+  const jsFiles = files.filter((name) => name.endsWith('.js'));
+  const tags = jsFiles.map((name, index) => index === 0
+    ? `<script type="module" src="/assets/${name}"></script>`
+    : `<link rel="modulepreload" href="/assets/${name}">`);
+  writeFileSync(join(root, 'dashboard.html'), tags.join('\n'));
 }
 
 function makeDistFixture(files) {
@@ -44,6 +51,7 @@ function makeDistFixture(files) {
   for (const [name, bytes] of Object.entries(files)) {
     writeFileSync(join(assets, name), chunkContent(bytes));
   }
+  writeDashboardIndex(root, Object.keys(files));
   return root;
 }
 
@@ -64,7 +72,7 @@ describe('chunkNameFromFileName', () => {
 });
 
 describe('measureDistChunks', () => {
-  test('measures raw, gzip, and brotli bytes per stable chunk name', () => {
+  test('measures raw bytes per initial dashboard chunk name', () => {
     const dist = makeDistFixture({
       'main-DYSz1bMh.js': 10_000,
       'd3-Ab12Cd34.js': 5_000,
@@ -74,14 +82,8 @@ describe('measureDistChunks', () => {
     assert.deepEqual(Object.keys(measured.chunks).sort(), ['d3', 'main']);
     assert.equal(measured.chunks.main.raw, 10_000);
     assert.equal(measured.chunks.d3.raw, 5_000);
-    assert.ok(measured.chunks.main.gzip > 0);
-    assert.ok(measured.chunks.main.gzip < 10_000, 'fixture content must compress');
-    assert.ok(measured.chunks.main.brotli > 0);
     assert.equal(measured.total.raw, 15_000);
-    assert.equal(
-      measured.total.gzip,
-      measured.chunks.main.gzip + measured.chunks.d3.gzip,
-    );
+    assert.deepEqual(initialDashboardAssetNames(dist), ['d3-Ab12Cd34.js', 'main-DYSz1bMh.js']);
   });
 
   test('aggregates same-name chunks from one build and counts the files', () => {
@@ -97,14 +99,26 @@ describe('measureDistChunks', () => {
     assert.equal(measured.chunks.main.files, 1);
   });
 
-  test('throws when the dist dir has no JS chunks', () => {
+  test('throws when the dashboard index has no JS assets', () => {
     const dist = makeDistFixture({});
-    assert.throws(() => measureDistChunks(dist), /no JS chunks/i);
+    assert.throws(() => measureDistChunks(dist), /no initial JS assets/i);
+  });
+
+  test('ignores lazy chunks that are not referenced by the dashboard entry', () => {
+    const dist = makeDistFixture({
+      'main-DYSz1bMh.js': 10_000,
+      'lazy-panel-Ab12Cd34.js': 90_000,
+    });
+    writeDashboardIndex(dist, ['main-DYSz1bMh.js']);
+    const measured = measureDistChunks(dist);
+    assert.deepEqual(Object.keys(measured.chunks), ['main']);
+    assert.equal(measured.total.raw, 10_000);
   });
 
   test('an un-hashed .js asset is tracked under its literal name, not silently ignored', () => {
     const dist = makeDistFixture({ 'main-DYSz1bMh.js': 10_000 });
     writeFileSync(join(dist, 'assets', 'loader.js'), chunkContent(4_000));
+    writeDashboardIndex(dist, ['main-DYSz1bMh.js', 'loader.js']);
     const measured = measureDistChunks(dist);
     assert.equal(measured.chunks['loader.js'].raw, 4_000);
     assert.equal(measured.total.raw, 14_000);
@@ -169,12 +183,13 @@ describe('compareBundleBudgets', () => {
     );
   });
 
-  test('shrinking past tolerance fails and asks for a ratchet re-seed', () => {
+  test('shrinking past tolerance warns without blocking and asks for a ratchet re-seed', () => {
     const budget = budgetFor({ 'main-DYSz1bMh.js': 800_000 });
     const measured = measureDistChunks(makeDistFixture({ 'main-Xx99Yy88.js': 740_000 }));
     const result = compareBundleBudgets(measured, budget);
-    assert.equal(result.ok, false);
-    assert.ok(result.failures.some((f) => f.includes('shrank') && f.includes('bundle:budgets')));
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.failures, []);
+    assert.ok(result.warnings.some((warning) => warning.includes('shrank') && warning.includes('bundle:budgets')));
   });
 
   test('a new untracked chunk fails until the snapshot is regenerated', () => {
@@ -221,7 +236,7 @@ describe('compareBundleBudgets', () => {
     assert.equal(result.failures.length, 1, JSON.stringify(result.failures));
   });
 
-  test('per-chunk drift of exactly the slack passes; one byte past it fails, both directions', () => {
+  test('per-chunk growth fails and shrinkage warns past the slack', () => {
     // budget 100 KB raw: slack = max(2048, 2000) = 2048.
     const budget = budgetFor({ 'main-DYSz1bMh.js': 100_000 });
     const atSlack = (bytes) => compareBundleBudgets(
@@ -229,10 +244,12 @@ describe('compareBundleBudgets', () => {
       budget,
     );
     const chunkFailures = (r) => r.failures.filter((f) => f.includes('"main"'));
+    const chunkWarnings = (r) => r.warnings.filter((warning) => warning.includes('"main"'));
     assert.deepEqual(chunkFailures(atSlack(102_048)), []);
     assert.equal(chunkFailures(atSlack(102_049)).length, 1);
     assert.deepEqual(chunkFailures(atSlack(97_952)), []);
-    assert.equal(chunkFailures(atSlack(97_951)).length, 1);
+    assert.deepEqual(chunkFailures(atSlack(97_951)), []);
+    assert.equal(chunkWarnings(atSlack(97_951)).length, 1);
   });
 
   test('default tolerance is a floor of bytes or a percentage, whichever is larger', () => {
