@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 import { __testing__ } from '../server/worldmonitor/news/v1/list-feed-digest.ts';
 import {
   ACCEPTANCE,
+  assessCandidate,
   evaluateCandidates,
   firesDocumentedRule,
   loadStudy,
@@ -59,6 +60,20 @@ describe('#7081 frozen evidence — provenance and integrity', () => {
     const integrity = verifyIntegrity(study);
     assert.equal(integrity.ok, true,
       `fixture rows sha256 ${integrity.actual} != recorded ${integrity.expected}`);
+    assert.equal(integrity.evidenceOk, true,
+      `fixture evidence sha256 ${integrity.evidenceActual} != recorded ${integrity.evidenceExpected}`);
+  });
+
+  it('rejects verdict-driving aggregate mutations', () => {
+    const mutated = structuredClone(study);
+    mutated.populationAggregates = {
+      ...mutated.populationAggregates,
+      firesThatAreCriticalOrHigh: mutated.populationAggregates.firesThatAreCriticalOrHigh + 1,
+    };
+    const integrity = verifyIntegrity(mutated);
+    assert.equal(integrity.rowsOk, true, 'the row digest should remain unchanged');
+    assert.equal(integrity.evidenceOk, false,
+      'changing a top-level verdict input must invalidate the frozen evidence');
   });
 
   it('holds at least the required number of trajectories, with the adverse examples', () => {
@@ -270,6 +285,27 @@ describe('#7081 finding 3 — fading is not observable at this call site', () =>
       assert.notEqual(c.verdict, 'accept', `${c.id} must not be accepted without new evidence`);
       assert.ok(c.reason.length > 40, `${c.id} must record why it was rejected`);
     }
+  });
+
+  it('derives candidate verdicts from the acceptance bar', () => {
+    const documented = evaluateCandidates(study).find((c) => c.id === 'documented-score-ratio');
+    assert.ok(documented);
+    assert.equal(documented.verdict, 'reject');
+    assert.equal(documented.precision, 3 / 673);
+    assert.equal(documented.activeHighSeverityFalsePositives, 0);
+
+    assert.equal(assessCandidate({
+      precision: ACCEPTANCE.minFadingPrecision,
+      activeHighSeverityFalsePositives: ACCEPTANCE.maxActiveHighSeverityFalsePositives,
+    }).verdict, 'accept');
+    assert.equal(assessCandidate({
+      precision: ACCEPTANCE.minFadingPrecision - 0.01,
+      activeHighSeverityFalsePositives: 0,
+    }).verdict, 'reject');
+    assert.equal(assessCandidate({
+      precision: 1,
+      activeHighSeverityFalsePositives: ACCEPTANCE.maxActiveHighSeverityFalsePositives + 1,
+    }).verdict, 'reject');
   });
 
   it('the seeder, which CAN see silence, already has a working fading rule', () => {

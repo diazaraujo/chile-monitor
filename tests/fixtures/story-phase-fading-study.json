@@ -74,6 +74,7 @@
     "single_appearance": 23
   },
   "rowsSha256": "108c4a2ed324e9e7f17838f8bd9aa5cdea0af34d2799ac5c6db28b8dd8a990b3",
+  "evidenceSha256": "02e576db1ebe40ad9e65822793e2855fbed50e53b10bded545b92b418e3108f5",
   "sanitization": "No titles, links, descriptions, or feed/publisher names. Numeric features, severity class, category and language only. Timestamps are offsets in hours from captureUtc, never absolute clock values.",
   "schema": "worldmonitor-story-phase-fading-study/v1",
   "source": {

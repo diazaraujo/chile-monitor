@@ -38,6 +38,32 @@ export const ACCEPTANCE = {
   minTrajectories: 60,
 };
 
+export function assessCandidate({
+  precision,
+  activeHighSeverityFalsePositives = 0,
+  notComputableReason,
+}) {
+  if (precision == null) {
+    return {
+      verdict: 'not-computable-here',
+      precision: null,
+      activeHighSeverityFalsePositives,
+      reason: notComputableReason ?? 'The frozen evidence cannot measure this candidate at this call site.',
+    };
+  }
+
+  const meetsPrecision = precision >= ACCEPTANCE.minFadingPrecision;
+  const meetsControl = activeHighSeverityFalsePositives <= ACCEPTANCE.maxActiveHighSeverityFalsePositives;
+  return {
+    verdict: meetsPrecision && meetsControl ? 'accept' : 'reject',
+    precision,
+    activeHighSeverityFalsePositives,
+    reason: meetsPrecision && meetsControl
+      ? `Measured precision ${(precision * 100).toFixed(1)}% clears the ${ACCEPTANCE.minFadingPrecision * 100}% bar with ${activeHighSeverityFalsePositives} active high-severity false positives.`
+      : `Measured precision ${(precision * 100).toFixed(1)}% and ${activeHighSeverityFalsePositives} active high-severity false positives do not clear the acceptance bar.`,
+  };
+}
+
 export function loadStudy(path = FIXTURE) {
   return JSON.parse(readFileSync(path, 'utf-8'));
 }
@@ -83,9 +109,24 @@ export function verifyIntegrity(study) {
   // Re-serialise with sorted keys and no whitespace, exactly as the capture
   // script did. Every numeric field in a row is an integer, so this round-trips
   // identically across languages.
-  const canonical = `[${study.rows.map((r) => canonicalJson(r)).join(',')}]`;
-  const digest = createHash('sha256').update(canonical).digest('hex');
-  return { expected: study.rowsSha256, actual: digest, ok: digest === study.rowsSha256 };
+  const actualRowsSha256 = digestCanonical(study.rows);
+  const { evidenceSha256: _evidenceSha256, ...evidencePayload } = study;
+  const actualEvidenceSha256 = digestCanonical(evidencePayload);
+  const rowsOk = actualRowsSha256 === study.rowsSha256;
+  const evidenceOk = actualEvidenceSha256 === study.evidenceSha256;
+  return {
+    expected: study.rowsSha256,
+    actual: actualRowsSha256,
+    rowsOk,
+    evidenceExpected: study.evidenceSha256,
+    evidenceActual: actualEvidenceSha256,
+    evidenceOk,
+    ok: rowsOk && evidenceOk,
+  };
+}
+
+function digestCanonical(value) {
+  return createHash('sha256').update(canonicalJson(value)).digest('hex');
 }
 
 function canonicalJson(value) {
@@ -98,17 +139,21 @@ function canonicalJson(value) {
 export function evaluateCandidates(study) {
   const rows = study.rows;
   const serving = rows.filter((r) => r.strata.includes('serving_now'));
-  const controls = rows.filter((r) => r.strata.includes('active_high_severity'));
+  const population = study.populationAggregates;
+  const fires = population.firesUnderDocumentedRule;
+  const firesOnControls = population.firesThatAreCriticalOrHigh;
+  const firesInfoOrLow = population.firesThatAreInfoOrLow;
 
   const documented = {
     id: 'documented-score-ratio',
     description: 'currentScore < 0.5 * peakScore (the rule the proto comment promised)',
-    fires: rows.filter(firesDocumentedRule).length,
-    firesOnControls: controls.filter(firesDocumentedRule).length,
-    firesInfoOrLow: rows.filter((r) => firesDocumentedRule(r) && (r.sev === 'info' || r.sev === 'low')).length,
-    verdict: 'reject',
-    reason: 'Sensitivity is inversely proportional to severity: the ratio is an '
-      + 'article-age timer on low-severity items and unreachable on high-severity ones.',
+    fires,
+    firesOnControls,
+    firesInfoOrLow,
+    ...assessCandidate({
+      precision: fires > 0 ? (fires - firesInfoOrLow) / fires : 0,
+      activeHighSeverityFalsePositives: firesOnControls,
+    }),
   };
 
   const silence = {
@@ -116,19 +161,23 @@ export function evaluateCandidates(study) {
     description: 'silence since the previous appearance exceeds a threshold',
     servingRows: serving.length,
     servingMaxSilentMs: serving.reduce((m, r) => Math.max(m, r.silentMs), 0),
-    verdict: 'not-computable-here',
-    reason: 'derivePhase only runs for stories present in the current cycle and is '
-      + 'handed lastSeen = now, so this feature is ~0 for every row it can see. It is '
-      + 'computable in the notification seeder, which iterates the accumulator instead.',
+    ...assessCandidate({
+      precision: null,
+      notComputableReason: 'derivePhase only runs for stories present in the current cycle and is '
+        + 'handed lastSeen = now, so this feature is ~0 for every row it can see. It is '
+        + 'computable in the notification seeder, which iterates the accumulator instead.',
+    }),
   };
 
   const velocity = {
     id: 'mention-velocity',
     description: 'mentionCount per hour of story age',
     medianServingMentionCount: median(serving.map((r) => r.mc)),
-    verdict: 'reject',
-    reason: 'mentionCount increments once per (variant, lang, build cycle), not per '
-      + 'editorial mention, so it tracks build cadence and variant fan-out rather than attention.',
+    ...assessCandidate({
+      precision: null,
+      notComputableReason: 'mentionCount increments once per (variant, lang, build cycle), not per '
+        + 'editorial mention, so it tracks build cadence and variant fan-out rather than attention.',
+    }),
   };
 
   const publishers = {
@@ -136,9 +185,11 @@ export function evaluateCandidates(study) {
     description: 'current-cycle publishers over the historical distinct-publisher set',
     servingSinglePublisher: serving.filter((r) => r.srcSet <= 1).length,
     servingRows: serving.length,
-    verdict: 'reject',
-    reason: 'The historical publisher set is a singleton for the large majority of served '
-      + 'stories, so the ratio is 1/1 and there is no dynamic range to threshold.',
+    ...assessCandidate({
+      precision: null,
+      notComputableReason: 'The historical publisher set is a singleton for the large majority of served '
+        + 'stories, so the ratio is 1/1 and there is no dynamic range to threshold.',
+    }),
   };
 
   return [documented, silence, velocity, publishers];
@@ -155,6 +206,7 @@ function main() {
   const study = loadStudy();
   const integrity = verifyIntegrity(study);
   const agg = study.populationAggregates;
+  const candidates = evaluateCandidates(study);
   const failures = [];
 
   const out = [];
@@ -163,7 +215,8 @@ function main() {
   out.push(`  capture (UTC)  : ${study.captureUtc}`);
   out.push(`  sampled rows   : ${agg.sampledRows}`);
   out.push(`  retained rows  : ${study.retainedRows}`);
-  out.push(`  rows sha256    : ${integrity.ok ? 'OK' : `MISMATCH (${integrity.actual})`}`);
+  out.push(`  rows sha256    : ${integrity.rowsOk ? 'OK' : `MISMATCH (${integrity.actual})`}`);
+  out.push(`  evidence sha256: ${integrity.evidenceOk ? 'OK' : `MISMATCH (${integrity.evidenceActual})`}`);
   out.push('');
 
   out.push('Finding 1 — the shipped rule was unreachable');
@@ -205,8 +258,11 @@ function main() {
   out.push('');
 
   out.push('Candidate rules');
-  for (const c of evaluateCandidates(study)) {
+  for (const c of candidates) {
     out.push(`  [${c.verdict}] ${c.id} — ${c.description}`);
+    if (c.precision != null) {
+      out.push(`      measured precision ${(c.precision * 100).toFixed(1)}%; active high-severity false positives ${c.activeHighSeverityFalsePositives}`);
+    }
     out.push(`      ${c.reason}`);
   }
   out.push('');
@@ -215,7 +271,8 @@ function main() {
     + `${ACCEPTANCE.maxActiveHighSeverityFalsePositives} active high-severity false positives).`);
   out.push('StoryPhase.FADING stays in the wire enum and stays unemitted by the feed digest.');
 
-  if (!integrity.ok) failures.push(`fixture rows sha256 mismatch: ${integrity.actual} != ${study.rowsSha256}`);
+  if (!integrity.rowsOk) failures.push(`fixture rows sha256 mismatch: ${integrity.actual} != ${study.rowsSha256}`);
+  if (!integrity.evidenceOk) failures.push(`fixture evidence sha256 mismatch: ${integrity.evidenceActual} != ${study.evidenceSha256}`);
   if (agg.hashPeakScorePresent !== 0) {
     failures.push('a story:track hash now carries peakScore — the unreachability finding needs re-checking');
   }
@@ -228,6 +285,11 @@ function main() {
   for (const sev of ['critical', 'high']) {
     if (severityDynamicRange(sev).canFire) {
       failures.push(`${sev} severity can now reach the 0.5 ratio — the score weights changed`);
+    }
+  }
+  for (const candidate of candidates) {
+    if (candidate.verdict === 'accept') {
+      failures.push(`candidate ${candidate.id} meets the acceptance bar — re-run the study`);
     }
   }
 
