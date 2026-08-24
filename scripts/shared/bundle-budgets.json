@@ -1,0 +1,1489 @@
+{
+  "comment": "Client bundle-size budgets (#7111). Gated on raw bytes per chunk and in total, ±max(2048 B, 2%) per entry. Regenerate after \"npm run build:pro && VITE_VARIANT=full ./node_modules/.bin/vite build\" with: npm run bundle:budgets",
+  "variant": "full",
+  "tolerancePct": 2,
+  "toleranceBytes": 2048,
+  "total": {
+    "raw": 15174885,
+    "gzip": 4533961,
+    "brotli": 3780259
+  },
+  "chunks": {
+    "AviationCommandBar": {
+      "raw": 18235,
+      "gzip": 6220,
+      "brotli": 5404,
+      "files": 1
+    },
+    "CountryDeepDivePanel-demographics-capability": {
+      "raw": 9641,
+      "gzip": 3589,
+      "brotli": 3195,
+      "files": 1
+    },
+    "FrameworkSelector": {
+      "raw": 3113,
+      "gzip": 1230,
+      "brotli": 1022,
+      "files": 1
+    },
+    "GlobeMap": {
+      "raw": 1829465,
+      "gzip": 504768,
+      "brotli": 396306,
+      "files": 1
+    },
+    "IntelligenceGapBadge": {
+      "raw": 17397,
+      "gzip": 5221,
+      "brotli": 4555,
+      "files": 1
+    },
+    "Map": {
+      "raw": 93756,
+      "gzip": 23751,
+      "brotli": 20421,
+      "files": 1
+    },
+    "MapContainer": {
+      "raw": 44241,
+      "gzip": 9363,
+      "brotli": 8238,
+      "files": 1
+    },
+    "McpConnectModal": {
+      "raw": 12182,
+      "gzip": 3960,
+      "brotli": 3503,
+      "files": 1
+    },
+    "Panel": {
+      "raw": 34827,
+      "gzip": 8275,
+      "brotli": 7330,
+      "files": 1
+    },
+    "ProActivationChip": {
+      "raw": 3991,
+      "gzip": 1842,
+      "brotli": 1579,
+      "files": 1
+    },
+    "ProActivationInterstitial": {
+      "raw": 26898,
+      "gzip": 8713,
+      "brotli": 7764,
+      "files": 1
+    },
+    "RouteExplorer": {
+      "raw": 49812,
+      "gzip": 12779,
+      "brotli": 11315,
+      "files": 1
+    },
+    "SignalModal": {
+      "raw": 17202,
+      "gzip": 4772,
+      "brotli": 4133,
+      "files": 1
+    },
+    "StoryModal": {
+      "raw": 11161,
+      "gzip": 4112,
+      "brotli": 3529,
+      "files": 1
+    },
+    "UnifiedSettings": {
+      "raw": 145759,
+      "gzip": 38150,
+      "brotli": 32746,
+      "files": 1
+    },
+    "WatchlistTableView": {
+      "raw": 12477,
+      "gzip": 3877,
+      "brotli": 3418,
+      "files": 1
+    },
+    "WidgetChatModal": {
+      "raw": 12771,
+      "gzip": 4172,
+      "brotli": 3677,
+      "files": 1
+    },
+    "_cii-panel-partition": {
+      "raw": 315,
+      "gzip": 185,
+      "brotli": 159,
+      "files": 1
+    },
+    "_energy-risk-overview-state": {
+      "raw": 852,
+      "gzip": 365,
+      "brotli": 344,
+      "files": 1
+    },
+    "_live-webcams-origin": {
+      "raw": 424,
+      "gzip": 285,
+      "brotli": 240,
+      "files": 1
+    },
+    "activation": {
+      "raw": 304,
+      "gzip": 244,
+      "brotli": 208,
+      "files": 1
+    },
+    "agent-bus-actions": {
+      "raw": 71860,
+      "gzip": 19572,
+      "brotli": 17404,
+      "files": 1
+    },
+    "agent-bus-applier": {
+      "raw": 5761,
+      "gzip": 2227,
+      "brotli": 1988,
+      "files": 1
+    },
+    "ai-datacenters-data": {
+      "raw": 63418,
+      "gzip": 10842,
+      "brotli": 8755,
+      "files": 1
+    },
+    "ai-regulations": {
+      "raw": 12508,
+      "gzip": 3907,
+      "brotli": 3150,
+      "files": 1
+    },
+    "airports-data": {
+      "raw": 14629,
+      "gzip": 4641,
+      "brotli": 3539,
+      "files": 1
+    },
+    "analysis.worker": {
+      "raw": 82241,
+      "gzip": 27641,
+      "brotli": 24595,
+      "files": 1
+    },
+    "analyst-denial": {
+      "raw": 649,
+      "gzip": 388,
+      "brotli": 300,
+      "files": 1
+    },
+    "analytics": {
+      "raw": 117604,
+      "gzip": 41848,
+      "brotli": 35987,
+      "files": 1
+    },
+    "api": {
+      "raw": 997,
+      "gzip": 508,
+      "brotli": 426,
+      "files": 1
+    },
+    "apt-groups": {
+      "raw": 78828,
+      "gzip": 17980,
+      "brotli": 14562,
+      "files": 1
+    },
+    "arc": {
+      "raw": 3575,
+      "gzip": 1508,
+      "brotli": 1357,
+      "files": 1
+    },
+    "array": {
+      "raw": 135,
+      "gzip": 123,
+      "brotli": 91,
+      "files": 1
+    },
+    "attribution-footer": {
+      "raw": 2150,
+      "gzip": 1042,
+      "brotli": 866,
+      "files": 1
+    },
+    "basemap": {
+      "raw": 1322,
+      "gzip": 578,
+      "brotli": 507,
+      "files": 1
+    },
+    "cable-activity": {
+      "raw": 4866,
+      "gzip": 2394,
+      "brotli": 2122,
+      "files": 1
+    },
+    "cached-risk-scores": {
+      "raw": 24574,
+      "gzip": 8963,
+      "brotli": 7846,
+      "files": 1
+    },
+    "checkout": {
+      "raw": 29746,
+      "gzip": 10419,
+      "brotli": 9183,
+      "files": 1
+    },
+    "china-activity-nowcast-view": {
+      "raw": 25102,
+      "gzip": 7699,
+      "brotli": 6791,
+      "files": 1
+    },
+    "china-factory-clusters": {
+      "raw": 157,
+      "gzip": 147,
+      "brotli": 121,
+      "files": 1
+    },
+    "chokepoint-registry": {
+      "raw": 3623,
+      "gzip": 886,
+      "brotli": 790,
+      "files": 1
+    },
+    "cii-score-changes": {
+      "raw": 226,
+      "gzip": 186,
+      "brotli": 169,
+      "files": 1
+    },
+    "ciss-staleness": {
+      "raw": 32,
+      "gzip": 52,
+      "brotli": 36,
+      "files": 1
+    },
+    "clerk": {
+      "raw": 16749,
+      "gzip": 6499,
+      "brotli": 5849,
+      "files": 1
+    },
+    "confetti.module": {
+      "raw": 10696,
+      "gzip": 4300,
+      "brotli": 3876,
+      "files": 1
+    },
+    "conflict-zone-cull": {
+      "raw": 282109,
+      "gzip": 64607,
+      "brotli": 55158,
+      "files": 1
+    },
+    "conservation-wins": {
+      "raw": 9028,
+      "gzip": 2813,
+      "brotli": 2257,
+      "files": 1
+    },
+    "continuous": {
+      "raw": 4933,
+      "gzip": 2081,
+      "brotli": 1891,
+      "files": 1
+    },
+    "contrast": {
+      "raw": 393,
+      "gzip": 282,
+      "brotli": 243,
+      "files": 1
+    },
+    "correlation-engine": {
+      "raw": 18562,
+      "gzip": 6909,
+      "brotli": 6164,
+      "files": 1
+    },
+    "correlation-runtime-mode": {
+      "raw": 841,
+      "gzip": 522,
+      "brotli": 440,
+      "files": 1
+    },
+    "country-port-clusters": {
+      "raw": 15482,
+      "gzip": 2182,
+      "brotli": 1753,
+      "files": 1
+    },
+    "cross-domain-storage": {
+      "raw": 392,
+      "gzip": 261,
+      "brotli": 221,
+      "files": 1
+    },
+    "cross-module-integration": {
+      "raw": 14145,
+      "gzip": 5029,
+      "brotli": 4564,
+      "files": 1
+    },
+    "cross-strait-activity-summary": {
+      "raw": 8671,
+      "gzip": 3023,
+      "brotli": 2641,
+      "files": 1
+    },
+    "d3": {
+      "raw": 36,
+      "gzip": 56,
+      "brotli": 40,
+      "files": 1
+    },
+    "daily-market-brief": {
+      "raw": 10239,
+      "gzip": 4301,
+      "brotli": 3840,
+      "files": 1
+    },
+    "data-freshness": {
+      "raw": 85732,
+      "gzip": 18900,
+      "brotli": 15983,
+      "files": 1
+    },
+    "deck-stack": {
+      "raw": 763186,
+      "gzip": 212669,
+      "brotli": 176162,
+      "files": 1
+    },
+    "deduction-probability": {
+      "raw": 1350,
+      "gzip": 628,
+      "brotli": 581,
+      "files": 1
+    },
+    "disruption-timeline": {
+      "raw": 406,
+      "gzip": 279,
+      "brotli": 238,
+      "files": 1
+    },
+    "dom-utils": {
+      "raw": 3856,
+      "gzip": 1725,
+      "brotli": 1517,
+      "files": 1
+    },
+    "embed": {
+      "raw": 11953,
+      "gzip": 4308,
+      "brotli": 3780,
+      "files": 1
+    },
+    "embed-url": {
+      "raw": 59759,
+      "gzip": 19668,
+      "brotli": 17050,
+      "files": 1
+    },
+    "en": {
+      "raw": 126260,
+      "gzip": 45108,
+      "brotli": 38001,
+      "files": 1
+    },
+    "export": {
+      "raw": 24111,
+      "gzip": 8892,
+      "brotli": 7797,
+      "files": 1
+    },
+    "extent": {
+      "raw": 245,
+      "gzip": 177,
+      "brotli": 155,
+      "files": 1
+    },
+    "finance-geo": {
+      "raw": 15199,
+      "gzip": 4269,
+      "brotli": 3492,
+      "files": 1
+    },
+    "follow-button": {
+      "raw": 4192,
+      "gzip": 1845,
+      "brotli": 1576,
+      "files": 1
+    },
+    "followed-only-chip": {
+      "raw": 2324,
+      "gzip": 1142,
+      "brotli": 970,
+      "files": 1
+    },
+    "font-settings": {
+      "raw": 1440,
+      "gzip": 621,
+      "brotli": 540,
+      "files": 1
+    },
+    "forecast": {
+      "raw": 1415,
+      "gzip": 760,
+      "brotli": 663,
+      "files": 1
+    },
+    "forecast-case-files": {
+      "raw": 10452,
+      "gzip": 3969,
+      "brotli": 3399,
+      "files": 1
+    },
+    "format-intel-brief": {
+      "raw": 1425,
+      "gzip": 779,
+      "brotli": 681,
+      "files": 1
+    },
+    "fuel-shortage-registry-store": {
+      "raw": 547,
+      "gzip": 324,
+      "brotli": 296,
+      "files": 1
+    },
+    "fx-rates": {
+      "raw": 2201,
+      "gzip": 890,
+      "brotli": 800,
+      "files": 1
+    },
+    "gdelt-intel": {
+      "raw": 132663,
+      "gzip": 42400,
+      "brotli": 36215,
+      "files": 1
+    },
+    "geo-map-data": {
+      "raw": 155540,
+      "gzip": 31364,
+      "brotli": 24776,
+      "files": 1
+    },
+    "giving-renderer": {
+      "raw": 6784,
+      "gzip": 2108,
+      "brotli": 1882,
+      "files": 1
+    },
+    "global-tenders": {
+      "raw": 1221,
+      "gzip": 719,
+      "brotli": 652,
+      "files": 1
+    },
+    "globe-render-settings": {
+      "raw": 2201,
+      "gzip": 813,
+      "brotli": 710,
+      "files": 1
+    },
+    "gulf-fdi": {
+      "raw": 20655,
+      "gzip": 5436,
+      "brotli": 4488,
+      "files": 1
+    },
+    "h3-js": {
+      "raw": 195415,
+      "gzip": 57588,
+      "brotli": 48461,
+      "files": 1
+    },
+    "happy-share-renderer": {
+      "raw": 3217,
+      "gzip": 1499,
+      "brotli": 1336,
+      "files": 1
+    },
+    "hls": {
+      "raw": 523807,
+      "gzip": 161225,
+      "brotli": 132779,
+      "files": 1
+    },
+    "hormuz-tracker": {
+      "raw": 268,
+      "gzip": 222,
+      "brotli": 183,
+      "files": 1
+    },
+    "humanity-counters": {
+      "raw": 1295,
+      "gzip": 656,
+      "brotli": 551,
+      "files": 1
+    },
+    "i18n": {
+      "raw": 52460,
+      "gzip": 16562,
+      "brotli": 14921,
+      "files": 1
+    },
+    "imagery": {
+      "raw": 529,
+      "gzip": 339,
+      "brotli": 286,
+      "files": 1
+    },
+    "imagery-preview": {
+      "raw": 2040,
+      "gzip": 1036,
+      "brotli": 838,
+      "files": 1
+    },
+    "index": {
+      "raw": 63359,
+      "gzip": 23727,
+      "brotli": 21100,
+      "files": 9
+    },
+    "index.esm": {
+      "raw": 48050,
+      "gzip": 17155,
+      "brotli": 15147,
+      "files": 1
+    },
+    "insights-loader": {
+      "raw": 561,
+      "gzip": 349,
+      "brotli": 319,
+      "files": 1
+    },
+    "investments-focus": {
+      "raw": 146,
+      "gzip": 132,
+      "brotli": 126,
+      "files": 1
+    },
+    "irradiators": {
+      "raw": 9125,
+      "gzip": 3095,
+      "brotli": 2373,
+      "files": 1
+    },
+    "keyword-spike-core": {
+      "raw": 1909,
+      "gzip": 941,
+      "brotli": 865,
+      "files": 1
+    },
+    "layer-explanation-card": {
+      "raw": 130700,
+      "gzip": 25877,
+      "brotli": 21951,
+      "files": 1
+    },
+    "layout-batch": {
+      "raw": 17352,
+      "gzip": 6014,
+      "brotli": 5410,
+      "files": 1
+    },
+    "legal-links": {
+      "raw": 979,
+      "gzip": 496,
+      "brotli": 418,
+      "files": 1
+    },
+    "line": {
+      "raw": 3611,
+      "gzip": 1487,
+      "brotli": 1363,
+      "files": 1
+    },
+    "linear": {
+      "raw": 5998,
+      "gzip": 2661,
+      "brotli": 2450,
+      "files": 1
+    },
+    "live-channels-window": {
+      "raw": 15737,
+      "gzip": 5006,
+      "brotli": 4357,
+      "files": 1
+    },
+    "live-media-controller": {
+      "raw": 570,
+      "gzip": 305,
+      "brotli": 271,
+      "files": 1
+    },
+    "live-news": {
+      "raw": 556,
+      "gzip": 377,
+      "brotli": 336,
+      "files": 1
+    },
+    "live-stream-settings": {
+      "raw": 526,
+      "gzip": 313,
+      "brotli": 256,
+      "files": 1
+    },
+    "live-tankers": {
+      "raw": 1550,
+      "gzip": 826,
+      "brotli": 731,
+      "files": 1
+    },
+    "liveChannels": {
+      "raw": 1419,
+      "gzip": 741,
+      "brotli": 644,
+      "files": 1
+    },
+    "locale-ar": {
+      "raw": 174305,
+      "gzip": 53883,
+      "brotli": 44104,
+      "files": 1
+    },
+    "locale-bg": {
+      "raw": 197890,
+      "gzip": 59862,
+      "brotli": 48539,
+      "files": 1
+    },
+    "locale-cs": {
+      "raw": 140890,
+      "gzip": 53362,
+      "brotli": 45853,
+      "files": 1
+    },
+    "locale-de": {
+      "raw": 139126,
+      "gzip": 50926,
+      "brotli": 44174,
+      "files": 1
+    },
+    "locale-el": {
+      "raw": 201495,
+      "gzip": 61773,
+      "brotli": 49684,
+      "files": 1
+    },
+    "locale-es": {
+      "raw": 142359,
+      "gzip": 51254,
+      "brotli": 43638,
+      "files": 1
+    },
+    "locale-fa": {
+      "raw": 130445,
+      "gzip": 47334,
+      "brotli": 39652,
+      "files": 1
+    },
+    "locale-fr": {
+      "raw": 145582,
+      "gzip": 51888,
+      "brotli": 44568,
+      "files": 1
+    },
+    "locale-hi": {
+      "raw": 230688,
+      "gzip": 57203,
+      "brotli": 45320,
+      "files": 1
+    },
+    "locale-hr": {
+      "raw": 137602,
+      "gzip": 52159,
+      "brotli": 45319,
+      "files": 1
+    },
+    "locale-hu": {
+      "raw": 146643,
+      "gzip": 54241,
+      "brotli": 46556,
+      "files": 1
+    },
+    "locale-it": {
+      "raw": 140005,
+      "gzip": 50316,
+      "brotli": 43581,
+      "files": 1
+    },
+    "locale-ja": {
+      "raw": 144785,
+      "gzip": 52733,
+      "brotli": 43485,
+      "files": 1
+    },
+    "locale-ko": {
+      "raw": 135329,
+      "gzip": 49969,
+      "brotli": 41763,
+      "files": 1
+    },
+    "locale-nl": {
+      "raw": 135374,
+      "gzip": 50583,
+      "brotli": 43581,
+      "files": 1
+    },
+    "locale-pl": {
+      "raw": 141198,
+      "gzip": 53711,
+      "brotli": 46482,
+      "files": 1
+    },
+    "locale-pt": {
+      "raw": 140991,
+      "gzip": 51759,
+      "brotli": 43943,
+      "files": 1
+    },
+    "locale-ro": {
+      "raw": 141409,
+      "gzip": 51614,
+      "brotli": 44614,
+      "files": 1
+    },
+    "locale-ru": {
+      "raw": 199070,
+      "gzip": 61606,
+      "brotli": 49135,
+      "files": 1
+    },
+    "locale-sv": {
+      "raw": 132711,
+      "gzip": 50294,
+      "brotli": 43236,
+      "files": 1
+    },
+    "locale-sw": {
+      "raw": 138040,
+      "gzip": 50303,
+      "brotli": 43429,
+      "files": 1
+    },
+    "locale-th": {
+      "raw": 240498,
+      "gzip": 57664,
+      "brotli": 45324,
+      "files": 1
+    },
+    "locale-tr": {
+      "raw": 135702,
+      "gzip": 51469,
+      "brotli": 44472,
+      "files": 1
+    },
+    "locale-uk": {
+      "raw": 128900,
+      "gzip": 46306,
+      "brotli": 38838,
+      "files": 1
+    },
+    "locale-vi": {
+      "raw": 155477,
+      "gzip": 51208,
+      "brotli": 43560,
+      "files": 1
+    },
+    "locale-zh": {
+      "raw": 120759,
+      "gzip": 49192,
+      "brotli": 40356,
+      "files": 1
+    },
+    "macro-tiles-china": {
+      "raw": 18586,
+      "gzip": 5856,
+      "brotli": 5201,
+      "files": 1
+    },
+    "main": {
+      "raw": 840609,
+      "gzip": 249333,
+      "brotli": 198632,
+      "files": 1
+    },
+    "map-interaction-guard": {
+      "raw": 666,
+      "gzip": 326,
+      "brotli": 292,
+      "files": 1
+    },
+    "maplibre": {
+      "raw": 1048679,
+      "gzip": 281251,
+      "brotli": 231367,
+      "files": 1
+    },
+    "marked.esm": {
+      "raw": 41964,
+      "gzip": 12632,
+      "brotli": 11633,
+      "files": 1
+    },
+    "market-chart-modal": {
+      "raw": 4902,
+      "gzip": 2083,
+      "brotli": 1743,
+      "files": 1
+    },
+    "max": {
+      "raw": 200,
+      "gzip": 155,
+      "brotli": 137,
+      "files": 1
+    },
+    "mcpGrant": {
+      "raw": 6152,
+      "gzip": 2357,
+      "brotli": 1990,
+      "files": 1
+    },
+    "military-bases-data": {
+      "raw": 43481,
+      "gzip": 9248,
+      "brotli": 7678,
+      "files": 1
+    },
+    "military-surge": {
+      "raw": 41685,
+      "gzip": 13671,
+      "brotli": 12258,
+      "files": 1
+    },
+    "military-vessels": {
+      "raw": 11075,
+      "gzip": 4873,
+      "brotli": 4194,
+      "files": 1
+    },
+    "ml.worker": {
+      "raw": 826655,
+      "gzip": 200175,
+      "brotli": 162019,
+      "files": 1
+    },
+    "monotone": {
+      "raw": 3002,
+      "gzip": 1153,
+      "brotli": 1061,
+      "files": 1
+    },
+    "news-context": {
+      "raw": 146,
+      "gzip": 149,
+      "brotli": 113,
+      "files": 1
+    },
+    "news-market-correlation": {
+      "raw": 3580,
+      "gzip": 1537,
+      "brotli": 1390,
+      "files": 1
+    },
+    "notification-channels": {
+      "raw": 5803,
+      "gzip": 1941,
+      "brotli": 1719,
+      "files": 1
+    },
+    "ollama-models": {
+      "raw": 3727,
+      "gzip": 1600,
+      "brotli": 1406,
+      "files": 1
+    },
+    "oref-locations": {
+      "raw": 46755,
+      "gzip": 16753,
+      "brotli": 13824,
+      "files": 1
+    },
+    "panel-gating": {
+      "raw": 2849,
+      "gzip": 1117,
+      "brotli": 981,
+      "files": 1
+    },
+    "panel-support": {
+      "raw": 2944,
+      "gzip": 1328,
+      "brotli": 1172,
+      "files": 1
+    },
+    "panels": {
+      "raw": 146004,
+      "gzip": 33362,
+      "brotli": 27859,
+      "files": 1
+    },
+    "panels-defense": {
+      "raw": 72853,
+      "gzip": 18036,
+      "brotli": 15888,
+      "files": 1
+    },
+    "panels-economy": {
+      "raw": 174958,
+      "gzip": 44445,
+      "brotli": 36902,
+      "files": 1
+    },
+    "panels-energy": {
+      "raw": 99030,
+      "gzip": 23753,
+      "brotli": 20613,
+      "files": 1
+    },
+    "panels-intel": {
+      "raw": 273858,
+      "gzip": 74071,
+      "brotli": 61816,
+      "files": 1
+    },
+    "panels-markets": {
+      "raw": 172087,
+      "gzip": 40474,
+      "brotli": 34133,
+      "files": 1
+    },
+    "panels-news": {
+      "raw": 110176,
+      "gzip": 29218,
+      "brotli": 25804,
+      "files": 1
+    },
+    "panels-risk": {
+      "raw": 114396,
+      "gzip": 29454,
+      "brotli": 25114,
+      "files": 1
+    },
+    "persistent-cache": {
+      "raw": 3768,
+      "gzip": 1402,
+      "brotli": 1225,
+      "files": 1
+    },
+    "pinned-store": {
+      "raw": 1367,
+      "gzip": 690,
+      "brotli": 557,
+      "files": 1
+    },
+    "pipeline-evidence": {
+      "raw": 1143,
+      "gzip": 568,
+      "brotli": 495,
+      "files": 1
+    },
+    "pointer": {
+      "raw": 449,
+      "gzip": 288,
+      "brotli": 247,
+      "files": 1
+    },
+    "ports": {
+      "raw": 72,
+      "gzip": 87,
+      "brotli": 76,
+      "files": 1
+    },
+    "premium-denial": {
+      "raw": 1323,
+      "gzip": 606,
+      "brotli": 537,
+      "files": 1
+    },
+    "products": {
+      "raw": 1916,
+      "gzip": 526,
+      "brotli": 456,
+      "files": 1
+    },
+    "protomaps": {
+      "raw": 18571,
+      "gzip": 7260,
+      "brotli": 6560,
+      "files": 1
+    },
+    "purify.es": {
+      "raw": 28905,
+      "gzip": 10835,
+      "brotli": 9762,
+      "files": 1
+    },
+    "push-notifications": {
+      "raw": 3162,
+      "gzip": 1416,
+      "brotli": 1230,
+      "files": 1
+    },
+    "referral": {
+      "raw": 1419,
+      "gzip": 724,
+      "brotli": 645,
+      "files": 1
+    },
+    "regional-intelligence-board-utils": {
+      "raw": 14186,
+      "gzip": 3448,
+      "brotli": 2999,
+      "files": 1
+    },
+    "renewable-energy-data": {
+      "raw": 3126,
+      "gzip": 1426,
+      "brotli": 1308,
+      "files": 1
+    },
+    "renewable-installations": {
+      "raw": 15007,
+      "gzip": 3092,
+      "brotli": 2587,
+      "files": 1
+    },
+    "rpc-client-aviation-v1": {
+      "raw": 9341,
+      "gzip": 1843,
+      "brotli": 1532,
+      "files": 1
+    },
+    "rpc-client-climate-v1": {
+      "raw": 3325,
+      "gzip": 955,
+      "brotli": 806,
+      "files": 1
+    },
+    "rpc-client-conflict-v1": {
+      "raw": 3459,
+      "gzip": 955,
+      "brotli": 810,
+      "files": 1
+    },
+    "rpc-client-consumer-prices-v1": {
+      "raw": 4516,
+      "gzip": 939,
+      "brotli": 797,
+      "files": 1
+    },
+    "rpc-client-cyber-v1": {
+      "raw": 1,
+      "gzip": 21,
+      "brotli": 5,
+      "files": 1
+    },
+    "rpc-client-displacement-v1": {
+      "raw": 2191,
+      "gzip": 853,
+      "brotli": 722,
+      "files": 1
+    },
+    "rpc-client-economic-v1": {
+      "raw": 13315,
+      "gzip": 1910,
+      "brotli": 1653,
+      "files": 1
+    },
+    "rpc-client-forecast-v1": {
+      "raw": 2985,
+      "gzip": 884,
+      "brotli": 744,
+      "files": 1
+    },
+    "rpc-client-giving-v1": {
+      "raw": 1523,
+      "gzip": 749,
+      "brotli": 630,
+      "files": 1
+    },
+    "rpc-client-health-v1": {
+      "raw": 1586,
+      "gzip": 683,
+      "brotli": 568,
+      "files": 1
+    },
+    "rpc-client-infrastructure-v1": {
+      "raw": 5763,
+      "gzip": 1284,
+      "brotli": 1081,
+      "files": 1
+    },
+    "rpc-client-intelligence-v1": {
+      "raw": 16474,
+      "gzip": 2127,
+      "brotli": 1813,
+      "files": 1
+    },
+    "rpc-client-maritime-v1": {
+      "raw": 2312,
+      "gzip": 902,
+      "brotli": 770,
+      "files": 1
+    },
+    "rpc-client-market-v1": {
+      "raw": 10682,
+      "gzip": 1522,
+      "brotli": 1313,
+      "files": 1
+    },
+    "rpc-client-military-v1": {
+      "raw": 6277,
+      "gzip": 1361,
+      "brotli": 1147,
+      "files": 1
+    },
+    "rpc-client-natural-v1": {
+      "raw": 1398,
+      "gzip": 716,
+      "brotli": 602,
+      "files": 1
+    },
+    "rpc-client-news-v1": {
+      "raw": 2233,
+      "gzip": 849,
+      "brotli": 723,
+      "files": 1
+    },
+    "rpc-client-positive-events-v1": {
+      "raw": 1296,
+      "gzip": 654,
+      "brotli": 550,
+      "files": 1
+    },
+    "rpc-client-prediction-v1": {
+      "raw": 1625,
+      "gzip": 781,
+      "brotli": 656,
+      "files": 1
+    },
+    "rpc-client-radiation-v1": {
+      "raw": 1435,
+      "gzip": 727,
+      "brotli": 608,
+      "files": 1
+    },
+    "rpc-client-research-v1": {
+      "raw": 3435,
+      "gzip": 974,
+      "brotli": 823,
+      "files": 1
+    },
+    "rpc-client-resilience-v1": {
+      "raw": 3075,
+      "gzip": 871,
+      "brotli": 728,
+      "files": 1
+    },
+    "rpc-client-safety-v1": {
+      "raw": 1753,
+      "gzip": 814,
+      "brotli": 690,
+      "files": 1
+    },
+    "rpc-client-sanctions-v1": {
+      "raw": 1934,
+      "gzip": 794,
+      "brotli": 667,
+      "files": 1
+    },
+    "rpc-client-scenario-v1": {
+      "raw": 2034,
+      "gzip": 809,
+      "brotli": 688,
+      "files": 1
+    },
+    "rpc-client-seismology-v1": {
+      "raw": 1678,
+      "gzip": 802,
+      "brotli": 683,
+      "files": 1
+    },
+    "rpc-client-supply-chain-v1": {
+      "raw": 11593,
+      "gzip": 1585,
+      "brotli": 1324,
+      "files": 1
+    },
+    "rpc-client-thermal-v1": {
+      "raw": 1425,
+      "gzip": 722,
+      "brotli": 612,
+      "files": 1
+    },
+    "rpc-client-trade-v1": {
+      "raw": 4332,
+      "gzip": 1070,
+      "brotli": 899,
+      "files": 1
+    },
+    "rpc-client-unrest-v1": {
+      "raw": 2004,
+      "gzip": 899,
+      "brotli": 773,
+      "files": 1
+    },
+    "rpc-client-webcam-v1": {
+      "raw": 2080,
+      "gzip": 820,
+      "brotli": 685,
+      "files": 1
+    },
+    "rpc-client-wildfire-v1": {
+      "raw": 1833,
+      "gzip": 838,
+      "brotli": 714,
+      "files": 1
+    },
+    "rss": {
+      "raw": 6805,
+      "gzip": 3058,
+      "brotli": 2761,
+      "files": 1
+    },
+    "satellite.es": {
+      "raw": 24597,
+      "gzip": 11680,
+      "brotli": 10144,
+      "files": 1
+    },
+    "search-manager": {
+      "raw": 116691,
+      "gzip": 31247,
+      "brotli": 26825,
+      "files": 1
+    },
+    "sentry": {
+      "raw": 431704,
+      "gzip": 142164,
+      "brotli": 120691,
+      "files": 1
+    },
+    "sentry-init": {
+      "raw": 18324,
+      "gzip": 6907,
+      "brotli": 5997,
+      "files": 1
+    },
+    "settings": {
+      "raw": 29278,
+      "gzip": 8967,
+      "brotli": 7802,
+      "files": 1
+    },
+    "settings-persistence": {
+      "raw": 1753,
+      "gzip": 1007,
+      "brotli": 824,
+      "files": 1
+    },
+    "settings-window": {
+      "raw": 2469,
+      "gzip": 1192,
+      "brotli": 1016,
+      "files": 1
+    },
+    "shortage-evidence": {
+      "raw": 658,
+      "gzip": 393,
+      "brotli": 338,
+      "files": 1
+    },
+    "signal-aggregator": {
+      "raw": 10785,
+      "gzip": 3493,
+      "brotli": 3154,
+      "files": 1
+    },
+    "signal-quality": {
+      "raw": 8960,
+      "gzip": 3742,
+      "brotli": 3321,
+      "files": 1
+    },
+    "source-coverage": {
+      "raw": 5387,
+      "gzip": 2341,
+      "brotli": 2074,
+      "files": 1
+    },
+    "sparkline": {
+      "raw": 1093,
+      "gzip": 541,
+      "brotli": 471,
+      "files": 1
+    },
+    "stack": {
+      "raw": 968,
+      "gzip": 490,
+      "brotli": 455,
+      "files": 1
+    },
+    "startup-ecosystems": {
+      "raw": 21936,
+      "gzip": 6017,
+      "brotli": 5040,
+      "files": 1
+    },
+    "stock-fundamentals-display": {
+      "raw": 1854,
+      "gzip": 718,
+      "brotli": 626,
+      "files": 1
+    },
+    "storage-evidence": {
+      "raw": 667,
+      "gzip": 394,
+      "brotli": 346,
+      "files": 1
+    },
+    "storage-facility-registry-store": {
+      "raw": 14203,
+      "gzip": 4552,
+      "brotli": 4020,
+      "files": 1
+    },
+    "story-renderer": {
+      "raw": 10668,
+      "gzip": 3620,
+      "brotli": 3174,
+      "files": 1
+    },
+    "string": {
+      "raw": 20823,
+      "gzip": 7396,
+      "brotli": 6500,
+      "files": 1
+    },
+    "tech-activity": {
+      "raw": 4643,
+      "gzip": 1928,
+      "brotli": 1756,
+      "files": 1
+    },
+    "tech-geo-data": {
+      "raw": 50926,
+      "gzip": 10958,
+      "brotli": 9035,
+      "files": 1
+    },
+    "theme-manager": {
+      "raw": 1474,
+      "gzip": 659,
+      "brotli": 578,
+      "files": 1
+    },
+    "threat-classifier": {
+      "raw": 10065,
+      "gzip": 3699,
+      "brotli": 3242,
+      "files": 1
+    },
+    "threat-timeline-utils": {
+      "raw": 4298,
+      "gzip": 1801,
+      "brotli": 1634,
+      "files": 1
+    },
+    "topojson": {
+      "raw": 1560,
+      "gzip": 713,
+      "brotli": 653,
+      "files": 1
+    },
+    "toronto-safety": {
+      "raw": 2681,
+      "gzip": 975,
+      "brotli": 808,
+      "files": 1
+    },
+    "trade-routes": {
+      "raw": 4660,
+      "gzip": 1330,
+      "brotli": 1208,
+      "files": 1
+    },
+    "transit-chart": {
+      "raw": 8430,
+      "gzip": 3345,
+      "brotli": 2920,
+      "files": 1
+    },
+    "trending-keywords": {
+      "raw": 8523,
+      "gzip": 3562,
+      "brotli": 3274,
+      "files": 1
+    },
+    "user-location": {
+      "raw": 11105,
+      "gzip": 4496,
+      "brotli": 4005,
+      "files": 1
+    },
+    "watchlist": {
+      "raw": 1222,
+      "gzip": 522,
+      "brotli": 465,
+      "files": 1
+    },
+    "watchlist-modal": {
+      "raw": 14112,
+      "gzip": 4784,
+      "brotli": 4118,
+      "files": 1
+    },
+    "web-vitals.attribution": {
+      "raw": 11225,
+      "gzip": 4465,
+      "brotli": 4026,
+      "files": 1
+    },
+    "widget-sanitizer": {
+      "raw": 5715,
+      "gzip": 2588,
+      "brotli": 2161,
+      "files": 1
+    },
+    "widget-store": {
+      "raw": 26304,
+      "gzip": 9805,
+      "brotli": 8739,
+      "files": 1
+    },
+    "world-happiness": {
+      "raw": 1478,
+      "gzip": 843,
+      "brotli": 626,
+      "files": 1
+    },
+    "yielding-work-queue": {
+      "raw": 1058,
+      "gzip": 617,
+      "brotli": 540,
+      "files": 1
+    },
+    "zh-TW": {
+      "raw": 120963,
+      "gzip": 49197,
+      "brotli": 40763,
+      "files": 1
+    }
+  }
+}
