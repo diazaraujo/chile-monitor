@@ -10,9 +10,10 @@
  *   POST /multi-exec                  → JSON body [["CMD1",...], ["CMD2",...]]
  *
  * Env:
- *   REDIS_URL  - Redis connection string (default: redis://redis:6379)
- *   SRH_TOKEN  - Bearer token for auth (default: none)
- *   PORT       - Listen port (default: 80)
+ *   REDIS_URL           - Redis connection string (default: redis://redis:6379)
+ *   SRH_TOKEN           - Bearer token for auth (default: none)
+ *   PORT                - Listen port (default: 80)
+ *   SRH_MAX_BODY_BYTES  - Max request body size (default: 16777216 / 16 MB)
  */
 
 import http from 'node:http';
@@ -78,20 +79,104 @@ async function runCommand(args) {
   return client.sendCommand([cmd, ...cmdArgs.map(String)]);
 }
 
-const MAX_BODY_BYTES = 1024 * 1024; // 1 MB
+// Every stock seeder may publish up to MAX_PAYLOAD_BYTES (5 MB, see
+// scripts/_seed-utils.mjs) per key, and atomicPublish sends that payload as a JSON
+// *string* nested inside ["SET", key, <payload>, "EX", ttl] — so escaping makes the
+// wire body strictly larger than the payload (~1.14x on real fire data, 2x in the
+// worst case of a payload that is nothing but quotes). The previous 1 MB cap sat
+// below every stock seeder's ceiling, not just the fire seeder's: on a self-hosted
+// install `wildfire:fires:v1` was simply never written (#7099). 16 MB clears the
+// 2x worst case with room to spare.
+const DEFAULT_MAX_BODY_BYTES = 16 * 1024 * 1024; // 16 MB
 
-async function readBody(req) {
-  const chunks = [];
-  let totalLength = 0;
-  for await (const chunk of req) {
-    totalLength += chunk.length;
-    if (totalLength > MAX_BODY_BYTES) {
-      req.destroy();
-      throw new Error('Request body too large');
-    }
-    chunks.push(chunk);
+function resolveMaxBodyBytes(env = process.env) {
+  const raw = env.SRH_MAX_BODY_BYTES;
+  if (raw === undefined || raw === null || String(raw).trim() === '') {
+    return DEFAULT_MAX_BODY_BYTES;
   }
-  return Buffer.concat(chunks).toString();
+  const parsed = Number(String(raw).trim());
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    console.warn(`Ignoring invalid SRH_MAX_BODY_BYTES=${JSON.stringify(String(raw))} — using ${DEFAULT_MAX_BODY_BYTES} bytes`);
+    return DEFAULT_MAX_BODY_BYTES;
+  }
+  return parsed;
+}
+
+const MAX_BODY_BYTES = resolveMaxBodyBytes();
+
+// How much of an over-cap body we are willing to read and throw away so the caller
+// can finish writing and actually read our 413. Discarded, never buffered — but
+// still bounded, so a hostile client cannot use the proxy as an unbounded sink.
+const OVERSIZE_DRAIN_BYTES = MAX_BODY_BYTES * 2;
+
+class PayloadTooLargeError extends Error {
+  constructor(limit) {
+    super(`Request body too large: limit is ${limit} bytes`);
+    this.name = 'PayloadTooLargeError';
+    this.statusCode = 413;
+  }
+}
+
+// The over-cap path used to call req.destroy() and throw, which destroys the
+// underlying socket before any response is written. The caller then saw a
+// transport failure with no HTTP status at all — `write EPIPE` /
+// `other side closed` — which reads as an upstream outage rather than a proxy
+// limit, and cost six scheduled seed-fire-detections runs misdiagnosed as a NASA
+// FIRMS connectivity problem. Keep reading and discarding instead so the request
+// completes normally and the 413 the handler writes is actually delivered.
+function readBody(req, limit = MAX_BODY_BYTES, drainLimit = OVERSIZE_DRAIN_BYTES) {
+  return new Promise((resolve, reject) => {
+    let chunks = [];
+    let totalLength = 0;
+    let overflowed = false;
+    let settled = false;
+
+    const settle = (err, value) => {
+      if (settled) return;
+      settled = true;
+      req.off('data', onData);
+      req.off('end', onEnd);
+      req.off('error', onError);
+      if (err) reject(err);
+      else resolve(value);
+    };
+
+    const onData = (chunk) => {
+      totalLength += chunk.length;
+      if (!overflowed && totalLength > limit) {
+        overflowed = true;
+        chunks = []; // release what was buffered; it can never be used now
+      }
+      if (overflowed) {
+        if (totalLength > drainLimit) {
+          req.destroy();
+          settle(new PayloadTooLargeError(limit));
+        }
+        return;
+      }
+      chunks.push(chunk);
+    };
+    const onEnd = () => {
+      if (overflowed) settle(new PayloadTooLargeError(limit));
+      else settle(null, Buffer.concat(chunks).toString());
+    };
+    const onError = (err) => settle(err);
+
+    req.on('data', onData);
+    req.on('end', onEnd);
+    req.on('error', onError);
+  });
+}
+
+// Errors that carry a statusCode answer with it, so the caller gets a diagnosable
+// HTTP status (413 is already in the seeder's PERMANENT_4XX_STATUSES, so
+// atomicPublish aborts immediately instead of burning its retries on a limit that
+// will never pass). Everything else stays a 500.
+function respondError(res, err) {
+  if (res.writableEnded || res.destroyed || res.socket?.destroyed) return;
+  const status = Number.isInteger(err?.statusCode) ? err.statusCode : 500;
+  res.writeHead(status);
+  res.end(JSON.stringify({ error: err?.message || 'Internal error' }));
 }
 
 const server = http.createServer(async (req, res) => {
@@ -197,8 +282,7 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(404);
     res.end(JSON.stringify({ error: 'Not found' }));
   } catch (err) {
-    res.writeHead(500);
-    res.end(JSON.stringify({ error: err.message }));
+    respondError(res, err);
   }
 });
 
