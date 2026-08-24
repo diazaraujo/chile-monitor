@@ -1,8 +1,10 @@
 {
-  "comment": "Client bundle-size budgets (#7111). Gated on raw bytes per chunk and in total, ±max(2048 B, 2%) per entry. Regenerate after \"npm run build:pro && VITE_VARIANT=full ./node_modules/.bin/vite build\" with: npm run bundle:budgets",
+  "comment": "Client bundle-size budgets (#7111). Gated on raw bytes: per chunk ±max(2048 B, 2%), total ±max(16384 B, 0.25%). Tolerance fields here are informational — the gate enforces its own constants and rejects a snapshot that disagrees. Regenerate after \"npm run build:pro && VITE_VARIANT=full ./node_modules/.bin/vite build\" with: npm run bundle:budgets",
   "variant": "full",
   "tolerancePct": 2,
   "toleranceBytes": 2048,
+  "totalTolerancePct": 0.25,
+  "totalToleranceBytes": 16384,
   "total": {
     "raw": 15174885,
     "gzip": 4533961,

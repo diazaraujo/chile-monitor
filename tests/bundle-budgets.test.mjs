@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,10 +8,13 @@ import { after, describe, test } from 'node:test';
 import {
   DEFAULT_TOLERANCE_BYTES,
   DEFAULT_TOLERANCE_PCT,
+  TOTAL_TOLERANCE_BYTES,
+  TOTAL_TOLERANCE_PCT,
   buildBudgetSnapshot,
   chunkNameFromFileName,
   compareBundleBudgets,
   measureDistChunks,
+  validateBudgetSnapshot,
 } from '../scripts/bundle-budgets.mjs';
 
 const SCRIPT_PATH = resolve(
@@ -94,9 +97,33 @@ describe('measureDistChunks', () => {
     assert.equal(measured.chunks.main.files, 1);
   });
 
-  test('throws when the dist dir has no hashed JS chunks', () => {
+  test('throws when the dist dir has no JS chunks', () => {
     const dist = makeDistFixture({});
-    assert.throws(() => measureDistChunks(dist), /no hashed JS chunks/i);
+    assert.throws(() => measureDistChunks(dist), /no JS chunks/i);
+  });
+
+  test('an un-hashed .js asset is tracked under its literal name, not silently ignored', () => {
+    const dist = makeDistFixture({ 'main-DYSz1bMh.js': 10_000 });
+    writeFileSync(join(dist, 'assets', 'loader.js'), chunkContent(4_000));
+    const measured = measureDistChunks(dist);
+    assert.equal(measured.chunks['loader.js'].raw, 4_000);
+    assert.equal(measured.total.raw, 14_000);
+  });
+
+  test('a chunk named after an Object.prototype key is measured, not swallowed', () => {
+    const dist = makeDistFixture({ 'toString-Ab12Cd34.js': 3_000, 'main-DYSz1bMh.js': 10_000 });
+    const measured = measureDistChunks(dist);
+    assert.equal(measured.chunks.toString.raw, 3_000);
+    assert.equal(measured.chunks.toString.files, 1);
+    const budget = buildBudgetSnapshot(measured);
+    assert.equal(compareBundleBudgets(measured, budget).ok, true);
+    // And when it appears only in the build, it must be flagged as new.
+    const budgetWithout = buildBudgetSnapshot(
+      measureDistChunks(makeDistFixture({ 'main-DYSz1bMh.js': 10_000 })),
+    );
+    assert.ok(
+      compareBundleBudgets(measured, budgetWithout).failures.some((f) => f.includes('toString')),
+    );
   });
 });
 
@@ -168,6 +195,38 @@ describe('compareBundleBudgets', () => {
     assert.ok(result.failures.some((f) => f.includes('d3') && f.includes('missing')));
   });
 
+  test('growth smeared across chunks, each inside its own slack, trips the tighter total gate', () => {
+    // 20 chunks x 30 KB: per-chunk slack is the 2048 B floor, total slack is
+    // the 16384 B floor. Grow each chunk by 1.5 KB — every chunk passes its
+    // own gate, the +30 KB sum must fail on the total alone.
+    const files = {};
+    const grown = {};
+    for (let i = 0; i < 20; i += 1) {
+      files[`chunk${i}-Ab12Cd34.js`] = 30_000;
+      grown[`chunk${i}-Xx99Yy88.js`] = 31_500;
+    }
+    const budget = budgetFor(files);
+    const result = compareBundleBudgets(measureDistChunks(makeDistFixture(grown)), budget);
+    assert.equal(result.ok, false);
+    assert.ok(result.failures.some((f) => f.includes('total')), JSON.stringify(result.failures));
+    assert.ok(!result.failures.some((f) => f.startsWith('chunk ')), 'no per-chunk failure expected');
+    assert.equal(result.failures.length, 1, JSON.stringify(result.failures));
+  });
+
+  test('per-chunk drift of exactly the slack passes; one byte past it fails, both directions', () => {
+    // budget 100 KB raw: slack = max(2048, 2000) = 2048.
+    const budget = budgetFor({ 'main-DYSz1bMh.js': 100_000 });
+    const atSlack = (bytes) => compareBundleBudgets(
+      measureDistChunks(makeDistFixture({ 'main-Xx99Yy88.js': bytes })),
+      budget,
+    );
+    const chunkFailures = (r) => r.failures.filter((f) => f.includes('"main"'));
+    assert.deepEqual(chunkFailures(atSlack(102_048)), []);
+    assert.equal(chunkFailures(atSlack(102_049)).length, 1);
+    assert.deepEqual(chunkFailures(atSlack(97_952)), []);
+    assert.equal(chunkFailures(atSlack(97_951)).length, 1);
+  });
+
   test('default tolerance is a floor of bytes or a percentage, whichever is larger', () => {
     assert.equal(DEFAULT_TOLERANCE_PCT, 2);
     assert.equal(DEFAULT_TOLERANCE_BYTES, 2048);
@@ -175,6 +234,47 @@ describe('compareBundleBudgets', () => {
     const budget = budgetFor({ 'tiny-Ab12Cd34.js': 4_000 });
     const measured = measureDistChunks(makeDistFixture({ 'tiny-Xx99Yy88.js': 5_900 }));
     assert.equal(compareBundleBudgets(measured, budget).ok, true);
+  });
+});
+
+describe('validateBudgetSnapshot', () => {
+  const goodBudget = () =>
+    buildBudgetSnapshot(measureDistChunks(makeDistFixture({ 'main-DYSz1bMh.js': 100_000 })));
+
+  test('a freshly generated snapshot is trustworthy', () => {
+    assert.deepEqual(validateBudgetSnapshot(goodBudget()), []);
+    assert.equal(TOTAL_TOLERANCE_PCT < DEFAULT_TOLERANCE_PCT, true);
+    assert.ok(TOTAL_TOLERANCE_BYTES >= DEFAULT_TOLERANCE_BYTES);
+  });
+
+  test('hand-widened tolerance fields are rejected, not obeyed', () => {
+    const budget = { ...goodBudget(), tolerancePct: 50 };
+    const problems = validateBudgetSnapshot(budget);
+    assert.ok(problems.some((p) => p.includes('tolerance')), JSON.stringify(problems));
+    assert.equal(compareBundleBudgets(measureDistChunks(makeDistFixture({ 'main-Xx99Yy88.js': 100_000 })), budget).ok, false);
+  });
+
+  test('a deleted files field cannot disable the code-splitting guard', () => {
+    const budget = goodBudget();
+    delete budget.chunks.main.files;
+    assert.ok(validateBudgetSnapshot(budget).some((p) => p.includes('files')));
+  });
+
+  test('a non-numeric raw cannot NaN-pass the byte gate', () => {
+    const budget = goodBudget();
+    budget.chunks.main.raw = 'lots';
+    assert.ok(validateBudgetSnapshot(budget).length > 0);
+  });
+
+  test('a hand-inflated total.raw decoupled from the chunk sum is rejected', () => {
+    const budget = goodBudget();
+    budget.total.raw += 500_000;
+    assert.ok(validateBudgetSnapshot(budget).some((p) => p.includes('total.raw')));
+  });
+
+  test('missing chunks/total sections are rejected', () => {
+    assert.ok(validateBudgetSnapshot({}).length > 0);
+    assert.ok(validateBudgetSnapshot(null).length > 0);
   });
 });
 
@@ -213,6 +313,27 @@ describe('bundle-budgets CLI', () => {
   test('--check exits 2 when the committed budget is absent', () => {
     const dist = makeDistFixture({ 'main-DYSz1bMh.js': 100_000 });
     const check = runCli(['--check', '--dist', dist, '--budget', join(dist, 'absent.json')]);
+    assert.equal(check.status, 2);
+  });
+
+  test('--check exits 2 on a tampered snapshot (widened tolerance), never silently obeys it', () => {
+    const dist = makeDistFixture({ 'main-DYSz1bMh.js': 100_000 });
+    const budgetPath = join(dist, 'budget.json');
+    assert.equal(runCli(['--dist', dist, '--budget', budgetPath]).status, 0);
+    const budget = JSON.parse(readFileSync(budgetPath, 'utf8'));
+    budget.tolerancePct = 50;
+    writeFileSync(budgetPath, JSON.stringify(budget));
+    writeFileSync(join(dist, 'assets', 'main-DYSz1bMh.js'), chunkContent(110_000));
+    const check = runCli(['--check', '--dist', dist, '--budget', budgetPath]);
+    assert.equal(check.status, 2);
+    assert.ok(check.stderr.includes('cannot trust'), check.stderr);
+  });
+
+  test('--check exits 2 on a structurally invalid snapshot instead of crashing to exit 1', () => {
+    const dist = makeDistFixture({ 'main-DYSz1bMh.js': 100_000 });
+    const budgetPath = join(dist, 'budget.json');
+    writeFileSync(budgetPath, JSON.stringify({ comment: 'no chunks or total' }));
+    const check = runCli(['--check', '--dist', dist, '--budget', budgetPath]);
     assert.equal(check.status, 2);
   });
 });
