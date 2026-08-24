@@ -64,6 +64,7 @@ import type { ServerInsights } from '@/services/insights-loader';
 const CONTENT_DEBOUNCE_MS = 150;
 
 const BRIEF = 'SITUATION NOW\nRussian strikes on Kyiv continued for a third night [1].';
+const BRIEF_WITH_SOURCE_GAP = 'SITUATION NOW\nReuters reported the second source event [2].';
 
 function serverInsights(overrides: Partial<ServerInsights> = {}): ServerInsights {
   return {
@@ -122,6 +123,33 @@ describe('cold-visitor early brief paint (#7118)', () => {
     const brief = contentOf(panel).querySelector('.insights-brief-text');
     expect(brief, 'the cold visitor must get the bootstrap brief at construction time').not.toBeNull();
     expect(brief?.textContent).toContain('Russian strikes on Kyiv');
+    panel.destroy();
+  });
+
+  it('preserves source positions for citations when an earlier source has no URL', async () => {
+    mockGetPersistentCache.mockResolvedValue(null);
+    mockGetServerInsights.mockReturnValue(serverInsights({
+      worldBrief: BRIEF_WITH_SOURCE_GAP,
+      worldBriefSources: [
+        { title: 'Missing-link source', source: 'Unknown', url: '' },
+        { title: 'Reuters report', source: 'Reuters', url: 'https://example.com/second' },
+      ],
+    }));
+    mockClassifySentiment.mockResolvedValue(null);
+
+    const panel = new InsightsPanel();
+    await flushEarlyPaint();
+
+    const earlyCitation = contentOf(panel).querySelector<HTMLAnchorElement>('.cb-citation');
+    expect(earlyCitation?.textContent).toBe('[2]');
+    expect(earlyCitation?.href).toBe('https://example.com/second');
+
+    await panel.updateInsights([]);
+    vi.advanceTimersByTime(CONTENT_DEBOUNCE_MS);
+
+    const fullCitation = contentOf(panel).querySelector<HTMLAnchorElement>('.cb-citation');
+    expect(fullCitation?.textContent).toBe('[2]');
+    expect(fullCitation?.href).toBe('https://example.com/second');
     panel.destroy();
   });
 

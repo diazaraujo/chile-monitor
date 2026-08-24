@@ -10,7 +10,7 @@ import { getTheaterPostureSummaries } from '@/services/military-surge';
 import { getCachedPosture } from '@/services/cached-theater-posture';
 import { isMobileDevice } from '@/utils';
 import { escapeHtml, sanitizeUrl, unsafeRawHtml } from '@/utils/sanitize';
-import { collectBriefSources, normalizeCachedBriefSources, renderBriefSourcesFooter, type BriefSource } from '@/utils/brief-sources';
+import { collectBriefCitationSources, collectBriefSources, normalizeCachedBriefSources, renderBriefSourcesFooter, type BriefSource } from '@/utils/brief-sources';
 import { formatIntelBrief } from '@/utils/format-intel-brief';
 import { SITE_VARIANT } from '@/config';
 import { deletePersistentCache, getPersistentCache, setPersistentCache } from '@/services/persistent-cache';
@@ -136,7 +136,7 @@ export class InsightsPanel extends Panel {
    * the early paint (#7118) and the full render.
    */
   private static serverBriefSources(insights: ServerInsights): BriefSource[] {
-    return collectBriefSources(
+    return collectBriefCitationSources(
       insights.worldBriefSources ?? [],
       Math.min(
         InsightsPanel.BRIEF_CACHE_MAX_SOURCES,
