@@ -7,14 +7,27 @@ import {
   addResponsiveZoneListener,
   removeResponsiveZoneListener,
 } from '../src/app/responsive-zone-listener.ts';
+import {
+  SPLIT_LAYOUT_MIN_WIDTH,
+  MAP_COL_MIN_PX,
+  MAP_COL_DEFAULT_PERCENT,
+} from '../src/app/split-layout.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const panelLayoutSrc = readFileSync(
   resolve(__dirname, '../src/app/panel-layout.ts'),
   'utf-8',
 );
+const eventHandlersSrc = readFileSync(
+  resolve(__dirname, '../src/app/event-handlers.ts'),
+  'utf-8',
+);
 const panelsCss = readFileSync(
   resolve(__dirname, '../src/styles/panels.css'),
+  'utf-8',
+);
+const mainCss = readFileSync(
+  resolve(__dirname, '../src/styles/main.css'),
   'utf-8',
 );
 
@@ -139,25 +152,65 @@ describe('panel layout responsive zone wiring', () => {
   });
 
   it('keeps CSS visibility thresholds aligned with the runtime thresholds', () => {
-    const thresholds = panelLayoutSrc.match(/return this\.ctx\.isDesktopApp \? (\d+) : (\d+);/);
-    assert.ok(thresholds, 'getUltraWideMinWidth() must keep an explicit desktop/web threshold pair');
-    const desktopMinWidth = Number(thresholds[1]);
-    const webMinWidth = Number(thresholds[2]);
+    // #6417 unified the web and desktop thresholds into one constant. The
+    // runtime predicate must reference it, not a literal.
+    assert.match(
+      panelLayoutSrc,
+      /return SPLIT_LAYOUT_MIN_WIDTH;/,
+      'getUltraWideMinWidth() must return the shared split-layout constant',
+    );
+    assert.doesNotMatch(
+      panelLayoutSrc,
+      /\b1600\b/,
+      'panel-layout must not re-introduce a hardcoded web threshold',
+    );
+    assert.doesNotMatch(
+      eventHandlersSrc,
+      /\b1600\b/,
+      'event-handlers must not re-introduce a hardcoded web threshold',
+    );
+    assert.match(
+      eventHandlersSrc,
+      /SPLIT_LAYOUT_MIN_WIDTH/,
+      'event-handlers must gate split-mode behavior on the shared constant',
+    );
+    assert.match(
+      eventHandlersSrc,
+      /clampMapColWidthPercent|getMapColWidthBounds/,
+      'event-handlers must clamp the map column through the shared helpers',
+    );
 
     assert.match(
       panelsCss,
-      new RegExp(`@media \\(max-width: ${desktopMinWidth - 1}px\\)`),
-      'CSS must hide the bottom zone below the desktop runtime threshold',
+      new RegExp(`@media \\(max-width: ${SPLIT_LAYOUT_MIN_WIDTH - 1}px\\)`),
+      'panels.css must hide the bottom zone below the shared threshold',
     );
-    assert.match(
+    assert.doesNotMatch(
       panelsCss,
-      new RegExp(`@media \\(max-width: ${webMinWidth - 1}px\\)`),
-      'CSS must hide the bottom zone below the web runtime threshold',
+      /max-width: 1599px/,
+      'the split 1599px web-only hide must not survive the unification',
     );
+
     assert.match(
-      panelsCss,
-      /\.main-content:not\(\.desktop-grid\)\s+\.map-bottom-grid\s*\{\s*display:\s*none\s*!important;/,
-      'the web-only hide must exclude the desktop runtime marker',
+      mainCss,
+      new RegExp(`@media \\(min-width: ${SPLIT_LAYOUT_MIN_WIDTH}px\\)`),
+      'main.css must activate the split layout at the shared threshold',
+    );
+    assert.doesNotMatch(
+      mainCss,
+      /@media \(min-width: 1600px\)/,
+      'main.css must not keep the old 1600px split gate',
+    );
+  });
+
+  it('keeps the CSS map-column floor aligned with the runtime floor', () => {
+    const floor = `max(var(--map-col-width, ${MAP_COL_DEFAULT_PERCENT}%), ${MAP_COL_MIN_PX}px)`;
+    const occurrences = mainCss.split(floor).length - 1;
+    // Media-query split block and the desktop-grid class block each carry the
+    // left- and right-side templates, so the floor must appear in all four.
+    assert.ok(
+      occurrences >= 4,
+      `main.css must apply the ${MAP_COL_MIN_PX}px map floor in every split grid template (found ${occurrences}, need 4)`,
     );
   });
 

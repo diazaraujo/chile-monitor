@@ -23171,6 +23171,7 @@ body.has-breaking-alert .panels-grid {
   z-index: 10;
   transition: background 0.15s ease;
   flex-shrink: 0;
+  touch-action: none;
 }
 
 .map-width-resize-handle::after {
@@ -23198,13 +23199,43 @@ body.map-width-resizing {
   user-select: none;
 }
 
-@media (min-width: 1600px) {
+/* The map-side toggle only means something in the split layout. */
+.map-side-btn {
+  display: none;
+}
+
+/* In a narrow map column the absolutely-centered clock overlaps the header
+   actions; the width-resize handler toggles this class. */
+.map-section.map-col-narrow .header-clock {
+  display: none;
+}
+
+/* 900px mirrors SPLIT_LAYOUT_MIN_WIDTH (src/app/split-layout.ts) — one
+   threshold for web and desktop since #6417; the 220px map floor mirrors
+   MAP_COL_MIN_PX. tests/responsive-zone-listener.test.mjs pins both. */
+@media (min-width: 900px) {
   .main-content {
     display: grid;
-    grid-template-columns: var(--map-col-width, 60%) 6px 1fr;
+    grid-template-columns: max(var(--map-col-width, 60%), 220px) 6px 1fr;
     grid-template-rows: 1fr auto;
     gap: 4px 0;
     overflow: hidden;
+  }
+
+  .main-content.map-right:not(.map-hidden) {
+    grid-template-columns: 1fr 6px max(var(--map-col-width, 60%), 220px);
+  }
+
+  .main-content.map-right .map-section {
+    grid-column: 3;
+  }
+
+  .main-content.map-right .panels-grid {
+    grid-column: 1;
+  }
+
+  .map-side-btn {
+    display: inline-flex;
   }
 
   .map-width-resize-handle {
@@ -23288,13 +23319,30 @@ body.map-width-resizing {
   }
 }
 
-/* Desktop app grid layout (active at any width >= 900px via JS class) */
+/* Desktop app grid layout (applied via JS class; the Tauri window minimum
+   width keeps it at or above SPLIT_LAYOUT_MIN_WIDTH) */
 .main-content.desktop-grid {
   display: grid;
-  grid-template-columns: var(--map-col-width, 60%) 6px 1fr;
+  grid-template-columns: max(var(--map-col-width, 60%), 220px) 6px 1fr;
   grid-template-rows: 1fr auto;
   gap: 4px 0;
   overflow: hidden;
+}
+
+.main-content.desktop-grid.map-right:not(.map-hidden) {
+  grid-template-columns: 1fr 6px max(var(--map-col-width, 60%), 220px);
+}
+
+.main-content.desktop-grid.map-right .map-section {
+  grid-column: 3;
+}
+
+.main-content.desktop-grid.map-right .panels-grid {
+  grid-column: 1;
+}
+
+.main-content.desktop-grid .map-side-btn {
+  display: inline-flex;
 }
 
 .main-content.desktop-grid .map-width-resize-handle {

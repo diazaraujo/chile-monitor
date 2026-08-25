@@ -9,6 +9,7 @@ import {
   shouldDeferInitialPanelMount,
   type DeferredPanelShellFootprint,
 } from '@/app/panel-mount-deferral';
+import { SPLIT_LAYOUT_MIN_WIDTH } from '@/app/split-layout';
 import {
   addResponsiveZoneListener,
   removeResponsiveZoneListener,
@@ -1100,6 +1101,9 @@ export class PanelLayoutManager implements AppModule {
                 <button class="map-dim-btn${isGlobeMode ? '' : ' active'}" data-mode="flat" title="2D Map">2D</button>
                 <button class="map-dim-btn${isGlobeMode ? ' active' : ''}" data-mode="globe" title="3D Globe">3D</button>
               </div>
+              <button class="map-pin-btn map-side-btn" id="mapSideBtn" title="Move map to the right side">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+              </button>
               <button class="map-pin-btn" id="mapFullscreenBtn" title="Fullscreen">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
               </button>
@@ -3226,7 +3230,7 @@ export class PanelLayoutManager implements AppModule {
   }
 
   private getUltraWideMinWidth(): number {
-    return this.ctx.isDesktopApp ? 900 : 1600;
+    return SPLIT_LAYOUT_MIN_WIDTH;
   }
 
   private getEffectiveUltraWide(): boolean {
