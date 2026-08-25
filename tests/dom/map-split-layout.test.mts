@@ -36,6 +36,22 @@ describe('map split layout (#6417)', () => {
     return { main, handle };
   }
 
+  function buildHeightDom(): { section: HTMLElement; container: HTMLElement; handle: HTMLElement } {
+    const section = document.createElement('section');
+    section.id = 'mapSection';
+    Object.defineProperty(section, 'offsetHeight', { configurable: true, value: 500 });
+    const container = document.createElement('div');
+    container.id = 'mapContainer';
+    Object.defineProperty(container, 'offsetHeight', { configurable: true, value: 500 });
+    const handle = document.createElement('div');
+    handle.id = 'mapResizeHandle';
+    const bottomGrid = document.createElement('div');
+    bottomGrid.id = 'mapBottomGrid';
+    section.append(container, handle, bottomGrid);
+    document.body.append(section);
+    return { section, container, handle };
+  }
+
   beforeEach(() => {
     localStorage.clear();
     document.body.replaceChildren();
@@ -189,22 +205,6 @@ describe('map split layout (#6417)', () => {
   });
 
   describe('split layout activation threshold', () => {
-    function buildHeightDom(): { section: HTMLElement; container: HTMLElement; handle: HTMLElement } {
-      const section = document.createElement('section');
-      section.id = 'mapSection';
-      Object.defineProperty(section, 'offsetHeight', { configurable: true, value: 500 });
-      const container = document.createElement('div');
-      container.id = 'mapContainer';
-      Object.defineProperty(container, 'offsetHeight', { configurable: true, value: 500 });
-      const handle = document.createElement('div');
-      handle.id = 'mapResizeHandle';
-      const bottomGrid = document.createElement('div');
-      bottomGrid.id = 'mapBottomGrid';
-      section.append(container, handle, bottomGrid);
-      document.body.append(section);
-      return { section, container, handle };
-    }
-
     it(`resizes the map container, not the section, from ${SPLIT_LAYOUT_MIN_WIDTH}px up`, () => {
       stubInnerWidth(SPLIT_LAYOUT_MIN_WIDTH + 100);
       const { section, container, handle } = buildHeightDom();
@@ -237,22 +237,6 @@ describe('map split layout (#6417)', () => {
   });
 
   describe('mode-scoped map height storage', () => {
-    function buildHeightDom(): { section: HTMLElement; container: HTMLElement; handle: HTMLElement } {
-      const section = document.createElement('section');
-      section.id = 'mapSection';
-      Object.defineProperty(section, 'offsetHeight', { configurable: true, value: 500 });
-      const container = document.createElement('div');
-      container.id = 'mapContainer';
-      Object.defineProperty(container, 'offsetHeight', { configurable: true, value: 500 });
-      const handle = document.createElement('div');
-      handle.id = 'mapResizeHandle';
-      const bottomGrid = document.createElement('div');
-      bottomGrid.id = 'mapBottomGrid';
-      section.append(container, handle, bottomGrid);
-      document.body.append(section);
-      return { section, container, handle };
-    }
-
     it('split mode writes map-split-height and leaves map-height alone', () => {
       stubInnerWidth(2000);
       localStorage.setItem('map-height', '400px');
