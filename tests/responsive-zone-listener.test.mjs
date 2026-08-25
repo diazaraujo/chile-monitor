@@ -11,6 +11,8 @@ import {
   SPLIT_LAYOUT_MIN_WIDTH,
   MAP_COL_MIN_PX,
   MAP_COL_DEFAULT_PERCENT,
+  PANELS_COL_MIN_PX,
+  MAP_COL_DIVIDER_PX,
 } from '../src/app/split-layout.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -203,14 +205,20 @@ describe('panel layout responsive zone wiring', () => {
     );
   });
 
-  it('keeps the CSS map-column floor aligned with the runtime floor', () => {
-    const floor = `max(var(--map-col-width, ${MAP_COL_DEFAULT_PERCENT}%), ${MAP_COL_MIN_PX}px)`;
-    const occurrences = mainCss.split(floor).length - 1;
-    // Media-query split block and the desktop-grid class block each carry the
-    // left- and right-side templates, so the floor must appear in all four.
+  it('keeps the CSS map-column floors aligned with the runtime floors', () => {
+    // Both pixel floors live in the grid track: the map's own minimum and the
+    // reserve for the panels column plus the divider.
+    const track = `min(max(var(--map-col-width, ${MAP_COL_DEFAULT_PERCENT}%), ${MAP_COL_MIN_PX}px), calc(100% - ${PANELS_COL_MIN_PX + MAP_COL_DIVIDER_PX}px))`;
+    const occurrences = mainCss.split(track).length - 1;
+    // The single split media block carries the left- and right-side templates.
     assert.ok(
-      occurrences >= 4,
-      `main.css must apply the ${MAP_COL_MIN_PX}px map floor in every split grid template (found ${occurrences}, need 4)`,
+      occurrences >= 2,
+      `main.css must apply the clamped map track in both split grid templates (found ${occurrences}, need 2)`,
+    );
+    assert.doesNotMatch(
+      mainCss,
+      /desktop-grid/,
+      'the desktop-grid duplicate split block must stay deleted — the 900px media query covers the desktop app (Tauri min window width is above it)',
     );
   });
 

@@ -121,6 +121,57 @@ describe('map split layout (#6417)', () => {
 
       expect(main.style.getPropertyValue('--map-col-width')).toBe(`${maxPct.toFixed(1)}%`);
     });
+
+    it('clamps a stored width on restore without overwriting the preference', () => {
+      localStorage.setItem('map-col-width', '75.0%');
+      const { main } = buildSplitDom(1000);
+      manager.setupMapWidthResize();
+
+      const maxPct = ((1000 - PANELS_COL_MIN_PX - MAP_COL_DIVIDER_PX) / 1000) * 100;
+      expect(main.style.getPropertyValue('--map-col-width')).toBe(`${maxPct.toFixed(1)}%`);
+      // The raw preference survives so a larger window restores it in full.
+      expect(localStorage.getItem('map-col-width')).toBe('75.0%');
+    });
+
+    it('re-clamps the applied width when the window resizes', () => {
+      vi.useFakeTimers();
+      try {
+        localStorage.setItem('map-col-width', '75.0%');
+        const { main } = buildSplitDom(2200);
+        manager.setupMapWidthResize();
+        expect(main.style.getPropertyValue('--map-col-width')).toBe('75.0%');
+
+        Object.defineProperty(main, 'offsetWidth', { configurable: true, value: 1000 });
+        window.dispatchEvent(new Event('resize'));
+        vi.advanceTimersByTime(200);
+
+        const maxPct = ((1000 - PANELS_COL_MIN_PX - MAP_COL_DIVIDER_PX) / 1000) * 100;
+        expect(main.style.getPropertyValue('--map-col-width')).toBe(`${maxPct.toFixed(1)}%`);
+        expect(localStorage.getItem('map-col-width')).toBe('75.0%');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  describe('narrow map column state', () => {
+    it('toggles map-col-narrow with the map section width', () => {
+      const { handle } = buildSplitDom(2200);
+      const section = document.getElementById('mapSection') as HTMLElement;
+      Object.defineProperty(section, 'offsetWidth', { configurable: true, value: 300 });
+      manager.setupMapWidthResize();
+
+      expect(section.classList.contains('map-col-narrow')).toBe(true);
+
+      Object.defineProperty(section, 'offsetWidth', { configurable: true, value: 500 });
+      handle.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'ArrowRight',
+        bubbles: true,
+        cancelable: true,
+      }));
+
+      expect(section.classList.contains('map-col-narrow')).toBe(false);
+    });
   });
 
   describe('touch support on the width handle', () => {
@@ -129,15 +180,55 @@ describe('map split layout (#6417)', () => {
       manager.setupMapWidthResize();
 
       handle.dispatchEvent(Object.assign(new Event('touchstart', { bubbles: true, cancelable: true }), {
-        touches: [{ clientX: 1320 }],
+        touches: [{ clientX: 1320, identifier: 7 }],
       }));
       document.dispatchEvent(Object.assign(new Event('touchmove', { bubbles: true }), {
-        touches: [{ clientX: 1100 }],
+        touches: [{ clientX: 1100, identifier: 7 }],
       }));
-      document.dispatchEvent(new Event('touchend', { bubbles: true }));
+      document.dispatchEvent(Object.assign(new Event('touchend', { bubbles: true }), {
+        changedTouches: [{ identifier: 7 }],
+      }));
 
       expect(main.style.getPropertyValue('--map-col-width')).toBe('50.0%');
       expect(localStorage.getItem('map-col-width')).toBe('50.0%');
+    });
+
+    it('ignores another finger lifting mid-drag', () => {
+      const { main, handle } = buildSplitDom(2200);
+      manager.setupMapWidthResize();
+
+      handle.dispatchEvent(Object.assign(new Event('touchstart', { bubbles: true, cancelable: true }), {
+        touches: [{ clientX: 1320, identifier: 7 }],
+      }));
+      // An unrelated touch ends elsewhere on the page: the drag must survive.
+      document.dispatchEvent(Object.assign(new Event('touchend', { bubbles: true }), {
+        changedTouches: [{ identifier: 99 }],
+      }));
+      document.dispatchEvent(Object.assign(new Event('touchmove', { bubbles: true }), {
+        touches: [{ clientX: 1100, identifier: 7 }],
+      }));
+
+      expect(main.style.getPropertyValue('--map-col-width')).toBe('50.0%');
+      expect(localStorage.getItem('map-col-width')).toBeNull();
+
+      document.dispatchEvent(Object.assign(new Event('touchend', { bubbles: true }), {
+        changedTouches: [{ identifier: 7 }],
+      }));
+      expect(localStorage.getItem('map-col-width')).toBe('50.0%');
+    });
+
+    it('ends a live drag when the document is hidden', () => {
+      const { handle } = buildSplitDom(2200);
+      manager.setupMapWidthResize();
+
+      handle.dispatchEvent(new MouseEvent('mousedown', { clientX: 1320, bubbles: true }));
+      document.dispatchEvent(new MouseEvent('mousemove', { clientX: 1100, bubbles: true }));
+      Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+
+      expect(localStorage.getItem('map-col-width')).toBe('50.0%');
+      expect(handle.classList.contains('resizing')).toBe(false);
     });
   });
 
@@ -194,6 +285,33 @@ describe('map split layout (#6417)', () => {
       manager.setupMapWidthResize();
 
       // ArrowRight moves the divider right, which shrinks a right-side map.
+      handle.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'ArrowRight',
+        bubbles: true,
+        cancelable: true,
+      }));
+
+      expect(main.style.getPropertyValue('--map-col-width')).toBe('55.0%');
+    });
+
+    it('restores a persisted right-side preference without a click', () => {
+      localStorage.setItem('map-side', 'right');
+      const { main, btn } = buildSideDom();
+      manager.setupMapSideToggle();
+
+      expect(main.classList.contains('map-right')).toBe(true);
+      expect(btn.title).toBe('Move map to the left side');
+      expect(btn.getAttribute('aria-label')).toBe('Move map to the left side');
+      expect(btn.classList.contains('active')).toBe(true);
+    });
+
+    it('follows the VISUAL side under RTL, where the grid mirrors', () => {
+      const { main, handle } = buildSplitDom(2200);
+      main.style.direction = 'rtl';
+      manager.setupMapWidthResize();
+
+      // No map-right class, but under RTL grid column 1 sits on the visual
+      // right — ArrowRight moves the divider right and shrinks the map.
       handle.dispatchEvent(new KeyboardEvent('keydown', {
         key: 'ArrowRight',
         bubbles: true,
@@ -279,13 +397,82 @@ describe('map split layout (#6417)', () => {
       expect(section.style.height).toBe('');
     });
 
-    it('split restore falls back to the legacy key when no split value exists', () => {
+    it('split restore falls back to the legacy key and completes the migration', () => {
       stubInnerWidth(2000);
       localStorage.setItem('map-height', '450px');
       const { container } = buildHeightDom();
       manager.setupMapResize();
 
       expect(container.style.height).toBe('450px');
+      // The split key is written immediately so later stacked-mode edits to
+      // 'map-height' stop steering split restores.
+      expect(localStorage.getItem('map-split-height')).toBe('450px');
+      expect(localStorage.getItem('map-height')).toBe('450px');
+    });
+
+    it('removes an unparseable legacy value from the key it was read from', () => {
+      stubInnerWidth(2000);
+      localStorage.setItem('map-height', 'garbage');
+      buildHeightDom();
+      manager.setupMapResize();
+
+      expect(localStorage.getItem('map-height')).toBeNull();
+      expect(localStorage.getItem('map-split-height')).toBeNull();
+    });
+  });
+
+  describe('crossing the split threshold at runtime', () => {
+    class FakeMediaQueryList extends EventTarget {
+      media: string;
+      matches = false;
+      constructor(media: string) {
+        super();
+        this.media = media;
+      }
+    }
+
+    it('clears the departing mode\'s inline sizing and applies the arriving mode\'s saved height', () => {
+      const lists: FakeMediaQueryList[] = [];
+      vi.stubGlobal('matchMedia', (media: string) => {
+        const list = new FakeMediaQueryList(media);
+        lists.push(list);
+        return list;
+      });
+
+      stubInnerWidth(2000);
+      localStorage.setItem('map-split-height', '600px');
+      localStorage.setItem('map-height', '400px');
+      const section = document.createElement('section');
+      section.id = 'mapSection';
+      Object.defineProperty(section, 'offsetHeight', { configurable: true, value: 500 });
+      const container = document.createElement('div');
+      container.id = 'mapContainer';
+      Object.defineProperty(container, 'offsetHeight', { configurable: true, value: 500 });
+      const handle = document.createElement('div');
+      handle.id = 'mapResizeHandle';
+      const bottomGrid = document.createElement('div');
+      bottomGrid.id = 'mapBottomGrid';
+      section.append(container, handle, bottomGrid);
+      document.body.append(section);
+      manager.setupMapResize();
+
+      expect(container.style.height).toBe('600px');
+
+      // Narrow below the threshold: split inline styles must not leak into
+      // the stacked layout, and the stacked height takes over.
+      stubInnerWidth(800);
+      lists[0]!.dispatchEvent(new Event('change'));
+      expect(container.style.height).toBe('');
+      expect(container.style.flex).toBe('');
+      expect(section.style.height).toBe('400px');
+
+      // Widen back: the split height returns to the container.
+      stubInnerWidth(2000);
+      lists[0]!.dispatchEvent(new Event('change'));
+      expect(section.style.height).toBe('');
+      expect(container.style.height).toBe('600px');
+
+      vi.unstubAllGlobals();
     });
   });
 });

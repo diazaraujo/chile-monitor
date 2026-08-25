@@ -52,6 +52,8 @@ export function getMapColWidthBounds(totalWidthPx: number): MapColWidthBounds {
   return maxPct < minPct ? { minPct, maxPct: minPct } : { minPct, maxPct };
 }
 
+/** Clamps a map-column percentage to the effective bounds for a container
+ * width, falling back to MAP_COL_DEFAULT_PERCENT when `pct` is not finite. */
 export function clampMapColWidthPercent(pct: number, totalWidthPx: number): number {
   const { minPct, maxPct } = getMapColWidthBounds(totalWidthPx);
   if (!Number.isFinite(pct)) {

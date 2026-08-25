@@ -119,6 +119,11 @@ import {
   clampMapColWidthPercent,
   getMapColWidthBounds,
 } from '@/app/split-layout';
+import {
+  addResponsiveZoneListener,
+  removeResponsiveZoneListener,
+  type ResponsiveZoneListener,
+} from '@/app/responsive-zone-listener';
 import { stageVariantSelection } from '@/services/variant-panel-ownership';
 import { transferSourceGateOwnershipToUser as releaseSourceGateOwnership } from '@/services/source-cap';
 
@@ -280,7 +285,11 @@ export class EventHandlerManager implements AppModule {
   private boundMapResizeVisChangeHandler: (() => void) | null = null;
   private boundMapWidthResizeMoveHandler: ((e: MouseEvent) => void) | null = null;
   private boundMapWidthTouchMoveHandler: ((e: TouchEvent) => void) | null = null;
+  private boundMapWidthTouchEndHandler: ((e: TouchEvent) => void) | null = null;
+  private boundMapWidthVisChangeHandler: (() => void) | null = null;
+  private boundMapWidthWindowResizeHandler: (() => void) | null = null;
   private boundMapWidthEndResizeHandler: (() => void) | null = null;
+  private mapSplitZoneListener: ResponsiveZoneListener | null = null;
   private boundMapFullscreenEscHandler: ((e: KeyboardEvent) => void) | null = null;
   private readonly registeredSearchButtons = new Set<string>();
   private boundSearchKeyHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -494,13 +503,26 @@ export class EventHandlerManager implements AppModule {
       document.removeEventListener('touchmove', this.boundMapWidthTouchMoveHandler);
       this.boundMapWidthTouchMoveHandler = null;
     }
+    if (this.boundMapWidthTouchEndHandler) {
+      document.removeEventListener('touchend', this.boundMapWidthTouchEndHandler);
+      document.removeEventListener('touchcancel', this.boundMapWidthTouchEndHandler);
+      this.boundMapWidthTouchEndHandler = null;
+    }
+    if (this.boundMapWidthVisChangeHandler) {
+      document.removeEventListener('visibilitychange', this.boundMapWidthVisChangeHandler);
+      this.boundMapWidthVisChangeHandler = null;
+    }
+    if (this.boundMapWidthWindowResizeHandler) {
+      window.removeEventListener('resize', this.boundMapWidthWindowResizeHandler);
+      this.boundMapWidthWindowResizeHandler = null;
+    }
     if (this.boundMapWidthEndResizeHandler) {
       document.removeEventListener('mouseup', this.boundMapWidthEndResizeHandler);
-      document.removeEventListener('touchend', this.boundMapWidthEndResizeHandler);
-      document.removeEventListener('touchcancel', this.boundMapWidthEndResizeHandler);
       window.removeEventListener('blur', this.boundMapWidthEndResizeHandler);
       this.boundMapWidthEndResizeHandler = null;
     }
+    removeResponsiveZoneListener(this.mapSplitZoneListener);
+    this.mapSplitZoneListener = null;
     if (this.boundMapResizeVisChangeHandler) {
       document.removeEventListener('visibilitychange', this.boundMapResizeVisChangeHandler);
       this.boundMapResizeVisChangeHandler = null;
@@ -2141,12 +2163,16 @@ export class EventHandlerManager implements AppModule {
     // Split mode sizes #mapContainer, stacked mode sizes #mapSection — two
     // different elements, so each mode keeps its own storage key (#6417).
     const getHeightKey = () => (isSplit() ? 'map-split-height' : 'map-height');
-    const readSavedHeight = () => {
-      const value = readStorageValue(getHeightKey());
+    const readSavedHeight = (): { value: string | null; sourceKey: string } => {
+      const key = getHeightKey();
+      const value = readStorageValue(key);
       // Before the keys were mode-scoped both modes overwrote 'map-height';
-      // fall back to it once so existing split-mode users keep their height.
-      if (value === null && isSplit()) return readStorageValue('map-height');
-      return value;
+      // fall back to it so existing split-mode users keep their height. The
+      // restore below completes the migration by writing the split key.
+      if (value === null && isSplit()) {
+        return { value: readStorageValue('map-height'), sourceKey: 'map-height' };
+      }
+      return { value, sourceKey: key };
     };
     const getMinHeight = () => (isSplit() ? 280 : 350);
     const getMaxHeight = () => {
@@ -2187,8 +2213,9 @@ export class EventHandlerManager implements AppModule {
     resizeHandle.setAttribute('aria-orientation', 'horizontal');
     resizeHandle.setAttribute('aria-label', t('components.panel.dragToResize'));
 
-    const savedHeight = readSavedHeight();
-    if (savedHeight) {
+    const applySavedHeight = () => {
+      const { value: savedHeight, sourceKey } = readSavedHeight();
+      if (!savedHeight) return;
       const numeric = Number.parseInt(savedHeight, 10);
       if (Number.isFinite(numeric)) {
         const clamped = Math.max(getMinHeight(), Math.min(numeric, getMaxHeight()));
@@ -2198,18 +2225,42 @@ export class EventHandlerManager implements AppModule {
         } else {
           mapSection.style.height = `${clamped}px`;
         }
-        if (clamped !== numeric) {
+        // Persist when the value was clamped, or when it came from the
+        // legacy shared key — writing the mode key completes the migration
+        // so stacked-mode edits stop steering split restores.
+        if (clamped !== numeric || sourceKey !== getHeightKey()) {
           writeStorageValue(getHeightKey(), `${clamped}px`);
         }
       } else {
-        removeStorageValue(getHeightKey());
+        removeStorageValue(sourceKey);
       }
-    }
+    };
+    applySavedHeight();
     syncHeightSeparatorAria();
+
+    // Crossing the split threshold moves the height target between
+    // #mapContainer (split) and #mapSection (stacked). Clear the departing
+    // element's inline sizing and re-apply the arriving mode's saved height,
+    // or stale inline styles from the other mode distort the layout.
+    this.mapSplitZoneListener = addResponsiveZoneListener(window, SPLIT_LAYOUT_MIN_WIDTH, () => {
+      if (isSplit()) {
+        mapSection.style.height = '';
+      } else {
+        mapContainer.style.height = '';
+        mapContainer.style.flex = '';
+      }
+      applySavedHeight();
+      syncHeightSeparatorAria();
+      this.ctx.map?.resize();
+    });
 
     let isResizing = false;
     let startY = 0;
     let startHeight = 0;
+    // Captured at mousedown so a viewport crossing 900px mid-drag cannot
+    // switch the resized element or the storage key under the drag.
+    let dragTarget: HTMLElement | null = null;
+    let dragKey = 'map-height';
 
     this.boundMapEndResizeHandler = () => {
       if (!isResizing) return;
@@ -2218,7 +2269,8 @@ export class EventHandlerManager implements AppModule {
       this.ctx.map?.resize();
       mapSection.classList.remove('resizing');
       document.body.style.cursor = '';
-      writeStorageValue(getHeightKey(), getTarget().style.height);
+      writeStorageValue(dragKey, (dragTarget ?? getTarget()).style.height);
+      dragTarget = null;
       syncHeightSeparatorAria();
     };
     const endResize = this.boundMapEndResizeHandler;
@@ -2226,8 +2278,9 @@ export class EventHandlerManager implements AppModule {
     resizeHandle.addEventListener('mousedown', (e) => {
       isResizing = true;
       startY = e.clientY;
-      const target = getTarget();
-      startHeight = target.offsetHeight;
+      dragTarget = getTarget();
+      dragKey = getHeightKey();
+      startHeight = dragTarget.offsetHeight;
       this.ctx.map?.setIsResizing(true);
       mapSection.classList.add('resizing');
       document.body.style.cursor = 'ns-resize';
@@ -2283,13 +2336,12 @@ export class EventHandlerManager implements AppModule {
 
     this.boundMapResizeMoveHandler = (e: MouseEvent) => {
       if (!isResizing) return;
-      const isWide = isSplit();
-      const target = isWide ? mapContainer : mapSection;
+      const target = dragTarget ?? getTarget();
 
       const deltaY = e.clientY - startY;
       const newHeight = Math.max(getMinHeight(), Math.min(startHeight + deltaY, getMaxHeight()));
 
-      if (isWide) target.style.flex = 'none';
+      if (target === mapContainer) target.style.flex = 'none';
       target.style.height = `${newHeight}px`;
 
       this.ctx.map?.resize();
@@ -2311,21 +2363,27 @@ export class EventHandlerManager implements AppModule {
     if (!mainContent || !widthHandle) return;
 
     const isMapRight = () => mainContent.classList.contains('map-right');
+    // Under RTL the grid mirrors, so grid column 1 sits on the visual right:
+    // drag and arrow-key directions must follow the VISUAL side, not the class.
+    const isMapVisuallyRight = () =>
+      isMapRight() !== (getComputedStyle(mainContent).direction === 'rtl');
     const getCurrentWidthPercent = () => {
       const raw = mainContent.style.getPropertyValue('--map-col-width') || `${MAP_COL_DEFAULT_PERCENT}%`;
       return clampMapColWidthPercent(Number.parseFloat(raw), mainContent.offsetWidth);
+    };
+    // The centered header clock overlaps the action buttons in a narrow map
+    // column; .map-col-narrow hides it (styles/main.css).
+    const syncMapColNarrowState = () => {
+      const mapSection = document.getElementById('mapSection');
+      if (!mapSection) return;
+      const sectionWidth = mapSection.offsetWidth;
+      mapSection.classList.toggle('map-col-narrow', sectionWidth > 0 && sectionWidth < 360);
     };
     const syncWidthSeparatorAria = () => {
       const current = getCurrentWidthPercent();
       const { minPct, maxPct } = getMapColWidthBounds(mainContent.offsetWidth);
       const mapSection = document.getElementById('mapSection');
       if (mapSection) widthHandle.setAttribute('aria-controls', mapSection.id);
-      // The centered header clock overlaps the action buttons in a narrow
-      // map column; .map-col-narrow hides it (styles/main.css).
-      if (mapSection) {
-        const sectionWidth = mapSection.offsetWidth;
-        mapSection.classList.toggle('map-col-narrow', sectionWidth > 0 && sectionWidth < 360);
-      }
       widthHandle.setAttribute('aria-valuemin', String(Math.round(minPct)));
       widthHandle.setAttribute('aria-valuemax', String(Math.round(maxPct)));
       widthHandle.setAttribute('aria-valuenow', String(Math.round(current)));
@@ -2338,16 +2396,33 @@ export class EventHandlerManager implements AppModule {
     widthHandle.setAttribute('aria-label', t('components.panel.dragToResize'));
     widthHandle.title = t('components.panel.dragToResize');
 
-    const saved = readStorageValue('map-col-width');
-    if (saved) mainContent.style.setProperty('--map-col-width', saved);
-    syncWidthSeparatorAria();
+    // Re-derive the applied width from storage, clamped for the CURRENT
+    // container: a 75% saved on an ultrawide would otherwise crush the
+    // panels below their pixel floor in a narrow window. Storage keeps the
+    // user's raw preference — only the applied CSS var is clamped — so the
+    // wide value comes back when the window grows again.
+    const applyStoredWidth = () => {
+      const stored = readStorageValue('map-col-width') || mainContent.style.getPropertyValue('--map-col-width');
+      if (stored) {
+        const clamped = clampMapColWidthPercent(Number.parseFloat(stored), mainContent.offsetWidth);
+        mainContent.style.setProperty('--map-col-width', `${clamped.toFixed(1)}%`);
+      }
+      syncMapColNarrowState();
+      syncWidthSeparatorAria();
+    };
+    applyStoredWidth();
 
     let isResizing = false;
     let startX = 0;
     let startTotalWidth = 0;
     let startColPx = 0;
+    // Captured at drag start so a mid-gesture side toggle cannot invert the
+    // direction, and so a second input (mouse vs touch) cannot steal the drag.
+    let dragSign = 1;
+    let activeTouchId: number | null = null;
 
     this.boundMapWidthEndResizeHandler = () => {
+      activeTouchId = null;
       if (!isResizing) return;
       isResizing = false;
       this.ctx.map?.setIsResizing(false);
@@ -2356,24 +2431,28 @@ export class EventHandlerManager implements AppModule {
       widthHandle.classList.remove('resizing');
       const current = mainContent.style.getPropertyValue('--map-col-width');
       if (current) writeStorageValue('map-col-width', current);
+      syncMapColNarrowState();
       syncWidthSeparatorAria();
     };
 
     const beginDrag = (clientX: number) => {
+      if (isResizing) return;
       isResizing = true;
       startX = clientX;
       startTotalWidth = mainContent.offsetWidth;
       startColPx = startTotalWidth * (getCurrentWidthPercent() / 100);
+      dragSign = isMapVisuallyRight() ? -1 : 1;
       this.ctx.map?.setIsResizing(true);
       document.body.classList.add('map-width-resizing');
       widthHandle.classList.add('resizing');
     };
-    // With the map on the right, moving the divider left grows the column.
+    // With the map visually on the right, moving the divider left grows it.
     const applyDrag = (clientX: number) => {
-      const delta = (clientX - startX) * (isMapRight() ? -1 : 1);
+      const delta = (clientX - startX) * dragSign;
       const newPct = clampMapColWidthPercent(((startColPx + delta) / startTotalWidth) * 100, startTotalWidth);
       mainContent.style.setProperty('--map-col-width', `${newPct.toFixed(1)}%`);
       this.ctx.map?.resize();
+      syncMapColNarrowState();
       syncWidthSeparatorAria();
     };
 
@@ -2384,23 +2463,25 @@ export class EventHandlerManager implements AppModule {
 
     widthHandle.addEventListener('touchstart', (e: TouchEvent) => {
       const touch = e.touches[0];
-      if (!touch) return;
+      if (!touch || isResizing) return;
       e.preventDefault();
+      activeTouchId = touch.identifier;
       beginDrag(touch.clientX);
     }, { passive: false });
 
     // Keyboard path, mirroring the height handle above. Arrows move the
-    // DIVIDER, so ArrowRight shrinks a right-side map.
+    // DIVIDER, so ArrowRight shrinks a visually-right map.
     widthHandle.addEventListener('keydown', (e: KeyboardEvent) => {
       const arrow = e.key === 'ArrowLeft' ? -5 : e.key === 'ArrowRight' ? 5 : 0;
       if (arrow === 0) return;
       e.preventDefault();
-      const step = isMapRight() ? -arrow : arrow;
+      const step = isMapVisuallyRight() ? -arrow : arrow;
       const newPct = clampMapColWidthPercent(getCurrentWidthPercent() + step, mainContent.offsetWidth);
       const value = `${newPct.toFixed(1)}%`;
       mainContent.style.setProperty('--map-col-width', value);
       this.ctx.map?.resize();
       writeStorageValue('map-col-width', value);
+      syncMapColNarrowState();
       syncWidthSeparatorAria();
     });
 
@@ -2409,17 +2490,36 @@ export class EventHandlerManager implements AppModule {
       applyDrag(e.clientX);
     };
     this.boundMapWidthTouchMoveHandler = (e: TouchEvent) => {
-      if (!isResizing) return;
-      const touch = e.touches[0];
+      if (!isResizing || activeTouchId === null) return;
+      const touch = Array.from(e.touches).find(t => t.identifier === activeTouchId);
       if (!touch) return;
       applyDrag(touch.clientX);
     };
+    // Only the tracked finger ends a touch drag — another finger lifting
+    // elsewhere on the page must not cut the resize short.
+    this.boundMapWidthTouchEndHandler = (e: TouchEvent) => {
+      if (activeTouchId === null) return;
+      if (!Array.from(e.changedTouches).some(t => t.identifier === activeTouchId)) return;
+      this.boundMapWidthEndResizeHandler?.();
+    };
+    // Mirror the height handle: a hidden tab must not leave a drag latched.
+    this.boundMapWidthVisChangeHandler = () => {
+      if (document.hidden) this.boundMapWidthEndResizeHandler?.();
+    };
+    // Window resizes change the container the stored percentage resolves
+    // against: re-clamp the applied width and refresh the narrow state.
+    this.boundMapWidthWindowResizeHandler = debounce(() => {
+      if (isResizing) return;
+      applyStoredWidth();
+    }, 150);
 
     document.addEventListener('mousemove', this.boundMapWidthResizeMoveHandler);
     document.addEventListener('mouseup', this.boundMapWidthEndResizeHandler);
     document.addEventListener('touchmove', this.boundMapWidthTouchMoveHandler);
-    document.addEventListener('touchend', this.boundMapWidthEndResizeHandler);
-    document.addEventListener('touchcancel', this.boundMapWidthEndResizeHandler);
+    document.addEventListener('touchend', this.boundMapWidthTouchEndHandler);
+    document.addEventListener('touchcancel', this.boundMapWidthTouchEndHandler);
+    document.addEventListener('visibilitychange', this.boundMapWidthVisChangeHandler);
+    window.addEventListener('resize', this.boundMapWidthWindowResizeHandler);
     window.addEventListener('blur', this.boundMapWidthEndResizeHandler);
   }
 

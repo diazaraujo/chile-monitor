@@ -885,6 +885,11 @@ export class PanelLayoutManager implements AppModule {
     // section's first frame instead of ~150ms later via setupMobileMapToggle
     // (which shoved #panelsGrid up 698px, field CLS ~0.62 for this cohort).
     const mapStartsCollapsed = this.ctx.isMobile && PanelLayoutManager.isMobileMapCollapsedPreferred();
+    // Render the persisted map side into the markup so a right-side map does
+    // not flash on the left before EventHandlerManager.init() runs (#6417).
+    const mapOnRight = (() => {
+      try { return localStorage.getItem('map-side') === 'right'; } catch { return false; }
+    })();
     const bootShellFootprint = import.meta.env.DEV ? captureBootShellFootprint(this.ctx.container) : null;
     const referenceLinksHtml = DASHBOARD_REFERENCE_LINKS.map(({ label, path }) => {
       const href = this.ctx.isDesktopApp ? `https://www.worldmonitor.app${path}` : path;
@@ -1089,7 +1094,7 @@ export class PanelLayoutManager implements AppModule {
       ).join('')}
       </div>
       <div class="dashboard-tabs-mount" id="panelTabsMount"></div>
-      <main id="main" tabindex="-1" class="main-content${this.ctx.isDesktopApp ? ' desktop-grid' : ''}">
+      <main id="main" tabindex="-1" class="main-content${mapOnRight ? ' map-right' : ''}">
         <div class="map-section${mapStartsCollapsed ? ' collapsed' : ''}" id="mapSection">
           <div class="panel-header">
             <div class="panel-header-left">
