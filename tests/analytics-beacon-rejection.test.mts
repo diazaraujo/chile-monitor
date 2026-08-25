@@ -2791,3 +2791,118 @@ describe('collector alert policy still fires when the collector is dead', { conc
     assert.equal(isAlertWorthyCollectorFailure(failure!, { writes: 1, failures: 1 }), true);
   });
 });
+
+/**
+ * #6289 — the compatibility timeout path must be observable without widening
+ * `CollectorFailure.kind`. Operators triaging a `timeout` need to know whether
+ * it came from native `AbortSignal.timeout` or `withManualAbort`, and on
+ * success the compat population must be countable too.
+ */
+describe('collector timeout mechanism observability (#6289)', { concurrency: false }, () => {
+  beforeEach(() => {
+    resetAnalyticsForTesting();
+  });
+
+  afterEach(() => {
+    resetAnalyticsForTesting();
+  });
+
+  it('counts only manual-path writes in the health window', async () => {
+    window.fetch = (() => Promise.resolve(collectorResponse(true, 200))) as typeof window.fetch;
+    installCollectorFetchGate();
+
+    await window.fetch(UMAMI_SEND_URL, collectorEventInit());
+    await drainPromiseHandlers();
+    assert.equal(getCollectorHealthForTesting().manualTimeoutWrites, 0);
+    assert.equal(getCollectorHealthForTesting().writes, 1);
+  });
+
+  it('records manual timeoutMechanism on a successful compatibility-path write', async () => {
+    const timeoutDescriptor = Object.getOwnPropertyDescriptor(AbortSignal, 'timeout');
+    Object.defineProperty(AbortSignal, 'timeout', { configurable: true, value: undefined });
+    window.fetch = (() => Promise.resolve(collectorResponse(true, 200))) as typeof window.fetch;
+    installCollectorFetchGate();
+
+    try {
+      await window.fetch(UMAMI_SEND_URL, collectorEventInit());
+      await drainPromiseHandlers();
+
+      assert.equal(getCollectorHealthForTesting().manualTimeoutWrites, 1);
+      assert.equal(getCollectorHealthForTesting().writes, 1);
+    } finally {
+      if (timeoutDescriptor) Object.defineProperty(AbortSignal, 'timeout', timeoutDescriptor);
+    }
+  });
+
+  it('threads manual timeoutMechanism into failure diagnostics without widening kind', async () => {
+    const timeoutDescriptor = Object.getOwnPropertyDescriptor(AbortSignal, 'timeout');
+    const fakeTimers = installFakeTimers();
+    const originalWarn = console.warn;
+    const diagnostics: Array<Record<string, unknown>> = [];
+    console.warn = (...args: unknown[]) => {
+      const detail = args[1];
+      if (detail && typeof detail === 'object') diagnostics.push(detail as Record<string, unknown>);
+    };
+    Object.defineProperty(AbortSignal, 'timeout', { configurable: true, value: undefined });
+    window.fetch = ((_input: RequestInfo | URL, init?: RequestInit) => rejectWhenAborted(init?.signal)) as typeof window.fetch;
+    installCollectorFetchGate();
+
+    try {
+      const stalled = window.fetch(UMAMI_SEND_URL, collectorEventInit());
+      await drainPromiseHandlers();
+      const requestDeadline = fakeTimers.timers.find((timer) => timer.delay === 20_000);
+      assert.ok(requestDeadline, 'the compatibility path must schedule the request bound');
+      requestDeadline.callback();
+      await assert.rejects(stalled, { name: 'TimeoutError' });
+      await drainPromiseHandlers(() => diagnostics.length > 0, 'the failure is reported');
+
+      assert.equal(diagnostics[0]?.failureKind, 'timeout', 'kind must stay timeout, not a new classification');
+      assert.equal(diagnostics[0]?.timeoutMechanism, 'manual');
+      assert.equal(diagnostics[0]?.manualTimeoutWrites, 1);
+      assert.equal(diagnostics[0]?.manualTimeoutRate, 1);
+      assert.equal(diagnostics[0]?.raced, false);
+    } finally {
+      console.warn = originalWarn;
+      fakeTimers.restore();
+      if (timeoutDescriptor) Object.defineProperty(AbortSignal, 'timeout', timeoutDescriptor);
+    }
+  });
+
+  it('records native timeoutMechanism in failure diagnostics on the default path', async () => {
+    const timeoutDescriptor = Object.getOwnPropertyDescriptor(AbortSignal, 'timeout');
+    const deadlines: { ms: number; controller: AbortController }[] = [];
+    Object.defineProperty(AbortSignal, 'timeout', {
+      configurable: true,
+      value: (ms: number) => {
+        const controller = new AbortController();
+        deadlines.push({ ms, controller });
+        return controller.signal;
+      },
+    });
+    const originalWarn = console.warn;
+    const diagnostics: Array<Record<string, unknown>> = [];
+    console.warn = (...args: unknown[]) => {
+      const detail = args[1];
+      if (detail && typeof detail === 'object') diagnostics.push(detail as Record<string, unknown>);
+    };
+    window.fetch = ((_input: RequestInfo | URL, init?: RequestInit) => rejectWhenAborted(init?.signal)) as typeof window.fetch;
+    installCollectorFetchGate();
+
+    try {
+      const stalled = window.fetch(UMAMI_SEND_URL, collectorEventInit());
+      await drainPromiseHandlers();
+      assert.equal(deadlines.length, 1, 'the native path must request a collector deadline');
+      deadlines[0]?.controller.abort(createNativeTimeoutError());
+      await assert.rejects(stalled, { name: 'TimeoutError' });
+      await drainPromiseHandlers(() => diagnostics.length > 0, 'the failure is reported');
+
+      assert.equal(diagnostics[0]?.failureKind, 'timeout');
+      assert.equal(diagnostics[0]?.timeoutMechanism, 'native');
+      assert.equal(diagnostics[0]?.manualTimeoutWrites, 0);
+      assert.equal(diagnostics[0]?.manualTimeoutRate, 0);
+    } finally {
+      console.warn = originalWarn;
+      if (timeoutDescriptor) Object.defineProperty(AbortSignal, 'timeout', timeoutDescriptor);
+    }
+  });
+});

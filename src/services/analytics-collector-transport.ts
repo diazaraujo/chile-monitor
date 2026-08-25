@@ -114,11 +114,23 @@ export type CollectorHealthReport = {
 
 type CollectorHealthReporter = (report: CollectorHealthReport) => Promise<boolean>;
 
+/**
+ * Which request-side timeout branch bound this write.
+ *
+ * A MARKER, not a `kind`, for the same reason as `botFiltered`: it describes
+ * the client environment, not the delivery outcome. Promoting it to its own
+ * `kind` would fall through every `kind`-consuming arm that defaults to
+ * actionable and page on a browser-capability gap.
+ */
+export type CollectorTimeoutMechanism = 'native' | 'manual';
+
 export type CollectorOutcome = {
   requestType: CollectorRequestType;
   eventName?: string;
   requestBody?: string;
   failure: CollectorFailure | null;
+  /** Which abort-binding branch produced this write's deadline signal. */
+  timeoutMechanism: CollectorTimeoutMechanism;
 };
 
 export class CollectorDeliveryError extends Error {
@@ -250,6 +262,7 @@ type CollectorRequest = {
   critical: boolean;
   visibilityAtSend?: CollectorVisibilitySnapshot;
   sentAt?: number;
+  timeoutMechanism?: CollectorTimeoutMechanism;
   resolve: (response: Response) => void;
   reject: (error: unknown) => void;
   resolveDelivery: (response: Response) => void;
@@ -323,6 +336,7 @@ type CollectorHealthWindow = {
   writes: number;
   failures: number;
   raced: number;
+  manualTimeoutWrites: number;
   noiseReported: boolean;
   reportedFailureSignatures: Set<string>;
   cohorts: Record<CollectorHealthCohort, CollectorHealthCounters>;
@@ -338,6 +352,7 @@ function createCollectorHealthWindow(startedAt = 0): CollectorHealthWindow {
     writes: 0,
     failures: 0,
     raced: 0,
+    manualTimeoutWrites: 0,
     noiseReported: false,
     reportedFailureSignatures: new Set(),
     cohorts: {
@@ -756,6 +771,7 @@ function emitCollectorFailureToSentry(
         requestType: request.requestType,
         healthCohort: cohort,
         raced: String(failure.raced ?? false),
+        timeoutMechanism: request.timeoutMechanism ?? 'native',
         visibilityAtSend: request.visibilityAtSend ?? 'unknown',
       },
       extra: diagnostics,
@@ -775,14 +791,30 @@ function recordCollectorOutcome(request: CollectorRequest, failure: CollectorFai
   const cohortWindow = collectorHealthWindow.cohorts[cohort];
   cohortWindow.writes += 1;
 
+  const timeoutMechanism = request.timeoutMechanism ?? 'native';
+  if (timeoutMechanism === 'manual') collectorHealthWindow.manualTimeoutWrites += 1;
+
   const outcome: CollectorOutcome = {
     requestType: request.requestType,
     eventName: request.eventName,
     requestBody: typeof request.init?.body === 'string' ? request.init.body : undefined,
     failure,
+    timeoutMechanism,
   };
   onCollectorOutcome(outcome);
-  if (!failure) return;
+  if (!failure) {
+    if (timeoutMechanism === 'manual') {
+      try {
+        enqueueSentryCall((s) => s.addBreadcrumb({
+          category: 'analytics.collector',
+          message: 'Umami collector write used manual timeout path',
+          level: 'info',
+          data: { timeoutMechanism },
+        }));
+      } catch { /* best-effort telemetry */ }
+    }
+    return;
+  }
 
   collectorHealthWindow.failures += 1;
   cohortWindow.failures += 1;
@@ -803,6 +835,9 @@ function recordCollectorOutcome(request: CollectorRequest, failure: CollectorFai
   if (failure.raced) collectorHealthWindow.raced += 1;
   const racedRate = collectorHealthWindow.writes > 0
     ? collectorHealthWindow.raced / collectorHealthWindow.writes
+    : 0;
+  const manualTimeoutRate = collectorHealthWindow.writes > 0
+    ? collectorHealthWindow.manualTimeoutWrites / collectorHealthWindow.writes
     : 0;
   const diagnostics = {
     requestType: request.requestType,
@@ -831,6 +866,9 @@ function recordCollectorOutcome(request: CollectorRequest, failure: CollectorFai
     // True means the request is STILL OUTSTANDING — the queue was released
     // without it, so this page is behind a fetch wrapper that ignores aborts.
     raced: failure.raced ?? false,
+    timeoutMechanism,
+    manualTimeoutWrites: collectorHealthWindow.manualTimeoutWrites,
+    manualTimeoutRate,
   };
   console.warn('[Analytics] Umami collector write failed', diagnostics);
 
@@ -906,6 +944,7 @@ function recordCollectorOutcome(request: CollectorRequest, failure: CollectorFai
 type AbortBoundInit = {
   init: RequestInit;
   cleanup: () => void;
+  timeoutMechanism: CollectorTimeoutMechanism;
 };
 
 type TimeoutBoundInit = AbortBoundInit & {
@@ -962,6 +1001,7 @@ function withManualAbort(
       clearTimeout(timeoutId);
       existing?.removeEventListener('abort', forwardAbort);
     },
+    timeoutMechanism: 'manual',
   };
 }
 
@@ -977,12 +1017,14 @@ function withRequestAbort(
     return {
       init: { ...(init ?? {}), signal: AbortSignal.timeout(timeoutMs) },
       cleanup: () => {},
+      timeoutMechanism: 'native',
     };
   }
   if (typeof AbortSignal.any === 'function') {
     return {
       init: { ...init, signal: AbortSignal.any([existing, AbortSignal.timeout(timeoutMs)]) },
       cleanup: () => {},
+      timeoutMechanism: 'native',
     };
   }
   return withManualAbort(init, timeoutMs);
@@ -1070,6 +1112,7 @@ function withCollectorDeadline(
     deadline,
     pause,
     resume,
+    timeoutMechanism: bound.timeoutMechanism,
     cleanup: () => {
       settled = true;
       if (deadlineTimer !== undefined) {
@@ -1106,6 +1149,7 @@ async function runCollectorRequest(request: CollectorRequest, generation: number
       request.sentAt = Date.now();
       request.visibilityAtSend = collectorVisibilityState();
       timeoutBoundInit = withCollectorDeadline(request.init);
+      request.timeoutMechanism = timeoutBoundInit.timeoutMechanism;
       pausableCollectorDeadlines.add(timeoutBoundInit);
       deadline = timeoutBoundInit.deadline;
       responsePromise = request.originalFetch(request.input, timeoutBoundInit.init);
@@ -1448,6 +1492,7 @@ export function getCollectorHealthForTesting(): {
   writes: number;
   failures: number;
   raced: number;
+  manualTimeoutWrites: number;
   noiseReported: boolean;
   reportedFailureSignatures: number;
   cohorts: Record<CollectorHealthCohort, CollectorHealthCounters>;
@@ -1456,6 +1501,7 @@ export function getCollectorHealthForTesting(): {
     writes: collectorHealthWindow.writes,
     failures: collectorHealthWindow.failures,
     raced: collectorHealthWindow.raced,
+    manualTimeoutWrites: collectorHealthWindow.manualTimeoutWrites,
     noiseReported: collectorHealthWindow.noiseReported,
     reportedFailureSignatures: collectorHealthWindow.reportedFailureSignatures.size,
     cohorts: {
