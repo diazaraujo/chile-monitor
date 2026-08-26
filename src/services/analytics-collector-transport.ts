@@ -106,6 +106,8 @@ export type CollectorHealthFailureKind = 'network' | 'timeout' | 'missing-receip
 export type CollectorHealthReport = {
   cohort: CollectorHealthCohort;
   writes: number;
+  /** Writes classified for the compatibility AbortController deadline path. */
+  manualTimeoutWrites: number;
   failures: number;
   failureKind: CollectorHealthFailureKind;
   /** UTC minute bucket containing the client window represented by this delta. */
@@ -262,7 +264,7 @@ type CollectorRequest = {
   critical: boolean;
   visibilityAtSend?: CollectorVisibilitySnapshot;
   sentAt?: number;
-  timeoutMechanism?: CollectorTimeoutMechanism;
+  timeoutMechanism: CollectorTimeoutMechanism;
   resolve: (response: Response) => void;
   reject: (error: unknown) => void;
   resolveDelivery: (response: Response) => void;
@@ -277,6 +279,9 @@ type ObservationSlot = {
 let collectorEndpoint = '';
 let isCriticalEventName: (name: string) => boolean = () => false;
 let onCollectorOutcome: (outcome: CollectorOutcome) => void = () => {};
+let collectorOutcomeObserverForTesting: ((outcome: CollectorOutcome) => void) | null = null;
+type CollectorSentryEnqueue = typeof enqueueSentryCall;
+let collectorSentryEnqueue: CollectorSentryEnqueue = enqueueSentryCall;
 const DEFAULT_COLLECTOR_HEALTH_ENDPOINT = '/api/analytics-health';
 const COLLECTOR_HEALTH_REPORT_TIMEOUT_MS = 2_000;
 let collectorHealthEndpoint = DEFAULT_COLLECTOR_HEALTH_ENDPOINT;
@@ -326,6 +331,7 @@ let collectorPageActive = true;
 let collectorTransportGeneration = 0;
 type CollectorHealthCounters = {
   writes: number;
+  manualTimeoutWrites: number;
   failures: number;
   environmentFailures: number;
   noiseReported: boolean;
@@ -343,7 +349,13 @@ type CollectorHealthWindow = {
 };
 
 function emptyCollectorHealthCounters(): CollectorHealthCounters {
-  return { writes: 0, failures: 0, environmentFailures: 0, noiseReported: false };
+  return {
+    writes: 0,
+    manualTimeoutWrites: 0,
+    failures: 0,
+    environmentFailures: 0,
+    noiseReported: false,
+  };
 }
 
 function createCollectorHealthWindow(startedAt = 0): CollectorHealthWindow {
@@ -380,10 +392,14 @@ function collectorFailureSignature(failure: CollectorFailure): string {
 }
 
 let collectorHealthWindow = createCollectorHealthWindow();
-let collectorHealthReportCursor: Record<CollectorHealthCohort, { writes: number; failures: number }> = {
-  event: { writes: 0, failures: 0 },
-  'critical-event': { writes: 0, failures: 0 },
-  identify: { writes: 0, failures: 0 },
+let collectorHealthReportCursor: Record<CollectorHealthCohort, {
+  writes: number;
+  manualTimeoutWrites: number;
+  failures: number;
+}> = {
+  event: { writes: 0, manualTimeoutWrites: 0, failures: 0 },
+  'critical-event': { writes: 0, manualTimeoutWrites: 0, failures: 0 },
+  identify: { writes: 0, manualTimeoutWrites: 0, failures: 0 },
 };
 let pendingObservation: ObservationSlot | null = null;
 /**
@@ -411,6 +427,16 @@ export function configureCollectorTransport(options: {
 
 export function _setCollectorHealthReporterForTesting(reporter: CollectorHealthReporter): void {
   collectorHealthReporter = reporter;
+}
+
+export function _setCollectorSentryEnqueueForTesting(enqueue: CollectorSentryEnqueue): void {
+  collectorSentryEnqueue = enqueue;
+}
+
+export function _setCollectorOutcomeObserverForTesting(
+  observer: ((outcome: CollectorOutcome) => void) | null,
+): void {
+  collectorOutcomeObserverForTesting = observer;
 }
 
 function getCollectorHealthCohort(request: CollectorRequest): CollectorHealthCohort {
@@ -648,9 +674,9 @@ function resetCollectorHealthWindow(startedAt: number): void {
   const bucketStart = Math.floor(startedAt / HEALTH_WINDOW_MS) * HEALTH_WINDOW_MS;
   collectorHealthWindow = createCollectorHealthWindow(bucketStart);
   collectorHealthReportCursor = {
-    event: { writes: 0, failures: 0 },
-    'critical-event': { writes: 0, failures: 0 },
-    identify: { writes: 0, failures: 0 },
+    event: { writes: 0, manualTimeoutWrites: 0, failures: 0 },
+    'critical-event': { writes: 0, manualTimeoutWrites: 0, failures: 0 },
+    identify: { writes: 0, manualTimeoutWrites: 0, failures: 0 },
   };
 }
 
@@ -663,21 +689,26 @@ function buildCollectorHealthReport(
   const previous = collectorHealthReportCursor[cohort];
   const bucket = Math.floor(collectorHealthWindow.startedAt / HEALTH_WINDOW_MS);
   const writes = Math.max(0, current.writes - previous.writes);
+  const manualTimeoutWrites = Math.max(
+    0,
+    current.manualTimeoutWrites - previous.manualTimeoutWrites,
+  );
   const failures = Math.max(0, current.environmentFailures - previous.failures);
   collectorHealthReportCursor[cohort] = {
     writes: current.writes,
+    manualTimeoutWrites: current.manualTimeoutWrites,
     failures: current.environmentFailures,
   };
   if (writes < 1 || (!allowZeroFailures && failures < 1)) return null;
-  return { cohort, writes, failures, failureKind, bucket };
+  return { cohort, writes, manualTimeoutWrites, failures, failureKind, bucket };
 }
 
 /**
- * Complete the previous client window before starting a new one. Healthy
- * windows carry failures=0, so the server baseline is not trained only by
- * pages that already experienced a receipt failure.
+ * Publish each cohort's unreported window delta. Rollover sends the completed
+ * window; pagehide sends a short session's current window. Healthy deltas carry
+ * failures=0, so the server baseline is not trained only by failing pages.
  */
-function reportCompletedCollectorHealthWindow(): void {
+function reportPendingCollectorHealthDeltas(): void {
   const cohorts: CollectorHealthCohort[] = ['event', 'critical-event', 'identify'];
   for (const cohort of cohorts) {
     const report = buildCollectorHealthReport(cohort, 'none', true);
@@ -745,7 +776,7 @@ function emitCollectorFailureToSentry(
   collectorHealthWindow.reportedFailureSignatures.add(signature);
 
   try {
-    enqueueSentryCall((s) => s.captureMessage('Umami collector write failed', {
+    collectorSentryEnqueue((s) => s.captureMessage('Umami collector write failed', {
       level: 'warning',
       // Tags do not split issues — without a fingerprint, Sentry groups on the
       // fixed message and folds all five `kind`s into one. That is how the
@@ -771,7 +802,7 @@ function emitCollectorFailureToSentry(
         requestType: request.requestType,
         healthCohort: cohort,
         raced: String(failure.raced ?? false),
-        timeoutMechanism: request.timeoutMechanism ?? 'native',
+        timeoutMechanism: request.timeoutMechanism,
         visibilityAtSend: request.visibilityAtSend ?? 'unknown',
       },
       extra: diagnostics,
@@ -783,7 +814,7 @@ function recordCollectorOutcome(request: CollectorRequest, failure: CollectorFai
   const now = Date.now();
   const hasStartedWindow = collectorHealthWindow.startedAt !== 0 || collectorHealthWindow.writes > 0;
   if (!hasStartedWindow || now - collectorHealthWindow.startedAt >= HEALTH_WINDOW_MS) {
-    if (hasStartedWindow) reportCompletedCollectorHealthWindow();
+    if (hasStartedWindow) reportPendingCollectorHealthDeltas();
     resetCollectorHealthWindow(now);
   }
   collectorHealthWindow.writes += 1;
@@ -791,8 +822,11 @@ function recordCollectorOutcome(request: CollectorRequest, failure: CollectorFai
   const cohortWindow = collectorHealthWindow.cohorts[cohort];
   cohortWindow.writes += 1;
 
-  const timeoutMechanism = request.timeoutMechanism ?? 'native';
-  if (timeoutMechanism === 'manual') collectorHealthWindow.manualTimeoutWrites += 1;
+  const timeoutMechanism = request.timeoutMechanism;
+  if (timeoutMechanism === 'manual') {
+    collectorHealthWindow.manualTimeoutWrites += 1;
+    cohortWindow.manualTimeoutWrites += 1;
+  }
 
   const outcome: CollectorOutcome = {
     requestType: request.requestType,
@@ -802,19 +836,8 @@ function recordCollectorOutcome(request: CollectorRequest, failure: CollectorFai
     timeoutMechanism,
   };
   onCollectorOutcome(outcome);
-  if (!failure) {
-    if (timeoutMechanism === 'manual') {
-      try {
-        enqueueSentryCall((s) => s.addBreadcrumb({
-          category: 'analytics.collector',
-          message: 'Umami collector write used manual timeout path',
-          level: 'info',
-          data: { timeoutMechanism },
-        }));
-      } catch { /* best-effort telemetry */ }
-    }
-    return;
-  }
+  collectorOutcomeObserverForTesting?.(outcome);
+  if (!failure) return;
 
   collectorHealthWindow.failures += 1;
   cohortWindow.failures += 1;
@@ -823,6 +846,7 @@ function recordCollectorOutcome(request: CollectorRequest, failure: CollectorFai
     // Bot-filtered writes are expected drops, not evidence about the collector.
     cohortWindow.writes -= 1;
     cohortWindow.failures -= 1;
+    if (timeoutMechanism === 'manual') cohortWindow.manualTimeoutWrites -= 1;
   }
   // Deliberately reports only delivery metadata. The event payload can contain
   // billing or identity data and must never be copied into diagnostics.
@@ -1003,6 +1027,22 @@ function withManualAbort(
     },
     timeoutMechanism: 'manual',
   };
+}
+
+/**
+ * Select the deadline branch without creating a signal or timer.
+ *
+ * Requests can be dropped before dispatch, so their outcome still needs the
+ * marker that dispatch would have used. `withRequestAbort` remains the source
+ * of the actual binding and overwrites this prediction once the write starts.
+ */
+function getIntendedCollectorTimeoutMechanism(
+  init: RequestInit | undefined,
+): CollectorTimeoutMechanism {
+  if (typeof AbortSignal === 'undefined' || typeof AbortSignal.timeout !== 'function') {
+    return 'manual';
+  }
+  return init?.signal && typeof AbortSignal.any !== 'function' ? 'manual' : 'native';
 }
 
 function withRequestAbort(
@@ -1300,6 +1340,7 @@ function enqueueCollectorRequest(
     input,
     init,
     originalFetch,
+    timeoutMechanism: getIntendedCollectorTimeoutMechanism(init),
     resolve: transportDeferred.resolve,
     reject: transportDeferred.reject,
     resolveDelivery: deliveryDeferred.resolve,
@@ -1380,6 +1421,7 @@ export function installCollectorFetchGate(): boolean {
       pauseCollectorLatchDeadlines();
       return;
     }
+    reportPendingCollectorHealthDeltas();
     resumeCollectorLatchDeadlines();
     flushCollectorQueueForUnload();
   };
@@ -1484,6 +1526,8 @@ export function resetCollectorTransportForTesting(): void {
   pausableCollectorDeadlines.clear();
   collectorHealthEndpoint = DEFAULT_COLLECTOR_HEALTH_ENDPOINT;
   collectorHealthReporter = (report) => sendCollectorHealthReport(collectorHealthEndpoint, report);
+  collectorSentryEnqueue = enqueueSentryCall;
+  collectorOutcomeObserverForTesting = null;
   resetCollectorHealthWindow(0);
 }
 
