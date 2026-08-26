@@ -292,7 +292,7 @@ export class EventHandlerManager implements AppModule {
   private boundMapWidthTouchEndHandler: ((e: TouchEvent) => void) | null = null;
   private boundMapWidthMouseUpHandler: (() => void) | null = null;
   private boundMapWidthVisChangeHandler: (() => void) | null = null;
-  private boundMapWidthWindowResizeHandler: (() => void) | null = null;
+  private boundMapWidthWindowResizeHandler: (() => void) & { cancel(): void } | null = null;
   private boundMapWidthEndResizeHandler: (() => void) | null = null;
   private mapSplitZoneListener: ResponsiveZoneListener | null = null;
   private boundMapFullscreenEscHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -522,6 +522,7 @@ export class EventHandlerManager implements AppModule {
       this.boundMapWidthVisChangeHandler = null;
     }
     if (this.boundMapWidthWindowResizeHandler) {
+      this.boundMapWidthWindowResizeHandler.cancel();
       window.removeEventListener('resize', this.boundMapWidthWindowResizeHandler);
       this.boundMapWidthWindowResizeHandler = null;
     }
@@ -2433,6 +2434,9 @@ export class EventHandlerManager implements AppModule {
     let dragSign = 1;
     let activeTouchId: number | null = null;
     let activeDragSource: 'mouse' | 'touch' | null = null;
+    // Set only by applyDrag: a zero-movement press/tap must not persist the
+    // container-clamped application back over the raw stored preference.
+    let dragMoved = false;
 
     this.boundMapWidthEndResizeHandler = () => {
       activeTouchId = null;
@@ -2444,7 +2448,8 @@ export class EventHandlerManager implements AppModule {
       document.body.classList.remove('map-width-resizing');
       widthHandle.classList.remove('resizing');
       const current = mainContent.style.getPropertyValue('--map-col-width');
-      if (current) writeStorageValue('map-col-width', current);
+      if (current && dragMoved) writeStorageValue('map-col-width', current);
+      dragMoved = false;
       syncMapColNarrowState();
       syncWidthSeparatorAria();
     };
@@ -2452,6 +2457,7 @@ export class EventHandlerManager implements AppModule {
     const beginDrag = (clientX: number, source: 'mouse' | 'touch'): boolean => {
       if (isResizing) return false;
       isResizing = true;
+      dragMoved = false;
       activeDragSource = source;
       startX = clientX;
       startTotalWidth = mainContent.offsetWidth;
@@ -2467,6 +2473,7 @@ export class EventHandlerManager implements AppModule {
       const delta = (clientX - startX) * dragSign;
       const newPct = clampMapColWidthPercent(((startColPx + delta) / startTotalWidth) * 100, startTotalWidth);
       mainContent.style.setProperty('--map-col-width', `${newPct.toFixed(1)}%`);
+      dragMoved = true;
       this.ctx.map?.resize();
       syncMapColNarrowState();
       syncWidthSeparatorAria();

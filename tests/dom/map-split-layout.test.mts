@@ -154,6 +154,66 @@ describe('map split layout (#6417)', () => {
         vi.useRealTimers();
       }
     });
+
+    it('keeps the raw stored width when a press ends without movement', () => {
+      localStorage.setItem('map-col-width', '75.0%');
+      const { handle } = buildSplitDom(1000);
+      manager.setupMapWidthResize();
+
+      // The restored application is clamped to this container (69.4%); a
+      // bare press must not write that clamp back over the raw 75%
+      // preference - only an actual drag movement may persist.
+      handle.dispatchEvent(new MouseEvent('mousedown', { clientX: 600, bubbles: true }));
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+
+      expect(localStorage.getItem('map-col-width')).toBe('75.0%');
+    });
+
+    it('keeps the raw stored width when a tap ends without movement', () => {
+      localStorage.setItem('map-col-width', '75.0%');
+      const { handle } = buildSplitDom(1000);
+      manager.setupMapWidthResize();
+
+      handle.dispatchEvent(Object.assign(new Event('touchstart', { bubbles: true, cancelable: true }), {
+        touches: [{ clientX: 694, identifier: 7 }],
+        changedTouches: [{ clientX: 694, identifier: 7 }],
+      }));
+      document.dispatchEvent(Object.assign(new Event('touchend', { bubbles: true }), {
+        changedTouches: [{ identifier: 7 }],
+      }));
+
+      expect(localStorage.getItem('map-col-width')).toBe('75.0%');
+    });
+
+    it('skips the debounced window-resize re-clamp while a drag is active', () => {
+      vi.useFakeTimers();
+      try {
+        // A raw narrow preference clamps to 22% at this container on
+        // restore...
+        localStorage.setItem('map-col-width', '10.0%');
+        const { main, handle } = buildSplitDom(1000);
+        manager.setupMapWidthResize();
+        expect(main.style.getPropertyValue('--map-col-width')).toBe('22.0%');
+
+        // ...but an active drag must hold its dragged value against the
+        // re-clamp, which would otherwise restore the raw preference
+        // mid-gesture.
+        handle.dispatchEvent(new MouseEvent('mousedown', { clientX: 500, bubbles: true }));
+        document.dispatchEvent(new MouseEvent('mousemove', { clientX: 640, bubbles: true }));
+        expect(main.style.getPropertyValue('--map-col-width')).toBe('36.0%');
+
+        Object.defineProperty(main, 'offsetWidth', { configurable: true, value: 800 });
+        window.dispatchEvent(new Event('resize'));
+        vi.advanceTimersByTime(200);
+
+        expect(main.style.getPropertyValue('--map-col-width')).toBe('36.0%');
+
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+        expect(localStorage.getItem('map-col-width')).toBe('36.0%');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   describe('narrow map column state', () => {
