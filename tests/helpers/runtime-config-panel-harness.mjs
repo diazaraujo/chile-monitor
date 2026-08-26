@@ -1,10 +1,11 @@
 import { build } from 'esbuild';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { createBrowserEnvironment } from './mini-dom.mts';
+import { createTempDir } from './temp-dir.mjs';
 
 export { createBrowserEnvironment };
 
@@ -37,7 +38,7 @@ function createRuntimeState() {
 }
 
 async function loadRuntimeConfigPanel() {
-  const tempDir = mkdtempSync(join(tmpdir(), 'wm-runtime-config-panel-'));
+  const tempDir = createTempDir('wm-runtime-config-panel-');
   const outfile = join(tempDir, 'RuntimeConfigPanel.bundle.mjs');
 
   const stubModules = new Map([

@@ -7,11 +7,12 @@
 // in-memory file rather than a real source file.
 
 import { build } from 'esbuild';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createBrowserEnvironment } from './runtime-config-panel-harness.mjs';
+import { createTempDir } from './temp-dir.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..', '..');
@@ -44,7 +45,7 @@ function defineGlobal(name, value) {
 }
 
 async function loadMinimalPanel() {
-  const tempDir = mkdtempSync(join(tmpdir(), 'wm-minimal-panel-'));
+  const tempDir = createTempDir('wm-minimal-panel-');
   const outfile = join(tempDir, 'MinimalPanel.bundle.mjs');
 
   // Virtual entry source — defines a minimal `extends Panel` subclass that
