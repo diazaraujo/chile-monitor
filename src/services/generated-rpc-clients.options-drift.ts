@@ -34,11 +34,22 @@ import type { WildfireServiceClientOptions } from '@/generated/client/worldmonit
 type AssertOptionsMatch<Canonical, Candidate> = (<T>() => T extends Canonical ? 1 : 2) extends (<T>() => T extends Candidate ? 1 : 2)
   ? (<T>() => T extends Candidate ? 1 : 2) extends (<T>() => T extends Canonical ? 1 : 2)
     ? true
-    : never
-  : never;
+    : false
+  : false;
+
+type AssertAllOptionsMatch<Checks extends readonly true[]> = Checks;
+
+type IntentionalOptionsDrift = { readonly __intentionalOptionsDrift: unique symbol };
+type IntentionalOptionsMismatch = AssertOptionsMatch<
+  MarketServiceClientOptions,
+  MarketServiceClientOptions & IntentionalOptionsDrift
+>;
+
+// @ts-expect-error -- an intentional mismatch must fail the same constraint used by the real guard.
+export type LazyRpcClientOptionsDriftGuardRejectsMismatch = AssertAllOptionsMatch<[IntentionalOptionsMismatch]>;
 
 /** Compile-time guard: every lazy RPC client must share the same constructor options shape. */
-export type LazyRpcClientOptionsDriftChecks = [
+export type LazyRpcClientOptionsDriftChecks = AssertAllOptionsMatch<[
   AssertOptionsMatch<MarketServiceClientOptions, AviationServiceClientOptions>,
   AssertOptionsMatch<MarketServiceClientOptions, ClimateServiceClientOptions>,
   AssertOptionsMatch<MarketServiceClientOptions, ConflictServiceClientOptions>,
@@ -70,6 +81,6 @@ export type LazyRpcClientOptionsDriftChecks = [
   AssertOptionsMatch<MarketServiceClientOptions, UnrestServiceClientOptions>,
   AssertOptionsMatch<MarketServiceClientOptions, WebcamServiceClientOptions>,
   AssertOptionsMatch<MarketServiceClientOptions, WildfireServiceClientOptions>,
-];
+]>;
 
-export type LazyRpcClientOptionsDriftChecksPass = LazyRpcClientOptionsDriftChecks[number] extends true ? true : never;
+export type LazyRpcClientOptionsDriftChecksPass = LazyRpcClientOptionsDriftChecks[number];
