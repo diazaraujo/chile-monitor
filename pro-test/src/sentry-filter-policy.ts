@@ -81,6 +81,18 @@ export const MARKETING_IGNORE_ERRORS: RegExp[] = [
   // rejection always belongs to an extension injected into the page
   // (WORLDMONITOR-ZX).
   /runtime\.sendMessage\(\)/,
+  // The no-listener half of the same extension messaging API: Chrome emits
+  // this exact sentence when a `runtime`/`tabs` sendMessage reaches a context
+  // with no `onMessage` receiver (a content script not yet injected, or a
+  // service worker that has shut down). A different sentence from the entry
+  // above, so that pattern does not cover it. This bundle contains no
+  // `chrome.runtime`/`browser.runtime`/`sendMessage` reference at all
+  // (grep-verified across `pro-test/src`), so the rejection always belongs to
+  // an extension injected into the page. Already suppressed on the dashboard
+  // in `src/bootstrap/sentry-init.ts`; the two surfaces run separate Sentry
+  // clients, so the marketing copy was the gap that let WORLDMONITOR-10N
+  // through as an unhandled rejection with zero frames.
+  /Could not establish connection\. Receiving end does not exist/,
   // Zalo's in-app browser (Vietnam's dominant messaging app) injects a JS
   // bridge that references `zaloJSV2` before the host app defines it. Same
   // class as the `WeixinJSBridge` entry in the dashboard array: a named

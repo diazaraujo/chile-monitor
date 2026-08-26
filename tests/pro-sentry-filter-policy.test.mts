@@ -59,6 +59,17 @@ describe('marketing ignoreErrors', () => {
     assert.equal(isIgnored('Error', 'Invalid call to runtime.sendMessage(). Tab not found.'), true);
   });
 
+  it('drops the extension no-listener messaging rejection (WORLDMONITOR-10N)', () => {
+    // Verbatim production value. Chrome emits this exact sentence when a
+    // `chrome.runtime`/`chrome.tabs` sendMessage finds no receiver — the
+    // no-listener half of the `runtime.sendMessage()` entry above, and a
+    // different sentence, so that pattern does not cover it.
+    assert.equal(
+      isIgnored('Error', 'Could not establish connection. Receiving end does not exist.'),
+      true,
+    );
+  });
+
   it('drops the Zalo in-app-browser bridge global (WORLDMONITOR-102)', () => {
     // Verbatim production value; Safari phrases a missing global this way.
     assert.equal(isIgnored('ReferenceError', "Can't find variable: zaloJSV2"), true);
