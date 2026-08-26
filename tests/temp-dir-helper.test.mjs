@@ -7,8 +7,8 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { existsSync, writeFileSync } from 'node:fs';
+import { execFileSync, execSync } from 'node:child_process';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -49,15 +49,16 @@ describe('createTempDir', () => {
   });
 
   it('removes the directory when the test context ends', () => {
-    // Capture the path from a nested test run so we can assert after it ends.
-    let captured;
+    // Drive the t.after path with a stand-in context so the registered hook can
+    // be fired here and its effect asserted — a real `t` would only run its
+    // hooks after this test had already returned.
     const fakeContext = {
       hooks: [],
       after(fn) {
         this.hooks.push(fn);
       },
     };
-    captured = createTempDir('wm-temp-helper-ctx-', fakeContext);
+    const captured = createTempDir('wm-temp-helper-ctx-', fakeContext);
     assert.ok(existsSync(captured), 'directory should exist before cleanup');
     assert.equal(fakeContext.hooks.length, 1, 'cleanup must be registered at creation');
     for (const fn of fakeContext.hooks) fn();
@@ -96,5 +97,64 @@ describe('createTempDir', () => {
     );
     assert.ok(stdout.length > 0);
     assert.equal(existsSync(stdout), false, `temp dir leaked on exit 1: ${stdout}`);
+  });
+});
+
+/**
+ * Find `rmSync(<v>, …)` where `<v>` came from `createTempDir`. That deletes the
+ * directory but leaves its path registered in the exit sweep, so the sweep
+ * retries an already-gone path forever. `removeTempDir` deregisters; a bare
+ * `rmSync` does not.
+ *
+ * @param {string} source File contents.
+ * @returns {string[]} Names of the offending variables.
+ */
+function findStaleRegistrations(source) {
+  const owned = new Set(
+    [...source.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*createTempDir\(/g)].map(m => m[1]),
+  );
+  if (!owned.size) return [];
+  return [...source.matchAll(/\brmSync\(\s*([A-Za-z_$][\w$]*)\s*[,)]/g)]
+    .map(m => m[1])
+    .filter(name => owned.has(name));
+}
+
+describe('no stale exit-sweep registrations', () => {
+  // Positive controls first: a scan that only ever asserts "nothing found"
+  // passes just as happily when the detector is broken as when the repo is clean.
+  it('DETECTS a bare rmSync on a createTempDir result', () => {
+    const bad = "const dir = createTempDir('x-');\nrmSync(dir, { recursive: true, force: true });";
+    assert.deepEqual(findStaleRegistrations(bad), ['dir']);
+  });
+
+  it('DETECTS it inside a cleanup callback', () => {
+    const bad = "const tempDir = createTempDir('x-');\nreturn { cleanup() { rmSync(tempDir, { force: true }); } };";
+    assert.deepEqual(findStaleRegistrations(bad), ['tempDir']);
+  });
+
+  it('ACCEPTS removeTempDir, and ignores rmSync on unrelated paths', () => {
+    const good = "const dir = createTempDir('x-');\nrmSync(someOtherPath, { force: true });\nremoveTempDir(dir);";
+    assert.deepEqual(findStaleRegistrations(good), []);
+  });
+
+  it('finds none in the repo', () => {
+    const files = execSync(
+      "grep -rl 'createTempDir' tests scripts --include='*.mjs' --include='*.mts' --include='*.js' 2>/dev/null || true",
+      { encoding: 'utf8', cwd: fileURLToPath(new URL('..', import.meta.url)), maxBuffer: 1 << 24 },
+    ).trim().split('\n').filter(Boolean);
+
+    assert.ok(files.length >= 6, `expected the helper to have consumers, found ${files.length}`);
+
+    const offenders = [];
+    for (const rel of files) {
+      // This file's positive controls are deliberately-bad source held in string
+      // literals; the detector cannot tell them from real code, and should not.
+      if (rel.endsWith('tests/temp-dir-helper.test.mjs')) continue;
+      const abs = fileURLToPath(new URL(`../${rel}`, import.meta.url));
+      for (const name of findStaleRegistrations(readFileSync(abs, 'utf8'))) {
+        offenders.push(`${rel}: rmSync(${name}) — use removeTempDir(${name})`);
+      }
+    }
+    assert.deepEqual(offenders, [], `stale registrations:\n${offenders.join('\n')}`);
   });
 });

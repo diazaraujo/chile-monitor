@@ -7,12 +7,12 @@
 // in-memory file rather than a real source file.
 
 import { build } from 'esbuild';
-import { rmSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createBrowserEnvironment } from './runtime-config-panel-harness.mjs';
-import { createTempDir } from './temp-dir.mjs';
+import { createTempDir, removeTempDir } from './temp-dir.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..', '..');
@@ -189,7 +189,7 @@ async function loadMinimalPanel() {
     getConstructorRunCount: () => mod.constructorRunCount,
     resetConstructorRunCount: mod.resetConstructorRunCount,
     cleanupBundle() {
-      rmSync(tempDir, { recursive: true, force: true });
+      removeTempDir(tempDir);
     },
   };
 }

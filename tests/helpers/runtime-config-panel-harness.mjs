@@ -1,11 +1,11 @@
 import { build } from 'esbuild';
-import { rmSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { createBrowserEnvironment } from './mini-dom.mts';
-import { createTempDir } from './temp-dir.mjs';
+import { createTempDir, removeTempDir } from './temp-dir.mjs';
 
 export { createBrowserEnvironment };
 
@@ -233,7 +233,7 @@ async function loadRuntimeConfigPanel() {
   return {
     RuntimeConfigPanel: mod.RuntimeConfigPanel,
     cleanupBundle() {
-      rmSync(tempDir, { recursive: true, force: true });
+      removeTempDir(tempDir);
     },
   };
 }
