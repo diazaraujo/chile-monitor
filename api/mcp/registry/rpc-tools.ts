@@ -425,6 +425,26 @@ function addStringParam(query: URLSearchParams, name: string, value: unknown): v
   if (typeof value === 'string' && value.trim()) query.set(name, value.trim());
 }
 
+/**
+ * Normalize an intel-history `country` filter to the case its route demands.
+ *
+ * The generated validator enabled by GHSA-cmj5-cfhr-w964 requires
+ * `^([A-Z]{2})?$`, and the tool schemas only *document* uppercase — a JSON
+ * Schema `description` cannot enforce it, so an LLM sending `"ua"` earns a 400
+ * round-trip (WORLDMONITOR-10R / -10Q). #7105 fixed the same defect for the
+ * dashboard panel; the `country_code` tools here already normalize at their
+ * call sites, and these three took the differently-named `country`.
+ *
+ * Returns undefined for anything blank so an omitted filter stays omitted: the
+ * pattern makes the field optional, and sending `""` would turn "search every
+ * country" into an explicit empty filter.
+ */
+function normalizeIntelHistoryCountry(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const code = value.trim().toUpperCase();
+  return code === '' ? undefined : code;
+}
+
 function procurementPageSize(value: unknown): number {
   return Number.isInteger(value) && (value as number) > 0
     ? Math.min(PROCUREMENT_TOOL_MAX_PAGE_SIZE, value as number)
@@ -2201,7 +2221,7 @@ export const RPC_TOOLS: ToolDef[] = [
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     _execute: async (params, base, context, execution) => {
       const url = `${base}/api/intelligence/v1/search-intel-history`;
-      const body = JSON.stringify({ query: params.query, domain: params.domain, country: params.country, from: params.from, to: params.to, limit: Math.min(Number(params.limit ?? MCP_HISTORY_SEARCH_MAX_LIMIT), MCP_HISTORY_SEARCH_MAX_LIMIT) });
+      const body = JSON.stringify({ query: params.query, domain: params.domain, country: normalizeIntelHistoryCountry(params.country), from: params.from, to: params.to, limit: Math.min(Number(params.limit ?? MCP_HISTORY_SEARCH_MAX_LIMIT), MCP_HISTORY_SEARCH_MAX_LIMIT) });
       const auth = await buildAuthHeaders(context, 'POST', url, body);
       // Budget covers one embeddings round-trip (4 s) plus the store read (5 s).
       const response = await fetch(url, {
@@ -2251,7 +2271,7 @@ export const RPC_TOOLS: ToolDef[] = [
       // here turns an opaque downstream failure into an actionable message and
       // saves the round-trip; the handler stays the enforcing authority.
       const domain = typeof params.domain === 'string' ? params.domain.trim() : '';
-      const country = typeof params.country === 'string' ? params.country.trim() : '';
+      const country = normalizeIntelHistoryCountry(params.country) ?? '';
       if (!domain && !country) {
         throw new Error('get_intel_timeline requires at least one of domain ("conflict", "military", or "energy") or country (ISO 3166-1 alpha-2) — those are the two indexed scopes on the history store.');
       }
@@ -2310,7 +2330,7 @@ export const RPC_TOOLS: ToolDef[] = [
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     _execute: async (params, base, context, execution) => {
       const url = `${base}/api/intelligence/v1/get-similar-events`;
-      const body = JSON.stringify({ situation: params.situation, domain: params.domain, country: params.country, limit: Math.min(Number(params.limit ?? MCP_HISTORY_PRECEDENT_MAX_LIMIT), MCP_HISTORY_PRECEDENT_MAX_LIMIT) });
+      const body = JSON.stringify({ situation: params.situation, domain: params.domain, country: normalizeIntelHistoryCountry(params.country), limit: Math.min(Number(params.limit ?? MCP_HISTORY_PRECEDENT_MAX_LIMIT), MCP_HISTORY_PRECEDENT_MAX_LIMIT) });
       const auth = await buildAuthHeaders(context, 'POST', url, body);
       // Budget covers one embeddings round-trip (4 s) plus the store read (5 s).
       const response = await fetch(url, {
