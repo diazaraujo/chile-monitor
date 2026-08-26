@@ -85,9 +85,11 @@ export const MARKETING_IGNORE_ERRORS: RegExp[] = [
   // this exact sentence when a `runtime`/`tabs` sendMessage reaches a context
   // with no `onMessage` receiver (a content script not yet injected, or a
   // service worker that has shut down). A different sentence from the entry
-  // above, so that pattern does not cover it. This bundle contains no
-  // `chrome.runtime`/`browser.runtime`/`sendMessage` reference at all
-  // (grep-verified across `pro-test/src`), so the rejection always belongs to
+  // above, so that pattern does not cover it. `pro-test/src` holds no
+  // chrome.runtime/tabs.sendMessage call site — the only textual occurrences
+  // are the suppressor patterns in this very file, which is what the grep
+  // verification covers and what the policy-wiring suite locks in — so the
+  // rejection always belongs to
   // an extension injected into the page. Already suppressed on the dashboard
   // in `src/bootstrap/sentry-init.ts`; the two surfaces run separate Sentry
   // clients, so the marketing copy was the gap that let WORLDMONITOR-10N
