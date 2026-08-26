@@ -11,6 +11,24 @@
  * beside the panels). Shared by web and the desktop app — issue #6417. */
 export const SPLIT_LAYOUT_MIN_WIDTH = 900;
 
+/** Former web-only split threshold. It remains only to bound migration of the
+ * legacy shared map-height preference to users who could have set it while
+ * the web dashboard was split. */
+export const LEGACY_WEB_SPLIT_LAYOUT_MIN_WIDTH = 1600;
+
+export type MapVisualSide = 'left' | 'right';
+
+/** Whether the logical `.map-right` grid class represents a requested visual
+ * side. RTL mirrors the grid, so visual right uses the default column. */
+export function mapRightClassForVisualSide(side: MapVisualSide, isRtl: boolean): boolean {
+  return (side === 'right') !== isRtl;
+}
+
+/** Resolves the physical side shown to the user from the logical grid class. */
+export function getVisualMapSide(hasMapRightClass: boolean, isRtl: boolean): MapVisualSide {
+  return hasMapRightClass !== isRtl ? 'right' : 'left';
+}
+
 /** Lower bound of the map column, as a percentage of the split container. */
 export const MAP_COL_MIN_PERCENT = 10;
 

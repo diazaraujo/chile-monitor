@@ -9,6 +9,8 @@ import {
   MAP_COL_DEFAULT_PERCENT,
   PANELS_COL_MIN_PX,
   MAP_COL_DIVIDER_PX,
+  getVisualMapSide,
+  mapRightClassForVisualSide,
 } from '../src/app/split-layout.ts';
 
 describe('split-layout map column bounds', () => {
@@ -46,5 +48,17 @@ describe('split-layout map column bounds', () => {
     assert.equal(clampMapColWidthPercent(1, 1000), minPct);
     assert.equal(clampMapColWidthPercent(99, 1000), maxPct);
     assert.equal(clampMapColWidthPercent(50, 1000), 50);
+  });
+
+  it('maps persisted physical sides to logical grid columns under LTR and RTL', () => {
+    assert.equal(mapRightClassForVisualSide('right', false), true);
+    assert.equal(mapRightClassForVisualSide('left', false), false);
+    assert.equal(mapRightClassForVisualSide('right', true), false);
+    assert.equal(mapRightClassForVisualSide('left', true), true);
+
+    assert.equal(getVisualMapSide(false, false), 'left');
+    assert.equal(getVisualMapSide(true, false), 'right');
+    assert.equal(getVisualMapSide(false, true), 'right');
+    assert.equal(getVisualMapSide(true, true), 'left');
   });
 });

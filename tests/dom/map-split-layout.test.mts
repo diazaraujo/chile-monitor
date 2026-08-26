@@ -70,6 +70,8 @@ describe('map split layout (#6417)', () => {
     manager.destroy();
     document.body.replaceChildren();
     localStorage.clear();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   describe('map column width bounds', () => {
@@ -181,6 +183,7 @@ describe('map split layout (#6417)', () => {
 
       handle.dispatchEvent(Object.assign(new Event('touchstart', { bubbles: true, cancelable: true }), {
         touches: [{ clientX: 1320, identifier: 7 }],
+        changedTouches: [{ clientX: 1320, identifier: 7 }],
       }));
       document.dispatchEvent(Object.assign(new Event('touchmove', { bubbles: true }), {
         touches: [{ clientX: 1100, identifier: 7 }],
@@ -199,6 +202,7 @@ describe('map split layout (#6417)', () => {
 
       handle.dispatchEvent(Object.assign(new Event('touchstart', { bubbles: true, cancelable: true }), {
         touches: [{ clientX: 1320, identifier: 7 }],
+        changedTouches: [{ clientX: 1320, identifier: 7 }],
       }));
       // An unrelated touch ends elsewhere on the page: the drag must survive.
       document.dispatchEvent(Object.assign(new Event('touchend', { bubbles: true }), {
@@ -214,6 +218,56 @@ describe('map split layout (#6417)', () => {
       document.dispatchEvent(Object.assign(new Event('touchend', { bubbles: true }), {
         changedTouches: [{ identifier: 7 }],
       }));
+      expect(localStorage.getItem('map-col-width')).toBe('50.0%');
+    });
+
+    it('tracks the divider touch when another finger is already down', () => {
+      const { main, handle } = buildSplitDom(2200);
+      manager.setupMapWidthResize();
+
+      handle.dispatchEvent(Object.assign(new Event('touchstart', { bubbles: true, cancelable: true }), {
+        touches: [
+          { clientX: 300, identifier: 3 },
+          { clientX: 1320, identifier: 7 },
+        ],
+        changedTouches: [{ clientX: 1320, identifier: 7 }],
+      }));
+      document.dispatchEvent(Object.assign(new Event('touchmove', { bubbles: true }), {
+        touches: [
+          { clientX: 300, identifier: 3 },
+          { clientX: 1100, identifier: 7 },
+        ],
+      }));
+      document.dispatchEvent(Object.assign(new Event('touchend', { bubbles: true }), {
+        changedTouches: [{ identifier: 7 }],
+      }));
+
+      expect(main.style.getPropertyValue('--map-col-width')).toBe('50.0%');
+      expect(localStorage.getItem('map-col-width')).toBe('50.0%');
+    });
+
+    it('does not let mouse events take over an active touch drag', () => {
+      const { main, handle } = buildSplitDom(2200);
+      manager.setupMapWidthResize();
+
+      handle.dispatchEvent(Object.assign(new Event('touchstart', { bubbles: true, cancelable: true }), {
+        touches: [{ clientX: 1320, identifier: 7 }],
+        changedTouches: [{ clientX: 1320, identifier: 7 }],
+      }));
+      document.dispatchEvent(new MouseEvent('mousemove', { clientX: 0, bubbles: true }));
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+
+      expect(main.style.getPropertyValue('--map-col-width')).toBe('60.0%');
+      expect(localStorage.getItem('map-col-width')).toBeNull();
+
+      document.dispatchEvent(Object.assign(new Event('touchmove', { bubbles: true }), {
+        touches: [{ clientX: 1100, identifier: 7 }],
+      }));
+      document.dispatchEvent(Object.assign(new Event('touchend', { bubbles: true }), {
+        changedTouches: [{ identifier: 7 }],
+      }));
+
+      expect(main.style.getPropertyValue('--map-col-width')).toBe('50.0%');
       expect(localStorage.getItem('map-col-width')).toBe('50.0%');
     });
 
@@ -303,6 +357,43 @@ describe('map split layout (#6417)', () => {
       expect(btn.title).toBe('Move map to the left side');
       expect(btn.getAttribute('aria-label')).toBe('Move map to the left side');
       expect(btn.classList.contains('active')).toBe(true);
+    });
+
+    it('labels and persists the visual side under RTL', () => {
+      const { main, btn } = buildSideDom();
+      main.style.direction = 'rtl';
+      manager.setupMapSideToggle();
+
+      // In RTL the default grid column is visually right.
+      expect(main.classList.contains('map-right')).toBe(false);
+      expect(btn.title).toBe('Move map to the left side');
+      expect(btn.classList.contains('active')).toBe(true);
+
+      btn.click();
+      expect(main.classList.contains('map-right')).toBe(true);
+      expect(localStorage.getItem('map-side')).toBe('left');
+      expect(btn.title).toBe('Move map to the right side');
+      expect(btn.classList.contains('active')).toBe(false);
+    });
+
+    it('restores a physical right preference under RTL', () => {
+      localStorage.setItem('map-side', 'right');
+      const { main, btn } = buildSideDom();
+      main.style.direction = 'rtl';
+      manager.setupMapSideToggle();
+
+      expect(main.classList.contains('map-right')).toBe(false);
+      expect(btn.title).toBe('Move map to the left side');
+    });
+
+    it('restores a physical left preference under RTL', () => {
+      localStorage.setItem('map-side', 'left');
+      const { main, btn } = buildSideDom();
+      main.style.direction = 'rtl';
+      manager.setupMapSideToggle();
+
+      expect(main.classList.contains('map-right')).toBe(true);
+      expect(btn.title).toBe('Move map to the right side');
     });
 
     it('follows the VISUAL side under RTL, where the grid mirrors', () => {
@@ -410,6 +501,36 @@ describe('map split layout (#6417)', () => {
       expect(localStorage.getItem('map-height')).toBe('450px');
     });
 
+    it('does not migrate a stacked legacy height for newly split web widths', () => {
+      stubInnerWidth(1200);
+      localStorage.setItem('map-height', '450px');
+      const { container } = buildHeightDom();
+      manager.setupMapResize();
+
+      expect(container.style.height).toBe('');
+      expect(localStorage.getItem('map-split-height')).toBeNull();
+      expect(localStorage.getItem('map-height')).toBe('450px');
+    });
+
+    it('still migrates a legacy split height for the desktop app', () => {
+      manager.destroy();
+      manager = new EventHandlerManager({
+        container: document.createElement('div'),
+        isDesktopApp: true,
+        panels: {},
+        panelSettings: {},
+        mapLayers: {},
+        map: { resize, setIsResizing: vi.fn() },
+      } as never, {} as never);
+      stubInnerWidth(1200);
+      localStorage.setItem('map-height', '450px');
+      const { container } = buildHeightDom();
+      manager.setupMapResize();
+
+      expect(container.style.height).toBe('450px');
+      expect(localStorage.getItem('map-split-height')).toBe('450px');
+    });
+
     it('removes an unparseable legacy value from the key it was read from', () => {
       stubInnerWidth(2000);
       localStorage.setItem('map-height', 'garbage');
@@ -431,13 +552,18 @@ describe('map split layout (#6417)', () => {
       }
     }
 
-    it('clears the departing mode\'s inline sizing and applies the arriving mode\'s saved height', () => {
+    function stubResponsiveZone(): FakeMediaQueryList[] {
       const lists: FakeMediaQueryList[] = [];
       vi.stubGlobal('matchMedia', (media: string) => {
         const list = new FakeMediaQueryList(media);
         lists.push(list);
         return list;
       });
+      return lists;
+    }
+
+    it('clears the departing mode\'s inline sizing and applies the arriving mode\'s saved height', () => {
+      const lists = stubResponsiveZone();
 
       stubInnerWidth(2000);
       localStorage.setItem('map-split-height', '600px');
@@ -471,8 +597,46 @@ describe('map split layout (#6417)', () => {
       lists[0]!.dispatchEvent(new Event('change'));
       expect(section.style.height).toBe('');
       expect(container.style.height).toBe('600px');
+    });
 
-      vi.unstubAllGlobals();
+    it('finishes an active height drag before clearing the departing target', () => {
+      const lists = stubResponsiveZone();
+      stubInnerWidth(2000);
+      localStorage.setItem('map-split-height', '600px');
+      localStorage.setItem('map-height', '400px');
+      const { container, handle } = buildHeightDom();
+      manager.setupMapResize();
+
+      handle.dispatchEvent(new MouseEvent('mousedown', { clientY: 0, bubbles: true }));
+      document.dispatchEvent(new MouseEvent('mousemove', { clientY: 50, bubbles: true }));
+      expect(container.style.height).toBe('550px');
+
+      stubInnerWidth(800);
+      lists[0]!.dispatchEvent(new Event('change'));
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+
+      expect(localStorage.getItem('map-split-height')).toBe('550px');
+      expect(localStorage.getItem('map-height')).toBe('400px');
+      expect(container.style.height).toBe('');
+    });
+
+    it('keeps a double-click reset scoped to the mode where it started', () => {
+      vi.useFakeTimers();
+      const lists = stubResponsiveZone();
+      stubInnerWidth(2000);
+      localStorage.setItem('map-split-height', '600px');
+      localStorage.setItem('map-height', '450px');
+      const { handle } = buildHeightDom();
+      manager.setupMapResize();
+      const expectedResetHeight = `${window.innerHeight * 0.5}px`;
+
+      handle.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+      stubInnerWidth(800);
+      lists[0]!.dispatchEvent(new Event('change'));
+      vi.advanceTimersByTime(500);
+
+      expect(localStorage.getItem('map-split-height')).toBe(expectedResetHeight);
+      expect(localStorage.getItem('map-height')).toBe('450px');
     });
   });
 });

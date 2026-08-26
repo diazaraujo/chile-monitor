@@ -115,9 +115,13 @@ import { overlayHistory, type OverlayId } from '@/utils/overlay-history';
 import { MobilePrimaryNav } from '@/app/mobile-primary-nav';
 import {
   SPLIT_LAYOUT_MIN_WIDTH,
+  LEGACY_WEB_SPLIT_LAYOUT_MIN_WIDTH,
   MAP_COL_DEFAULT_PERCENT,
   clampMapColWidthPercent,
+  getVisualMapSide,
   getMapColWidthBounds,
+  mapRightClassForVisualSide,
+  type MapVisualSide,
 } from '@/app/split-layout';
 import {
   addResponsiveZoneListener,
@@ -286,6 +290,7 @@ export class EventHandlerManager implements AppModule {
   private boundMapWidthResizeMoveHandler: ((e: MouseEvent) => void) | null = null;
   private boundMapWidthTouchMoveHandler: ((e: TouchEvent) => void) | null = null;
   private boundMapWidthTouchEndHandler: ((e: TouchEvent) => void) | null = null;
+  private boundMapWidthMouseUpHandler: (() => void) | null = null;
   private boundMapWidthVisChangeHandler: (() => void) | null = null;
   private boundMapWidthWindowResizeHandler: (() => void) | null = null;
   private boundMapWidthEndResizeHandler: (() => void) | null = null;
@@ -508,6 +513,10 @@ export class EventHandlerManager implements AppModule {
       document.removeEventListener('touchcancel', this.boundMapWidthTouchEndHandler);
       this.boundMapWidthTouchEndHandler = null;
     }
+    if (this.boundMapWidthMouseUpHandler) {
+      document.removeEventListener('mouseup', this.boundMapWidthMouseUpHandler);
+      this.boundMapWidthMouseUpHandler = null;
+    }
     if (this.boundMapWidthVisChangeHandler) {
       document.removeEventListener('visibilitychange', this.boundMapWidthVisChangeHandler);
       this.boundMapWidthVisChangeHandler = null;
@@ -517,7 +526,6 @@ export class EventHandlerManager implements AppModule {
       this.boundMapWidthWindowResizeHandler = null;
     }
     if (this.boundMapWidthEndResizeHandler) {
-      document.removeEventListener('mouseup', this.boundMapWidthEndResizeHandler);
       window.removeEventListener('blur', this.boundMapWidthEndResizeHandler);
       this.boundMapWidthEndResizeHandler = null;
     }
@@ -2169,7 +2177,9 @@ export class EventHandlerManager implements AppModule {
       // Before the keys were mode-scoped both modes overwrote 'map-height';
       // fall back to it so existing split-mode users keep their height. The
       // restore below completes the migration by writing the split key.
-      if (value === null && isSplit()) {
+      const canUseLegacySplitHeight = this.ctx.isDesktopApp
+        || window.innerWidth >= LEGACY_WEB_SPLIT_LAYOUT_MIN_WIDTH;
+      if (value === null && isSplit() && canUseLegacySplitHeight) {
         return { value: readStorageValue('map-height'), sourceKey: 'map-height' };
       }
       return { value, sourceKey: key };
@@ -2238,22 +2248,6 @@ export class EventHandlerManager implements AppModule {
     applySavedHeight();
     syncHeightSeparatorAria();
 
-    // Crossing the split threshold moves the height target between
-    // #mapContainer (split) and #mapSection (stacked). Clear the departing
-    // element's inline sizing and re-apply the arriving mode's saved height,
-    // or stale inline styles from the other mode distort the layout.
-    this.mapSplitZoneListener = addResponsiveZoneListener(window, SPLIT_LAYOUT_MIN_WIDTH, () => {
-      if (isSplit()) {
-        mapSection.style.height = '';
-      } else {
-        mapContainer.style.height = '';
-        mapContainer.style.flex = '';
-      }
-      applySavedHeight();
-      syncHeightSeparatorAria();
-      this.ctx.map?.resize();
-    });
-
     let isResizing = false;
     let startY = 0;
     let startHeight = 0;
@@ -2275,6 +2269,23 @@ export class EventHandlerManager implements AppModule {
     };
     const endResize = this.boundMapEndResizeHandler;
 
+    // Crossing the split threshold moves the height target between
+    // #mapContainer (split) and #mapSection (stacked). Finish an active drag
+    // before clearing the departing element so its captured key receives the
+    // last numeric height, then restore the arriving mode's preference.
+    this.mapSplitZoneListener = addResponsiveZoneListener(window, SPLIT_LAYOUT_MIN_WIDTH, () => {
+      endResize();
+      if (isSplit()) {
+        mapSection.style.height = '';
+      } else {
+        mapContainer.style.height = '';
+        mapContainer.style.flex = '';
+      }
+      applySavedHeight();
+      syncHeightSeparatorAria();
+      this.ctx.map?.resize();
+    });
+
     resizeHandle.addEventListener('mousedown', (e) => {
       isResizing = true;
       startY = e.clientY;
@@ -2290,6 +2301,7 @@ export class EventHandlerManager implements AppModule {
     resizeHandle.addEventListener('dblclick', () => {
       const isWide = isSplit();
       const target = isWide ? mapContainer : mapSection;
+      const heightKey = getHeightKey();
 
       const targetHeight = window.innerHeight * 0.5;
       const finalHeight = Math.max(getMinHeight(), Math.min(targetHeight, getMaxHeight()));
@@ -2308,7 +2320,7 @@ export class EventHandlerManager implements AppModule {
 
         target.classList.remove('map-section-smooth');
         target.removeEventListener('transitionend', onEnd);
-        writeStorageValue(getHeightKey(), `${finalHeight}px`);
+        writeStorageValue(heightKey, `${finalHeight}px`);
         this.ctx.map?.setIsResizing(false);
         this.ctx.map?.resize();
         syncHeightSeparatorAria();
@@ -2363,10 +2375,10 @@ export class EventHandlerManager implements AppModule {
     if (!mainContent || !widthHandle) return;
 
     const isMapRight = () => mainContent.classList.contains('map-right');
+    const isRtl = () => getComputedStyle(mainContent).direction === 'rtl';
     // Under RTL the grid mirrors, so grid column 1 sits on the visual right:
     // drag and arrow-key directions must follow the VISUAL side, not the class.
-    const isMapVisuallyRight = () =>
-      isMapRight() !== (getComputedStyle(mainContent).direction === 'rtl');
+    const isMapVisuallyRight = () => getVisualMapSide(isMapRight(), isRtl()) === 'right';
     const getCurrentWidthPercent = () => {
       const raw = mainContent.style.getPropertyValue('--map-col-width') || `${MAP_COL_DEFAULT_PERCENT}%`;
       return clampMapColWidthPercent(Number.parseFloat(raw), mainContent.offsetWidth);
@@ -2420,9 +2432,11 @@ export class EventHandlerManager implements AppModule {
     // direction, and so a second input (mouse vs touch) cannot steal the drag.
     let dragSign = 1;
     let activeTouchId: number | null = null;
+    let activeDragSource: 'mouse' | 'touch' | null = null;
 
     this.boundMapWidthEndResizeHandler = () => {
       activeTouchId = null;
+      activeDragSource = null;
       if (!isResizing) return;
       isResizing = false;
       this.ctx.map?.setIsResizing(false);
@@ -2435,9 +2449,10 @@ export class EventHandlerManager implements AppModule {
       syncWidthSeparatorAria();
     };
 
-    const beginDrag = (clientX: number) => {
-      if (isResizing) return;
+    const beginDrag = (clientX: number, source: 'mouse' | 'touch'): boolean => {
+      if (isResizing) return false;
       isResizing = true;
+      activeDragSource = source;
       startX = clientX;
       startTotalWidth = mainContent.offsetWidth;
       startColPx = startTotalWidth * (getCurrentWidthPercent() / 100);
@@ -2445,6 +2460,7 @@ export class EventHandlerManager implements AppModule {
       this.ctx.map?.setIsResizing(true);
       document.body.classList.add('map-width-resizing');
       widthHandle.classList.add('resizing');
+      return true;
     };
     // With the map visually on the right, moving the divider left grows it.
     const applyDrag = (clientX: number) => {
@@ -2457,16 +2473,14 @@ export class EventHandlerManager implements AppModule {
     };
 
     widthHandle.addEventListener('mousedown', (e) => {
-      beginDrag(e.clientX);
-      e.preventDefault();
+      if (beginDrag(e.clientX, 'mouse')) e.preventDefault();
     });
 
     widthHandle.addEventListener('touchstart', (e: TouchEvent) => {
-      const touch = e.touches[0];
-      if (!touch || isResizing) return;
-      e.preventDefault();
+      const touch = e.changedTouches[0];
+      if (!touch || !beginDrag(touch.clientX, 'touch')) return;
       activeTouchId = touch.identifier;
-      beginDrag(touch.clientX);
+      e.preventDefault();
     }, { passive: false });
 
     // Keyboard path, mirroring the height handle above. Arrows move the
@@ -2486,11 +2500,11 @@ export class EventHandlerManager implements AppModule {
     });
 
     this.boundMapWidthResizeMoveHandler = (e: MouseEvent) => {
-      if (!isResizing) return;
+      if (!isResizing || activeDragSource !== 'mouse') return;
       applyDrag(e.clientX);
     };
     this.boundMapWidthTouchMoveHandler = (e: TouchEvent) => {
-      if (!isResizing || activeTouchId === null) return;
+      if (!isResizing || activeDragSource !== 'touch' || activeTouchId === null) return;
       const touch = Array.from(e.touches).find(t => t.identifier === activeTouchId);
       if (!touch) return;
       applyDrag(touch.clientX);
@@ -2498,9 +2512,12 @@ export class EventHandlerManager implements AppModule {
     // Only the tracked finger ends a touch drag — another finger lifting
     // elsewhere on the page must not cut the resize short.
     this.boundMapWidthTouchEndHandler = (e: TouchEvent) => {
-      if (activeTouchId === null) return;
+      if (activeDragSource !== 'touch' || activeTouchId === null) return;
       if (!Array.from(e.changedTouches).some(t => t.identifier === activeTouchId)) return;
       this.boundMapWidthEndResizeHandler?.();
+    };
+    this.boundMapWidthMouseUpHandler = () => {
+      if (activeDragSource === 'mouse') this.boundMapWidthEndResizeHandler?.();
     };
     // Mirror the height handle: a hidden tab must not leave a drag latched.
     this.boundMapWidthVisChangeHandler = () => {
@@ -2514,7 +2531,7 @@ export class EventHandlerManager implements AppModule {
     }, 150);
 
     document.addEventListener('mousemove', this.boundMapWidthResizeMoveHandler);
-    document.addEventListener('mouseup', this.boundMapWidthEndResizeHandler);
+    document.addEventListener('mouseup', this.boundMapWidthMouseUpHandler);
     document.addEventListener('touchmove', this.boundMapWidthTouchMoveHandler);
     document.addEventListener('touchend', this.boundMapWidthTouchEndHandler);
     document.addEventListener('touchcancel', this.boundMapWidthTouchEndHandler);
@@ -2528,20 +2545,31 @@ export class EventHandlerManager implements AppModule {
     const sideBtn = document.getElementById('mapSideBtn');
     if (!mainContent || !sideBtn) return;
 
+    const isRtl = () => getComputedStyle(mainContent).direction === 'rtl';
+    const getVisualSide = () => getVisualMapSide(
+      mainContent.classList.contains('map-right'),
+      isRtl(),
+    );
     const syncSideButton = () => {
-      const onRight = mainContent.classList.contains('map-right');
-      const label = onRight ? 'Move map to the left side' : 'Move map to the right side';
+      const visualSide = getVisualSide();
+      const label = visualSide === 'right' ? 'Move map to the left side' : 'Move map to the right side';
       sideBtn.title = label;
       sideBtn.setAttribute('aria-label', label);
-      sideBtn.classList.toggle('active', onRight);
+      sideBtn.classList.toggle('active', visualSide === 'right');
     };
 
-    if (readStorageValue('map-side') === 'right') mainContent.classList.add('map-right');
+    const storedSide = readStorageValue('map-side');
+    if (storedSide === 'left' || storedSide === 'right') {
+      mainContent.classList.toggle(
+        'map-right',
+        mapRightClassForVisualSide(storedSide as MapVisualSide, isRtl()),
+      );
+    }
     syncSideButton();
 
     sideBtn.addEventListener('click', () => {
-      const onRight = mainContent.classList.toggle('map-right');
-      writeStorageValue('map-side', onRight ? 'right' : 'left');
+      mainContent.classList.toggle('map-right');
+      writeStorageValue('map-side', getVisualSide());
       syncSideButton();
       this.ctx.map?.resize();
     });
