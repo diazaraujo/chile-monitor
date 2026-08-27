@@ -13,6 +13,10 @@ const TTL = 10800; // 180min — 2h buffer over 1h cron cadence (was 120min = ex
 // fetch, so raising or lowering this cannot change which countries have a
 // travel level.
 const PER_SOURCE_DISPLAY_LIMIT = 15;
+// One MiB leaves roughly 4 KiB for each entry in the current 219-country
+// State Department register while bounding an allowed upstream's processing
+// and memory use before XML parsing.
+export const MAX_ADVISORY_FEED_BYTES = 1024 * 1024;
 
 const ALLOWED_DOMAINS = new Set(loadSharedConfig('rss-allowed-domains.json'));
 
@@ -154,6 +158,40 @@ function rssProxyUrl(feedUrl) {
   return `${RELAY_URL}/rss?url=${encodeURIComponent(feedUrl)}`;
 }
 
+export async function readBoundedFeedText(response, maxBytes = MAX_ADVISORY_FEED_BYTES) {
+  const advertisedLength = Number(response.headers?.get?.('content-length'));
+  if (Number.isFinite(advertisedLength) && advertisedLength > maxBytes) {
+    try { await response.body?.cancel?.(); } catch { /* reject even if cancellation fails */ }
+    throw new Error('RESPONSE_TOO_LARGE');
+  }
+
+  const reader = response.body?.getReader?.();
+  if (!reader) {
+    const text = await response.text();
+    if (Buffer.byteLength(text, 'utf8') > maxBytes) throw new Error('RESPONSE_TOO_LARGE');
+    return text;
+  }
+
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel().catch(() => {});
+        throw new Error('RESPONSE_TOO_LARGE');
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock?.();
+  }
+
+  return new TextDecoder().decode(Buffer.concat(chunks.map((chunk) => Buffer.from(chunk))));
+}
+
 // `doFetch` is injectable so a test can drive this whole path — including the
 // no-truncation guarantee below — without network access.
 export async function fetchFeed(feed, doFetch = fetch) {
@@ -169,11 +207,12 @@ export async function fetchFeed(feed, doFetch = fetch) {
       console.warn(`  ${feed.name}: HTTP ${resp.status}`);
       return [];
     }
-    const xml = await resp.text();
-    // No cut here. Truncating before the country index is built is what made
-    // the US State Dept register — one standing advisory per country, ~219
-    // items — contribute only its first 15 countries. fetchAll bounds what
-    // gets STORED instead.
+    const xml = await readBoundedFeedText(resp);
+    // There is no item-count cut here: truncating before the country index is
+    // built made the US State Dept register — one standing advisory per
+    // country, ~219 items — contribute only its first 15 countries. The
+    // bounded source read above protects processing resources; fetchAll bounds
+    // what gets STORED instead.
     return mapFeedItems(parseFeed(xml), feed);
   } catch (e) {
     console.warn(`  ${feed.name}: ${e.message}`);
@@ -184,8 +223,9 @@ export async function fetchFeed(feed, doFetch = fetch) {
 /**
  * Normalise one feed's raw items into advisory records.
  *
- * Deliberately unbounded: the caller decides how many to STORE, but the
- * country-level index must see everything a register feed publishes.
+ * Retains every item from a bounded source response: the country-level index
+ * must see everything a register feed publishes, while fetchAll decides how
+ * many records to store in the news list.
  */
 export function mapFeedItems(items, feed) {
   return items
@@ -232,13 +272,13 @@ export function buildByCountryMap(advisories) {
   return map;
 }
 
-async function fetchAll() {
-  const results = await Promise.allSettled(ADVISORY_FEEDS.map(fetchFeed));
+export async function fetchAll({ feeds = ADVISORY_FEEDS, doFetch = fetch } = {}) {
+  const results = await Promise.allSettled(feeds.map((feed) => fetchFeed(feed, doFetch)));
   const all = [];
   for (let i = 0; i < results.length; i++) {
     const r = results[i];
     if (r.status === 'fulfilled') all.push(...r.value);
-    else console.warn(`  Feed ${ADVISORY_FEEDS[i]?.name || i} failed: ${r.reason?.message || r.reason}`);
+    else console.warn(`  Feed ${feeds[i]?.name || i} failed: ${r.reason?.message || r.reason}`);
   }
 
   const seen = new Set();

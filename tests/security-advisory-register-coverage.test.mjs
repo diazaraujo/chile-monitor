@@ -24,11 +24,14 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  MAX_ADVISORY_FEED_BYTES,
   buildByCountryMap,
   capPerSource,
+  fetchAll,
   fetchFeed,
   mapFeedItems,
   parseUsLevel,
+  readBoundedFeedText,
 } from '../scripts/seed-security-advisories.mjs';
 
 // The real feed descriptor: the url matters because fetchFeed refuses domains
@@ -141,6 +144,56 @@ describe('seed-security-advisories — advisory level index coverage', () => {
     assert.equal(byCountry.DE, 'caution');
     assert.equal(byCountry.JP, 'normal');
     assert.equal(byCountry.TH, 'normal');
+  });
+
+  it('uses the injected fetcher for every feed', async () => {
+    let requestCount = 0;
+    const report = await fetchAll({
+      feeds: [STATE_DEPT],
+      doFetch: async () => {
+        requestCount += 1;
+        return { ok: true, status: 200, text: async () => rssFor(registerItems()) };
+      },
+    });
+
+    assert.equal(requestCount, 1);
+    assert.equal(report.advisories.length, 15);
+    assert.equal(report.byCountry.DE, 'caution');
+  });
+
+  it('rejects an oversized feed body before parsing it', async () => {
+    let cancelled = false;
+    let released = false;
+    const reader = {
+      async read() {
+        return { done: false, value: new Uint8Array(MAX_ADVISORY_FEED_BYTES + 1) };
+      },
+      async cancel() { cancelled = true; },
+      releaseLock() { released = true; },
+    };
+
+    await assert.rejects(
+      readBoundedFeedText({ headers: { get: () => null }, body: { getReader: () => reader } }),
+      /RESPONSE_TOO_LARGE/,
+    );
+    assert.equal(cancelled, true, 'oversized streams must be cancelled');
+    assert.equal(released, true, 'stream locks must be released after rejection');
+  });
+
+  it('rejects an oversized advertised feed before reading its body', async () => {
+    let cancelled = false;
+    let textCalled = false;
+
+    await assert.rejects(
+      readBoundedFeedText({
+        headers: { get: () => String(MAX_ADVISORY_FEED_BYTES + 1) },
+        body: { cancel: async () => { cancelled = true; } },
+        text: async () => { textCalled = true; return ''; },
+      }),
+      /RESPONSE_TOO_LARGE/,
+    );
+    assert.equal(cancelled, true);
+    assert.equal(textCalled, false);
   });
 
   it('keeps the stored advisory list bounded per source', () => {
