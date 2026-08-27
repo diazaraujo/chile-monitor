@@ -438,6 +438,7 @@ function hydrateXFeedSnapshot(snapshot, { maxItems = DEFAULT_MAX_FEED_ITEMS, pol
     cursorByAccountId: copyCursorMap(pollState.cursorByAccountId),
     accountIdByHandle: copyAccountIdMap(pollState.accountIdByHandle),
     catchupByAccountId: copyCatchupMap(pollState.catchupByAccountId),
+    lastPolledAtByHandle: copyPolledAtMap(pollState.lastPolledAtByHandle),
     items: validSnapshot ? snapshot.items.filter((item) => item && typeof item === 'object').slice(0, itemLimit) : [],
     lookupOffset: Math.max(0, Math.floor(Number(pollState.lookupOffset) || 0)),
     accountOffset: Math.max(0, Math.floor(Number(pollState.accountOffset) || 0)),
