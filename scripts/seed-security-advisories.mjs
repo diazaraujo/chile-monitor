@@ -8,6 +8,11 @@ loadEnvFile(import.meta.url);
 const CANONICAL_KEY = 'intelligence:advisories:v1';
 const BOOTSTRAP_KEY = 'intelligence:advisories-bootstrap:v1';
 const TTL = 10800; // 180min — 2h buffer over 1h cron cadence (was 120min = exactly 1h buffer)
+// How many advisories per source are STORED in the news list. This is a
+// payload bound, never a coverage bound: buildByCountryMap indexes the full
+// fetch, so raising or lowering this cannot change which countries have a
+// travel level.
+const PER_SOURCE_DISPLAY_LIMIT = 15;
 
 const ALLOWED_DOMAINS = new Set(loadSharedConfig('rss-allowed-domains.json'));
 
@@ -40,7 +45,7 @@ const ADVISORY_FEEDS = [
 
 const RELAY_URL = process.env.RELAY_URL || 'https://proxy.worldmonitor.app';
 
-function parseUsLevel(title) {
+export function parseUsLevel(title) {
   const m = title.match(/Level (\d)/i);
   if (!m) return 'info';
   return { '4': 'do-not-travel', '3': 'reconsider', '2': 'caution', '1': 'normal' }[m[1]] || 'info';
@@ -149,12 +154,14 @@ function rssProxyUrl(feedUrl) {
   return `${RELAY_URL}/rss?url=${encodeURIComponent(feedUrl)}`;
 }
 
-async function fetchFeed(feed) {
+// `doFetch` is injectable so a test can drive this whole path — including the
+// no-truncation guarantee below — without network access.
+export async function fetchFeed(feed, doFetch = fetch) {
   const proxyUrl = rssProxyUrl(feed.url);
   if (!proxyUrl) return [];
 
   try {
-    const resp = await fetch(proxyUrl, {
+    const resp = await doFetch(proxyUrl, {
       headers: { 'User-Agent': CHROME_UA, Accept: 'application/rss+xml, application/xml, text/xml, */*' },
       signal: AbortSignal.timeout(15_000),
     });
@@ -163,25 +170,56 @@ async function fetchFeed(feed) {
       return [];
     }
     const xml = await resp.text();
-    const items = parseFeed(xml).slice(0, 15);
-    return items
-      .filter(item => item.title && isValidUrl(item.link))
-      .map(item => ({
-        title: item.title,
-        link: item.link,
-        pubDate: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
-        source: feed.name,
-        sourceCountry: feed.sourceCountry,
-        level: parseLevel(item, feed.levelParser),
-        country: extractCountry(item.title, feed) || '',
-      }));
+    // No cut here. Truncating before the country index is built is what made
+    // the US State Dept register — one standing advisory per country, ~219
+    // items — contribute only its first 15 countries. fetchAll bounds what
+    // gets STORED instead.
+    return mapFeedItems(parseFeed(xml), feed);
   } catch (e) {
     console.warn(`  ${feed.name}: ${e.message}`);
     return [];
   }
 }
 
-function buildByCountryMap(advisories) {
+/**
+ * Normalise one feed's raw items into advisory records.
+ *
+ * Deliberately unbounded: the caller decides how many to STORE, but the
+ * country-level index must see everything a register feed publishes.
+ */
+export function mapFeedItems(items, feed) {
+  return items
+    .filter(item => item.title && isValidUrl(item.link))
+    .map(item => ({
+      title: item.title,
+      link: item.link,
+      pubDate: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
+      source: feed.name,
+      sourceCountry: feed.sourceCountry,
+      level: parseLevel(item, feed.levelParser),
+      country: extractCountry(item.title, feed) || '',
+    }));
+}
+
+/**
+ * Bound the STORED advisory list to `limit` per source, preserving input order
+ * (callers sort by recency first). This is the news list's bound only — the
+ * country-level index is built from the full set, because one cap cannot serve
+ * both a "latest N headlines" list and a complete per-country register.
+ */
+export function capPerSource(advisories, limit) {
+  const kept = [];
+  const counts = new Map();
+  for (const a of advisories) {
+    const n = counts.get(a.source) ?? 0;
+    if (n >= limit) continue;
+    counts.set(a.source, n + 1);
+    kept.push(a);
+  }
+  return kept;
+}
+
+export function buildByCountryMap(advisories) {
   const map = {};
   for (const a of advisories) {
     if (!a.country || !a.level || a.level === 'info') continue;
@@ -213,10 +251,15 @@ async function fetchAll() {
 
   deduped.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 
+  // Index from EVERYTHING fetched; store a bounded slice. The two have
+  // different jobs: `byCountry` answers "what is the travel level for X" and
+  // must be complete, while `advisories` is a recency-ordered news list whose
+  // size is a payload concern.
   const byCountry = buildByCountryMap(deduped);
-  const report = { byCountry, byCountryName: BY_COUNTRY_NAME, advisories: deduped, fetchedAt: new Date().toISOString() };
+  const advisories = capPerSource(deduped, PER_SOURCE_DISPLAY_LIMIT);
+  const report = { byCountry, byCountryName: BY_COUNTRY_NAME, advisories, fetchedAt: new Date().toISOString() };
 
-  console.log(`  ${deduped.length} advisories, ${Object.keys(byCountry).length} countries with levels`);
+  console.log(`  ${advisories.length} advisories stored (${deduped.length} fetched), ${Object.keys(byCountry).length} countries with levels`);
 
   return report;
 }
