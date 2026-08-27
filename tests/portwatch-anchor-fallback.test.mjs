@@ -38,6 +38,10 @@ test("a country's own preflight always wins", () => {
   assert.equal(resolveCountryAnchorMs('2026-08-19', AUG21), AUG19);
 });
 
+test("a failed preflight keeps the country's prior max ahead of a newer run anchor", () => {
+  assert.equal(resolveCountryAnchorMs(null, AUG21, '2026-08-19'), AUG19);
+});
+
 test('a failed preflight inherits the run anchor instead of Date.now()', () => {
   // The whole point: HKG/POL/KEN preflights return HTTP 400 while CHN's answers.
   // Before this, those countries got a now-anchored window, scored

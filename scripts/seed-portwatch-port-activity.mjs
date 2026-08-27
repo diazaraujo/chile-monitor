@@ -712,15 +712,18 @@ export function deriveRunAnchorMs(maxDateStrings) {
   return newest;
 }
 
-// A country's own preflight wins; a failed one inherits the run anchor.
+// A country's own preflight wins. On failure, its last known max date wins
+// over the run anchor because country maxima can publish at different times.
 // fetchMaxDate returns null on ANY failure — including the sporadic HTTP 400 and
 // 504 this FeatureServer emits under load — so without this a transport blip was
 // converted into "assume upstream is current". undefined (not null) is returned
 // when nothing is known, so fetchCountryAccum's `?? Date.now()` still applies for
 // a run where nothing at all answered.
-export function resolveCountryAnchorMs(upstreamMaxDate, runAnchorMs) {
+export function resolveCountryAnchorMs(upstreamMaxDate, runAnchorMs, priorAsof) {
   const own = parseMaxDateToAnchor(upstreamMaxDate);
   if (own !== null) return own;
+  const prior = parseMaxDateToAnchor(priorAsof);
+  if (prior !== null) return prior;
   return Number.isFinite(runAnchorMs) ? runAnchorMs : undefined;
 }
 
@@ -1354,13 +1357,18 @@ export async function fetchAll(progress, { signal, expectedCountries = [] } = {}
     const attemptedAt = Date.now();
     if (progress) progress.batchIdx = batchIdx;
 
-    const promises = batch.map(({ iso3, upstreamMaxDate }) => {
+    const promises = batch.map(({ iso3, upstreamMaxDate, prevPayload }) => {
       // Anchor the rolling windows to upstream max(date) so the aggregate
       // is stable day-over-day when upstream is frozen (required for cache
       // reuse to be semantically correct — see PR #3299 review P1).
       //
-      // A failed preflight inherits the run anchor — see resolveCountryAnchorMs.
-      const anchorEpochMs = resolveCountryAnchorMs(upstreamMaxDate, runAnchorFallbackMs);
+      // A failed preflight reuses the country's own cached anchor before the
+      // run anchor — see resolveCountryAnchorMs.
+      const anchorEpochMs = resolveCountryAnchorMs(
+        upstreamMaxDate,
+        runAnchorFallbackMs,
+        prevPayload?.asof,
+      );
       const p = withPerCountryTimeout(
         (childSignal) => retryRateLimited(
           (attemptSignal) => fetchCountryAccum(iso3, { signal: attemptSignal, anchorEpochMs, dateField }),
