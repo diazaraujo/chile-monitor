@@ -2471,6 +2471,44 @@ describe('embeddable map route guardrails', () => {
     assert.equal(getCacheHeaderValue(SPA_HTML_CACHE_SOURCE), 'private, no-cache, must-revalidate');
   });
 
+  it('no vercel.json rule re-enables shared caching of /api/geo', () => {
+    // /api/geo's body IS the caller's IP-geo, so it ships `Cache-Control: no-store`
+    // (api/geo.js) and tests/geo-per-visitor-cache.test.mts pins that. But a
+    // vercel.json header rule is ADDITIVE and outranks the handler at the CDN --
+    // Vercel reads Vercel-CDN-Cache-Control > CDN-Cache-Control > Cache-Control --
+    // so adding a cache directive to the existing `/api/(.*)` block would make the
+    // per-visitor body shared-cacheable again while the handler-level test stays
+    // green. This is the half of that guard the handler test cannot see.
+    const CACHE_POLICY_HEADERS =
+      /^(cache-control|cdn-cache-control|vercel-cdn-cache-control|cloudflare-cdn-cache-control|surrogate-control)$/i;
+    const offenders = [];
+    for (const rule of vercelConfig.headers) {
+      if (!sourceToRegExp(rule.source).test('/api/geo')) continue;
+      for (const header of rule.headers ?? []) {
+        if (CACHE_POLICY_HEADERS.test(header.key)) {
+          offenders.push(`${rule.source} -> ${header.key}: ${header.value}`);
+        }
+      }
+    }
+    assert.deepEqual(
+      offenders,
+      [],
+      'a vercel.json rule sets a cache-policy header on /api/geo, overriding the handler no-store at the CDN',
+    );
+  });
+
+  it('the /api/geo cache guard is wired to a rule source that really matches it', () => {
+    // Positive control for the guard above: prove sourceToRegExp actually matches
+    // /api/geo against a real rule in the file. Without this, a change to the
+    // matcher (or a renamed route) would make the guard vacuous -- it would scan
+    // zero rules and pass forever.
+    const matching = vercelConfig.headers.filter((rule) => sourceToRegExp(rule.source).test('/api/geo'));
+    assert.ok(
+      matching.some((rule) => rule.source === '/api/(.*)'),
+      'expected the /api/(.*) header rule to match /api/geo; the cache guard above scans nothing if it does not',
+    );
+  });
+
   it('keeps the global security header anti-framing rule off the embed entries', () => {
     // Both /embed (partner iframe) and /wm-widget-sandbox.html (agent widget
     // sandbox) need cross-origin framing + their own dedicated CSP; the
