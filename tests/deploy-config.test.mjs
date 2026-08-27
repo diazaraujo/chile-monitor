@@ -14,6 +14,7 @@ function readFileSync(path, options) {
 }
 import { fileURLToPath } from 'node:url';
 import { guardProBuiltOutput, shouldSkipProBuiltOutput, withoutUnbuiltProPaths } from './_lib/pro-built-output.mjs';
+import { CACHE_POLICY_HEADER_NAME, isSharedCacheable } from './helpers/shared-cache-policy.mjs';
 import {
   CONTENT_CORPUS_PREFIXES,
   discoverContentCorpusPages,
@@ -2479,13 +2480,17 @@ describe('embeddable map route guardrails', () => {
     // so adding a cache directive to the existing `/api/(.*)` block would make the
     // per-visitor body shared-cacheable again while the handler-level test stays
     // green. This is the half of that guard the handler test cannot see.
-    const CACHE_POLICY_HEADERS =
-      /^(cache-control|cdn-cache-control|vercel-cdn-cache-control|cloudflare-cdn-cache-control|surrogate-control)$/i;
+    // Judge the VALUE, not just the header name: a deployment rule that sets
+    // `Vercel-CDN-Cache-Control: no-store` reinforces the endpoint's contract and
+    // must not fail CI. Only a value a shared cache may actually store is an
+    // offender. Shares one predicate with the handler-level guard so the two
+    // cannot drift apart.
     const offenders = [];
     for (const rule of vercelConfig.headers) {
       if (!sourceToRegExp(rule.source).test('/api/geo')) continue;
       for (const header of rule.headers ?? []) {
-        if (CACHE_POLICY_HEADERS.test(header.key)) {
+        if (!CACHE_POLICY_HEADER_NAME.test(header.key)) continue;
+        if (isSharedCacheable(header.value)) {
           offenders.push(`${rule.source} -> ${header.key}: ${header.value}`);
         }
       }
@@ -2495,6 +2500,19 @@ describe('embeddable map route guardrails', () => {
       [],
       'a vercel.json rule sets a cache-policy header on /api/geo, overriding the handler no-store at the CDN',
     );
+  });
+
+  it('the /api/geo cache guard judges header values, not just header names', () => {
+    // Control for the guard above, both directions. A deployment rule that pins a
+    // non-storable policy REINFORCES the endpoint's contract and must not be
+    // reported; only a storable value is an offender.
+    assert.equal(isSharedCacheable('no-store'), false, 'a no-store deployment rule must not be flagged');
+    assert.equal(isSharedCacheable('private, max-age=300'), false);
+    assert.equal(isSharedCacheable('public, s-maxage=3600'), true);
+    assert.equal(isSharedCacheable('max-age=300'), true, 'bare max-age is still shared-storable');
+    assert.ok(CACHE_POLICY_HEADER_NAME.test('Vercel-CDN-Cache-Control'));
+    assert.ok(CACHE_POLICY_HEADER_NAME.test('Cloudflare-CDN-Cache-Control'));
+    assert.equal(CACHE_POLICY_HEADER_NAME.test('RateLimit-Limit'), false);
   });
 
   it('the /api/geo cache guard is wired to a rule source that really matches it', () => {

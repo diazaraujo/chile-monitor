@@ -3,6 +3,9 @@ import { describe, it } from 'node:test';
 
 // @ts-expect-error - plain JS edge handler, no type declarations
 import handler from '../api/geo.js';
+// One predicate, shared with the vercel.json half of this guard in
+// tests/deploy-config.test.mjs, so the two cannot drift apart.
+import { CDN_CACHE_HEADERS, isSharedCacheable } from './helpers/shared-cache-policy.mjs';
 
 /**
  * `/api/geo` derives its whole body from per-request IP-geo headers, so its
@@ -22,40 +25,6 @@ import handler from '../api/geo.js';
  *     this repo, and an "Edge TTL: ignore cache-control headers" rule overrides
  *     the origin no matter what it sends. That one is an ops check, not a test.
  */
-
-// A per-visitor body must never be STORABLE by a shared cache, and exactly two
-// directives promise that: an unqualified `no-store` or an unqualified `private`.
-// Everything else leaves the response shared-storable under RFC 9111 -- `public`,
-// any positive `max-age` (explicit freshness is sufficient on its own; `public`
-// is only needed to make otherwise-uncacheable responses cacheable), a bare
-// `no-cache` (which permits storage and reuse after revalidation), an
-// `s-maxage=0` paired with `stale-while-revalidate`, or no directive at all.
-// Enumerating the DANGEROUS values is what makes an absence-guard rot: the first
-// value nobody thought of sails through. So this inverts it and enumerates the
-// two safe ones. Deliberately over-inclusive -- the endpoint ships `no-store`, so
-// a false alarm costs a moment's thought while a false clear costs a repeat of
-// the exact bug this file exists to prevent.
-const UNQUALIFIED_NO_STORE = /(^|[\s,])no-store\s*([,;]|$)/;
-// `private` must be unqualified: RFC 9111's `private="Set-Cookie"` form excludes
-// only the named field and leaves the rest shared-storable.
-const UNQUALIFIED_PRIVATE = /(^|[\s,])private\s*([,;]|$)/;
-
-function isSharedCacheable(cacheControl: string | null): boolean {
-  if (!cacheControl) return true; // no directive at all -> shared caches may heuristically store
-  const value = cacheControl.toLowerCase();
-  return !UNQUALIFIED_NO_STORE.test(value) && !UNQUALIFIED_PRIVATE.test(value);
-}
-
-// Every header that can set a shared-cache policy for this response. Vercel reads
-// Vercel-CDN-Cache-Control > CDN-Cache-Control > Cache-Control; Cloudflare reads
-// Cloudflare-CDN-Cache-Control > CDN-Cache-Control > Cache-Control. A CDN-specific
-// header the handler does not currently set would silently outrank its `no-store`.
-const CDN_CACHE_HEADERS = [
-  'CDN-Cache-Control',
-  'Vercel-CDN-Cache-Control',
-  'Cloudflare-CDN-Cache-Control',
-  'Surrogate-Control',
-];
 
 function geoRequest(headers: Record<string, string>): Request {
   return new Request('https://api.worldmonitor.app/api/geo', { headers });
