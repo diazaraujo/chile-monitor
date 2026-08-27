@@ -453,11 +453,18 @@ function buildSentryInitOptions(): Parameters<SentryNs['init']>[0] {
         if (host && THIRD_PARTY_FETCH_HOST_ALLOWLIST.has(host)) return null;
         if (host) {
           // Anchored at the end so a lookalike (`worldmonitor.app.evil.example`)
-          // is foreign. `pub-*.r2.dev` is the raw R2 bucket behind the basemaps:
-          // documented as never-used-in-code, but deliberately absent from the
-          // suppression allowlist so a basemap regression surfaces — which means
-          // it also needs its own group, not the third-party bin.
-          const isOwnHost = /(?:^|\.)worldmonitor\.app$/.test(host) || /\.r2\.dev$/.test(host);
+          // is foreign. The R2 bucket is matched EXACTLY, not by `.r2.dev`
+          // suffix: `r2.dev` is Cloudflare's shared public-bucket domain, so
+          // every account gets a `pub-<id>.r2.dev` host. A suffix match would
+          // hand each foreign tenant its own raw-host fingerprint — reopening
+          // the unbounded cardinality this bucket exists to close, and dressing
+          // an unrelated bucket up as a first-party incident. Our own bucket
+          // still needs naming here because it is deliberately absent from the
+          // suppression allowlist (WORLDMONITOR-NE/NF) so a basemap regression
+          // surfaces, and it must surface as itself rather than in the
+          // third-party bin. Kept in step with `docs/maps-and-geocoding.mdx`.
+          const isOwnHost = /(?:^|\.)worldmonitor\.app$/.test(host)
+            || host === 'pub-8ace9f6a86d74cb2bd5eb1de5590dd9e.r2.dev';
           event.fingerprint = ['fetch-failure', isOwnHost ? host : 'third-party'];
         }
       }

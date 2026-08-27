@@ -1796,10 +1796,22 @@ describe('host-attributed fetch failures are fingerprinted by host (WORLDMONITOR
 
   it('gives the self-hosted PMTiles bucket its own fingerprint', () => {
     // Deliberately absent from the suppression allowlist (WORLDMONITOR-NE/NF),
-    // so a basemap regression must also be readable on its own.
-    const event = beforeSend(makeEvent('Failed to fetch (pub-8ace9f6a86d74cb2bd.r2.dev)', 'TypeError', zgStack));
+    // so a basemap regression must also be readable on its own. The exact
+    // bucket, per docs/maps-and-geocoding.mdx.
+    const event = beforeSend(makeEvent('Failed to fetch (pub-8ace9f6a86d74cb2bd5eb1de5590dd9e.r2.dev)', 'TypeError', zgStack));
     assert.ok(event !== null);
-    assert.deepEqual(event.fingerprint, ['fetch-failure', 'pub-8ace9f6a86d74cb2bd.r2.dev']);
+    assert.deepEqual(event.fingerprint, ['fetch-failure', 'pub-8ace9f6a86d74cb2bd5eb1de5590dd9e.r2.dev']);
+  });
+
+  it('does not hand every Cloudflare R2 tenant a first-party group', () => {
+    // `r2.dev` is a SHARED suffix — any Cloudflare account gets a `pub-<id>.r2.dev`
+    // bucket. Matching it by suffix would give each foreign tenant its own raw-host
+    // fingerprint, reopening the unbounded cardinality the third-party bucket
+    // exists to close, and dressing an unrelated bucket up as our incident
+    // (greptile review, PR #7228).
+    const foreign = beforeSend(makeEvent('Failed to fetch (pub-0000000000000000000000000000000.r2.dev)', 'TypeError', zgStack));
+    assert.ok(foreign !== null);
+    assert.deepEqual(foreign.fingerprint, ['fetch-failure', 'third-party']);
   });
 
   it('collapses every foreign host into one bounded bucket', () => {
