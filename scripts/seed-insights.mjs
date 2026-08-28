@@ -79,6 +79,7 @@ const _isDirectRun = process.argv[1] && import.meta.url.endsWith(process.argv[1]
 
 if (_isDirectRun) loadEnvFile(import.meta.url);
 
+const SEED_VARIANT = process.env.SEED_VARIANT || 'full';  // chile-monitor: variante a sembrar
 const CANONICAL_KEY = 'news:insights:v1';
 const DIGEST_KEY = 'news:digest:v1:full:en';
 const CHINA_COVERAGE_KEY = 'news:insights:v1:CN';
@@ -334,7 +335,7 @@ async function generateLegacySingleHeadlineBrief(topStories, { callBudgetMs } = 
 }
 
 function digestKeyForLanguage(language) {
-  return `news:digest:v1:full:${language}`;
+  return `news:digest:v1:${SEED_VARIANT}:${language}`;
 }
 
 async function readDigestFromRedis(key = DIGEST_KEY) {
@@ -375,7 +376,7 @@ const LLM_PROVIDERS = [
       return h;
     },
     extraBody: { think: false },
-    timeout: 25_000,
+    timeout: Number(process.env.OLLAMA_TIMEOUT_MS) || 25_000,  // chile-monitor: Ollama remoto/lento
   },
   {
     name: 'openrouter',
@@ -425,7 +426,7 @@ const LLM_PROVIDERS = [
 const INSIGHTS_LLM_MAX_RETRIES = 2;
 const INSIGHTS_LLM_RETRY_BASE_MS = 1_000;
 const INSIGHTS_LLM_RETRY_AFTER_MAX_MS = 10_000;
-const INSIGHTS_LLM_CALL_BUDGET_MS = 60_000;
+const INSIGHTS_LLM_CALL_BUDGET_MS = Number(process.env.INSIGHTS_LLM_CALL_BUDGET_MS) || 60_000;  // chile-monitor: Ollama remoto
 const INSIGHTS_LLM_CALL_BUDGET_GUARD_MS = 5_000;
 
 let insightsLlmFetchForTests = null;
@@ -690,7 +691,7 @@ async function warmDigestCache(language = 'en') {
   };
   if (RELAY_API_KEY) headers['X-WorldMonitor-Key'] = RELAY_API_KEY;
   try {
-    const resp = await fetch(`${apiBase}/api/news/v1/list-feed-digest?variant=full&lang=${encodeURIComponent(language)}`, {
+    const resp = await fetch(`${apiBase}/api/news/v1/list-feed-digest?variant=${SEED_VARIANT}&lang=${encodeURIComponent(language)}`, {
       headers,
       signal: AbortSignal.timeout(30_000),
     });
@@ -754,7 +755,7 @@ export function normalizeDigestItemsForInsights(items) {
 }
 
 async function fetchInsights() {
-  const digest = await readOrWarmDigest('en');
+  const digest = await readOrWarmDigest(process.env.SEED_LANGUAGE || 'en');
   if (!digest) {
     // LKG fallback: reuse existing insights if digest is unavailable
     const existing = await readExistingInsights();
