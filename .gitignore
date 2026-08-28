@@ -142,3 +142,8 @@ playground-pricing.html
 # compile time — `cargo test` fails on a resource path that does not exist.
 src-tauri/notices/*
 !src-tauri/notices/.gitkeep
+
+# Chile Monitor: datos locales regenerables (scripts/chile-*.py)
+data/kmz-inbox/
+data/derechos_*
+.venv-gis/

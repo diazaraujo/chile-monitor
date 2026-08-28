@@ -603,7 +603,7 @@ export class GlobeMap {
   // Current layers state
   private layers: MapLayers;
   private timeRange: TimeRange;
-  private currentView: MapView = 'global';
+  private currentView: MapView = SITE_VARIANT === 'chile' ? 'chile' : 'global';
 
   // Click callbacks
   private onHotspotClickCb: ((h: Hotspot) => void) | null = null;
@@ -2948,6 +2948,7 @@ export class GlobeMap {
     latam:    { lat: -15, lng: -60,  altitude: 1.5 },
     africa:   { lat:  5,  lng:  20,  altitude: 1.5 },
     oceania:  { lat: -25, lng: 140,  altitude: 1.5 },
+    chile:    { lat: -35.5, lng: -71.5, altitude: 1.35 },
   };
 
   private markViewportMoving(

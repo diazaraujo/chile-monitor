@@ -1,3 +1,4 @@
+import { SITE_VARIANT } from '@/config/variant';
 /**
  * MapContainer - lightweight conditional map renderer
  * Paints a stable shell first, then lazy-loads the selected renderer.
@@ -71,7 +72,7 @@ import { trackGateHit } from '@/services/analytics';
 export type { ScenarioVisualState, ScenarioResult };
 
 export type TimeRange = '1h' | '6h' | '24h' | '48h' | '7d' | 'all';
-export type MapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania';
+export type MapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania' | 'chile';
 
 type PendingCenter = { lat: number; lon: number; zoom?: number; actionToken?: number };
 type PendingViewportAction =
@@ -258,7 +259,9 @@ export class MapContainer {
 
   constructor(container: HTMLElement, initialState: MapContainerState, preferGlobe = false, options: MapContainerOptions = {}) {
     this.container = container;
-    this.initialState = initialState;
+    this.initialState = (SITE_VARIANT === 'chile' && initialState.view === 'global')
+      ? { ...initialState, view: 'chile' }
+      : initialState;
     this.chrome = options.chrome ?? true;
     this.svgLayerToggleGuard = (layer, currentlyEnabled) => isLayerToggleAllowed(
       layer,
