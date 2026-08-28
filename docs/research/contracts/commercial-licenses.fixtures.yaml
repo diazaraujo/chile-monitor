@@ -1,0 +1,171 @@
+fixture_set: commercial-licenses-contract-v0.1
+description: >-
+  Casos sintéticos mínimos para probar el contrato entre Inteligencia
+  Inmobiliaria y Chile Monitor. No contienen datos personales reales.
+municipality_cut: '13101'
+release:
+  producer: inteligencia-inmobiliaria
+  product: commercial-licenses
+  release_id: test-commercial-licenses-2026-08-28-001
+  schema_version: 0.1.0
+  data_as_of: '2026-08-28T12:00:00Z'
+  promoted_at: '2026-08-28T13:00:00Z'
+  quality_status: promoted
+  availability: current
+  last_good_release_id: test-commercial-licenses-2026-08-21-001
+  quality_report_uri: quality/test-commercial-licenses-2026-08-28-001.json
+source_catalog:
+  - source_ref: src-stock-2026-08
+    source_kind: municipal_export
+    municipality_cut: '13101'
+    source_record_id: stock-2026-08
+    uri: sources/stock-2026-08.csv
+    sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    observed_at: '2026-08-28T10:00:00Z'
+    effective_at: '2026-08-28T00:00:00Z'
+  - source_ref: src-events-2021-2026
+    source_kind: municipal_export
+    municipality_cut: '13101'
+    source_record_id: events-2021-2026
+    uri: sources/events-2021-2026.csv
+    sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    observed_at: '2026-08-28T10:05:00Z'
+    effective_at: null
+  - source_ref: src-act-closure-009
+    source_kind: administrative_act
+    municipality_cut: '13101'
+    source_record_id: decreto-009-2026
+    uri: sources/decreto-009-2026.pdf
+    sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    observed_at: '2026-08-28T10:10:00Z'
+    effective_at: '2026-07-15T12:00:00Z'
+fixtures:
+  - fixture_id: CL-VIG-001
+    purpose: Patente definitiva vigente con titular jurídico.
+    request:
+      operation_id: patentsGet
+      municipality_cut: '13101'
+      license_id: lic-vig-001
+    expected:
+      http_status: 200
+      reported_status: vigente
+      provisional_status: definitive
+      holder_kind: legal_entity
+      source_refs: [src-stock-2026-08]
+      limitations: []
+  - fixture_id: CL-PROV-002
+    purpose: Patente provisoria con vencimiento conocido.
+    request:
+      operation_id: patentsGet
+      municipality_cut: '13101'
+      license_id: lic-prov-002
+    expected:
+      http_status: 200
+      reported_status: provisoria_vigente
+      provisional_status: provisional
+      expires_at: '2026-09-15T23:59:59Z'
+      source_refs: [src-stock-2026-08]
+      limitations: []
+  - fixture_id: CL-HIST-003
+    purpose: Historia que impide aplicar el titular o domicilio actual retrospectivamente.
+    request:
+      operation_id: patentsTimeline
+      municipality_cut: '13101'
+      license_id: lic-hist-003
+    expected:
+      http_status: 200
+      ordered_event_types: [granted, holder_changed, address_changed, renewed]
+      requires_distinct_effective_and_observed_dates: true
+      source_refs: [src-events-2021-2026]
+      historical_queries:
+        - effective_on: '2022-06-01'
+          holder_id: entity-synthetic-a
+          address_original: AV. EJEMPLO 100
+        - effective_on: '2025-06-01'
+          holder_id: entity-synthetic-b
+          address_original: AV. EJEMPLO 200
+  - fixture_id: CL-MATCH-004
+    purpose: Resolución inequívoca de establecimiento y predio.
+    request:
+      operation_id: establishmentsResolve
+      municipality_cut: '13101'
+      address: AV. PRUEBA 400
+      role: 100-20
+    expected:
+      http_status: 200
+      resolution_status: resolved
+      selected_candidate_id: candidate-match-004
+      candidate_count: 1
+      method: source_role_exact
+      minimum_confidence: 0.99
+      parcel_release_id: test-parcels-2026-08-001
+  - fixture_id: CL-AMB-005
+    purpose: Dos candidatos plausibles sin selección automática.
+    request:
+      operation_id: establishmentsResolve
+      municipality_cut: '13101'
+      address: LOCAL 5 CENTRO COMERCIAL SINTETICO
+    expected:
+      http_status: 200
+      resolution_status: ambiguous
+      selected_candidate_id: null
+      minimum_candidate_count: 2
+      limitation_codes: [ambiguous_match]
+  - fixture_id: CL-NOMATCH-006
+    purpose: Dirección sin candidato predial.
+    request:
+      operation_id: establishmentsResolve
+      municipality_cut: '13101'
+      address: DIRECCION SINTETICA SIN CATASTRO 6
+    expected:
+      http_status: 200
+      resolution_status: unresolved
+      selected_candidate_id: null
+      candidate_count: 0
+      limitation_codes: [unresolved_match]
+  - fixture_id: CL-GAP-007
+    purpose: Falta de publicación de requisitos sin inferir cumplimiento.
+    request:
+      operation_id: patentsGet
+      municipality_cut: '13101'
+      license_id: lic-gap-007
+    expected:
+      http_status: 200
+      requirements: []
+      limitation_codes: [data_gap]
+      prohibited_inferences: [compliant, non_compliant]
+  - fixture_id: CL-NAT-008
+    purpose: Titular natural protegido en la representación pública.
+    request:
+      operation_id: patentsGet
+      municipality_cut: '13101'
+      license_id: lic-natural-008
+    expected:
+      http_status: 200
+      holder_kind: natural_person_redacted
+      display_name: REDACTED
+      legal_entity_id: null
+      legal_entity_rut: null
+      prohibited_fields: [natural_person_rut, source_name, email, phone]
+  - fixture_id: CL-CLOSE-009
+    purpose: Clausura respaldada por acto municipal.
+    request:
+      operation_id: patentsTimeline
+      municipality_cut: '13101'
+      license_id: lic-close-009
+    expected:
+      http_status: 200
+      event_type: closed
+      administrative_act_ref: decreto-009-2026
+      source_refs: [src-act-closure-009]
+  - fixture_id: CL-ABSENT-010
+    purpose: ID válido ausente del universo cubierto.
+    request:
+      operation_id: patentsGet
+      municipality_cut: '13101'
+      license_id: lic-absent-010
+    expected:
+      http_status: 404
+      error_code: not_found
+      retryable: false
+      prohibited_behavior: fallback_to_another_release
