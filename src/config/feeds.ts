@@ -1091,34 +1091,67 @@ const ENERGY_FEEDS: Record<string, Feed[]> = {
 };
 
 
-// Chile variant feeds — Chile Monitor
+// Chile variant feeds — Chile Monitor (generado por scripts/chile-feeds-gen.py; espejo en server/worldmonitor/news/v1/_feeds.ts)
 const CHILE_FEEDS: Record<string, Feed[]> = {
-  politics: [  // Titulares Chile (panel de noticias; live-news es widget TV)
+  politics: [
     { name: 'Google News Chile', url: rss('https://news.google.com/rss?hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'BioBio', url: rss('https://news.google.com/rss/search?q=site:biobiochile.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'Emol', url: rss('https://news.google.com/rss/search?q=site:emol.com+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'La Tercera', url: rss('https://news.google.com/rss/search?q=site:latercera.com+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'Cooperativa', url: rss('https://news.google.com/rss/search?q=site:cooperativa.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'El Mostrador', url: rss('https://news.google.com/rss/search?q=site:elmostrador.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'T13', url: rss('https://news.google.com/rss/search?q=site:t13.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'CNN Chile', url: rss('https://news.google.com/rss/search?q=site:cnnchile.com+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: '24 Horas', url: rss('https://news.google.com/rss/search?q=site:24horas.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'ADN Radio', url: rss('https://news.google.com/rss/search?q=site:adnradio.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Diario Financiero', url: rss('https://news.google.com/rss/search?q=site:df.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'La Segunda', url: rss('https://news.google.com/rss/search?q=site:lasegunda.com+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'The Clinic', url: rss('https://news.google.com/rss/search?q=site:theclinic.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'El Desconcierto', url: rss('https://news.google.com/rss/search?q=site:eldesconcierto.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'CIPER', url: rss('https://news.google.com/rss/search?q=site:ciperchile.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
   ],
-  us: [  // Política (clave 'us' reusada: renderiza como panel de noticias)
+  us: [
     { name: 'Prensa Chile', url: rss('https://news.google.com/rss/search?q=Chile+(gobierno+OR+congreso+OR+municipal)+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'La Tercera Política', url: rss('https://news.google.com/rss/search?q=site:latercera.com+(política+OR+gobierno)+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Ex-Ante', url: rss('https://news.google.com/rss/search?q=site:ex-ante.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'El Líbero', url: rss('https://news.google.com/rss/search?q=site:ellibero.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Interferencia', url: rss('https://news.google.com/rss/search?q=site:interferencia.cl+when:3d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Radio U. de Chile', url: rss('https://news.google.com/rss/search?q=site:radio.uchile.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Senado', url: rss('https://news.google.com/rss/search?q=site:senado.cl+when:3d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Cámara de Diputados', url: rss('https://news.google.com/rss/search?q=site:camara.cl+when:3d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'La Moneda', url: rss('https://news.google.com/rss/search?q=("La+Moneda"+OR+"Presidente+de+la+República")+Chile+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'CIPER', url: rss('https://news.google.com/rss/search?q=site:ciperchile.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
   ],
   gov: [
     { name: 'SEA / SEIA', url: rss('https://news.google.com/rss/search?q=(SEIA+OR+"Servicio+de+Evaluación+Ambiental"+OR+RCA)+Chile+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'SMA', url: rss('https://news.google.com/rss/search?q=("Superintendencia+del+Medio+Ambiente"+OR+SMA+sanción)+Chile+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Tribunales Ambientales', url: rss('https://news.google.com/rss/search?q="Tribunal+Ambiental"+Chile+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'DGA / agua', url: rss('https://news.google.com/rss/search?q=(DGA+OR+"derechos+de+agua"+OR+"escasez+hídrica")+Chile+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'Diario Oficial', url: rss('https://news.google.com/rss/search?q=site:diariooficial.interior.gob.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Contraloría', url: rss('https://news.google.com/rss/search?q="Contraloría"+Chile+when:3d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Corte Suprema', url: rss('https://news.google.com/rss/search?q=("Corte+Suprema"+OR+"Poder+Judicial")+Chile+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'CMF', url: rss('https://news.google.com/rss/search?q=(CMF+OR+"Comisión+para+el+Mercado+Financiero")+Chile+when:3d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'SERNAGEOMIN / minería', url: rss('https://news.google.com/rss/search?q=(SERNAGEOMIN+OR+"Ministerio+de+Minería"+OR+Codelco)+Chile+when:3d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Municipalidades', url: rss('https://news.google.com/rss/search?q=(municipalidad+OR+alcalde+OR+concejo+municipal)+Chile+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
   ],
   climate: [
     { name: 'Clima Chile', url: rss('https://news.google.com/rss/search?q=Chile+(sequía+OR+inundación+OR+glaciar+OR+humedal+OR+CONAF)+when:3d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'Incendios CONAF', url: rss('https://news.google.com/rss/search?q=Chile+(incendio+forestal+OR+CONAF+OR+"alerta+roja")+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'SENAPRED', url: rss('https://news.google.com/rss/search?q=(SENAPRED+OR+"alerta+temprana+preventiva"+OR+evacuación)+Chile+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Meteorología', url: rss('https://news.google.com/rss/search?q=("Dirección+Meteorológica"+OR+"sistema+frontal"+OR+ola+de+calor)+Chile+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Ladera Sur', url: rss('https://news.google.com/rss/search?q=site:laderasur.com+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'País Circular', url: rss('https://news.google.com/rss/search?q=site:paiscircular.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'MMA', url: rss('https://news.google.com/rss/search?q=site:mma.gob.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Pueblos originarios', url: rss('https://news.google.com/rss/search?q=(CONADI+OR+mapuche+OR+"consulta+indígena")+Chile+when:3d&hl=es-CL&gl=CL&ceid=CL:es') },
   ],
   latam: [
     { name: 'Cono Sur', url: rss('https://news.google.com/rss/search?q=(Chile+OR+Argentina+OR+Perú+OR+Bolivia)+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Regiones (SoyChile)', url: rss('https://news.google.com/rss/search?q=site:soychile.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'El Día (Coquimbo)', url: rss('https://news.google.com/rss/search?q=site:diarioeldia.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Mercurio de Valparaíso', url: rss('https://news.google.com/rss/search?q=site:mercuriovalpo.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'El Sur (Concepción)', url: rss('https://news.google.com/rss/search?q=site:elsur.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Austral (Temuco/Valdivia)', url: rss('https://news.google.com/rss/search?q=site:australtemuco.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'El Pingüino (Magallanes)', url: rss('https://news.google.com/rss/search?q=site:elpinguino.com+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
   ],
 };
 
