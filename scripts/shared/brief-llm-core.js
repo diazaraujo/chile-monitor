@@ -335,6 +335,12 @@ const TITLE_PREFIX_STOP = new Set([
   'Pope', 'King', 'Queen', 'Prince', 'Princess',
   'Lord', 'Lady', 'Sir', 'Dame',
   'Judge', 'Justice',
+  // Español (Chile Monitor): artículos al inicio de oración y títulos que preceden
+  // al nombre — "La Corte Suprema" → ['Corte', 'Suprema'], "Ministra Tohá" → ['Tohá'].
+  'La', 'El', 'Los', 'Las', 'Un', 'Una', 'Del', 'Al',
+  'Presidente', 'Presidenta', 'Ministro', 'Ministra', 'Subsecretario', 'Subsecretaria',
+  'Senador', 'Senadora', 'Diputado', 'Diputada', 'Alcalde', 'Alcaldesa', 'Gobernador', 'Gobernadora',
+  'Fiscal', 'Juez', 'Jueza', 'General', 'Contralor', 'Contralora', 'Superintendente', 'Director', 'Directora',
 ]);
 
 // Joiner words — lowercase tokens that bridge proper-noun sequences.
