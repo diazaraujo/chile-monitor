@@ -1093,7 +1093,7 @@ const ENERGY_FEEDS: Record<string, Feed[]> = {
 
 // Chile variant feeds — Chile Monitor
 const CHILE_FEEDS: Record<string, Feed[]> = {
-  'live-news': [
+  politics: [  // Titulares Chile (panel de noticias; live-news es widget TV)
     { name: 'Google News Chile', url: rss('https://news.google.com/rss?hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'BioBio', url: rss('https://news.google.com/rss/search?q=site:biobiochile.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'Emol', url: rss('https://news.google.com/rss/search?q=site:emol.com+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
@@ -1102,7 +1102,7 @@ const CHILE_FEEDS: Record<string, Feed[]> = {
     { name: 'El Mostrador', url: rss('https://news.google.com/rss/search?q=site:elmostrador.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'CIPER', url: rss('https://news.google.com/rss/search?q=site:ciperchile.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
   ],
-  politics: [
+  us: [  // Política (clave 'us' reusada: renderiza como panel de noticias)
     { name: 'Prensa Chile', url: rss('https://news.google.com/rss/search?q=Chile+(gobierno+OR+congreso+OR+municipal)+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'La Tercera Política', url: rss('https://news.google.com/rss/search?q=site:latercera.com+(política+OR+gobierno)+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'CIPER', url: rss('https://news.google.com/rss/search?q=site:ciperchile.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
@@ -1114,10 +1114,8 @@ const CHILE_FEEDS: Record<string, Feed[]> = {
   ],
   climate: [
     { name: 'Clima Chile', url: rss('https://news.google.com/rss/search?q=Chile+(sequía+OR+inundación+OR+glaciar+OR+humedal+OR+CONAF)+when:3d&hl=es-CL&gl=CL&ceid=CL:es') },
-    { name: 'MMA', url: rss('https://news.google.com/rss/search?q=site:mma.gob.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
-  ],
-  'satellite-fires': [
     { name: 'Incendios CONAF', url: rss('https://news.google.com/rss/search?q=Chile+(incendio+forestal+OR+CONAF+OR+"alerta+roja")+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'MMA', url: rss('https://news.google.com/rss/search?q=site:mma.gob.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
   ],
   latam: [
     { name: 'Cono Sur', url: rss('https://news.google.com/rss/search?q=(Chile+OR+Argentina+OR+Perú+OR+Bolivia)+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },

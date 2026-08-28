@@ -8,12 +8,11 @@ export * from './base';
 
 export const DEFAULT_PANELS: Record<string, PanelConfig> = {
   map: { name: 'Mapa Chile', enabled: true, priority: 1 },
-  'live-news': { name: 'Titulares Chile', enabled: true, priority: 1 },
   insights: { name: 'Brief Chile', enabled: true, priority: 1 },
-  politics: { name: 'Prensa Chile', enabled: true, priority: 1 },
+  politics: { name: 'Titulares Chile', enabled: true, priority: 1 },
+  us: { name: 'Política', enabled: true, priority: 1 },
   gov: { name: 'Estado', enabled: true, priority: 1 },
   climate: { name: 'Clima y territorio', enabled: true, priority: 1 },
-  'satellite-fires': { name: 'Incendios', enabled: true, priority: 1 },
   latam: { name: 'Cono Sur', enabled: true, priority: 2 },
   monitors: { name: 'Mis monitores', enabled: true, priority: 2 },
   cii: { name: 'Estrés territorial', enabled: true, priority: 1 },
