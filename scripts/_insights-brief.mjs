@@ -120,7 +120,7 @@ Rules:
 - If you name an outlet, copy its label exactly (including capitalization) and use it only as an attribution: "<outlet> reported/reports/said/says/wrote/writes ..." or "According to <outlet>, ...".
 - Write acronyms WITHOUT periods: "US", "UN", "EU", "UK" — never "U.S.", "U.N.". A trailing period there reads as the end of a sentence.
 - Refer to an actor by the name the story uses. Do not swap in a capital city, nickname, or synonym for it — write "US", not "Washington"; "Iran", not "Tehran" — unless that word is in the story text.
-- NEVER start with "Breaking news", "Good evening", "Tonight", or TV-style openings.`;
+- NEVER start with "Breaking news", "Good evening", "Tonight", or TV-style openings.${process.env.SEED_LANGUAGE === 'es' ? '\n- Write "lead" and every "text" in Spanish (Chile). Keep proper nouns exactly as they appear in the stories.' : ''}`;
 }
 
 export function synthesisUserPrompt(stories) {

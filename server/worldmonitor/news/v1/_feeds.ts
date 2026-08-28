@@ -721,6 +721,36 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
     ],
   },
 
+  // Chile Monitor (variante chile) — espejo de CHILE_FEEDS en src/config/feeds.ts
+  chile: {
+    politics: [
+      { name: 'Google News Chile', url: 'https://news.google.com/rss?hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+      { name: 'BioBio', url: 'https://news.google.com/rss/search?q=site:biobiochile.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+      { name: 'Emol', url: 'https://news.google.com/rss/search?q=site:emol.com+when:1d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+      { name: 'La Tercera', url: 'https://news.google.com/rss/search?q=site:latercera.com+when:1d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+      { name: 'Cooperativa', url: 'https://news.google.com/rss/search?q=site:cooperativa.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+      { name: 'El Mostrador', url: 'https://news.google.com/rss/search?q=site:elmostrador.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+      { name: 'CIPER', url: 'https://news.google.com/rss/search?q=site:ciperchile.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+    ],
+    us: [
+      { name: 'Prensa Chile', url: 'https://news.google.com/rss/search?q=Chile+(gobierno+OR+congreso+OR+municipal)+when:1d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+      { name: 'La Tercera Política', url: 'https://news.google.com/rss/search?q=site:latercera.com+(política+OR+gobierno)+when:1d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+      { name: 'CIPER', url: 'https://news.google.com/rss/search?q=site:ciperchile.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+    ],
+    gov: [
+      { name: 'SEA / SEIA', url: 'https://news.google.com/rss/search?q=(SEIA+OR+"Servicio+de+Evaluación+Ambiental"+OR+RCA)+Chile+when:7d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+      { name: 'DGA / agua', url: 'https://news.google.com/rss/search?q=(DGA+OR+"derechos+de+agua"+OR+"escasez+hídrica")+Chile+when:7d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+      { name: 'Diario Oficial', url: 'https://news.google.com/rss/search?q=site:diariooficial.interior.gob.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+    ],
+    climate: [
+      { name: 'Clima Chile', url: 'https://news.google.com/rss/search?q=Chile+(sequía+OR+inundación+OR+glaciar+OR+humedal+OR+CONAF)+when:3d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+      { name: 'Incendios CONAF', url: 'https://news.google.com/rss/search?q=Chile+(incendio+forestal+OR+CONAF+OR+"alerta+roja")+when:1d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+      { name: 'MMA', url: 'https://news.google.com/rss/search?q=site:mma.gob.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+    ],
+    latam: [
+      { name: 'Cono Sur', url: 'https://news.google.com/rss/search?q=(Chile+OR+Argentina+OR+Perú+OR+Bolivia)+when:1d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
+    ],
+  },
   happy: {
     positive: [
       { name: 'Good News Network', url: 'https://www.goodnewsnetwork.org/feed/' },

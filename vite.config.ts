@@ -430,6 +430,50 @@ function polymarketPlugin(): Plugin {
 }
 
 /**
+ * Chile Monitor: serve Vercel-style `api/*.js` handlers (`handler(req, ctx)` →
+ * Response) from the dev server. Only /api/bootstrap for now — it is what the
+ * AI Insights panel reads (`?keys=insights`), and in dev Vite otherwise returns
+ * the handler's source as text/javascript.
+ */
+function chileVercelApiPlugin(): Plugin {
+  const ROUTES: Record<string, string> = { '/api/bootstrap': '/api/bootstrap.js' };
+  return {
+    name: 'chile-vercel-api',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        const pathOnly = (req.url || '').split('?', 1)[0];
+        const modPath = ROUTES[pathOnly];
+        if (!modPath) return next();
+        try {
+          const mod = await server.ssrLoadModule(modPath);
+          const port = server.config.server.port || 3000;
+          const url = new URL(req.url || '/', `http://localhost:${port}`);
+          const headers: Record<string, string> = {};
+          for (const [k, v] of Object.entries(req.headers)) {
+            if (typeof v === 'string') headers[k] = v;
+            else if (Array.isArray(v)) headers[k] = v.join(', ');
+          }
+          // Dev-only: bootstrap requires a credential; inject the local enterprise key
+          // (WORLDMONITOR_VALID_KEYS in .env.local) so the panel can read insights.
+          const devKey = process.env.CHILE_DEV_BOOTSTRAP_KEY;
+          if (devKey && !headers['x-worldmonitor-key'] && !headers['x-api-key']) headers['x-worldmonitor-key'] = devKey;
+          const webRequest = new Request(url.toString(), { method: req.method, headers });
+          const response: Response = await mod.default(webRequest, { waitUntil: (p: Promise<unknown>) => { void p; } });
+          res.statusCode = response.status;
+          response.headers.forEach((value, key) => res.setHeader(key, value));
+          res.end(Buffer.from(await response.arrayBuffer()));
+        } catch (err) {
+          console.error('[chile-vercel-api] Error:', err);
+          res.statusCode = 500;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: 'Internal server error' }));
+        }
+      });
+    },
+  };
+}
+
+/**
  * Vite dev server plugin for sebuf API routes.
  *
  * Intercepts requests matching /api/{domain}/v1/* and routes them through
@@ -937,6 +981,7 @@ export default defineConfig(({ mode }) => {
       rssProxyPlugin(),
       youtubeLivePlugin(),
       gpsjamDevPlugin(),
+      chileVercelApiPlugin(),
       sebufApiPlugin(),
       brotliPrecompressPlugin(),
       VitePWA({
