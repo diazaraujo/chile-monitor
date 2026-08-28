@@ -1070,7 +1070,11 @@
         "radiationSpike": "Pico de radiación",
         "radiationElevated": "Radiación elevada",
         "canadaRoads": "Canada Roads",
-        "canadaAlerts": "Canada Alerts (AB + BC + SK)"
+        "canadaAlerts": "Canada Alerts (AB + BC + SK)",
+        "chileAgua": "Agua: cuencas y derechos DGA",
+        "chileTierras": "Tierras: predios, mercedes, compras CONADI",
+        "chilePueblos": "Pueblos originarios: ADI, comunidades",
+        "chileSeia": "SEIA: proyectos y trazados"
       },
       "layersTitle": "capas",
       "layerSearch": "Buscar capas...",

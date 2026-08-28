@@ -2151,34 +2151,33 @@ export class DeckGLMap {
       layers.push(this.createMilitaryFlightClustersLayer(filteredMilitaryFlightClusters));
     }
 
-    // Strategic waterways layer — Chile: cuencas BNA instead of Hormuz pins
+    // Strategic waterways layer
     if (mapLayers.waterways) {
-      const chileWater = SITE_VARIANT === 'chile' ? this.createChileCuencasLayer() : null;
-      layers.push(chileWater ?? this.createWaterwaysLayer());
-      const sub = SITE_VARIANT === 'chile' ? this.createChileSubcuencasLayer() : null;
-      if (sub) layers.push(sub);
-      const tr = SITE_VARIANT === 'chile' ? this.createChileTrazadosLayer() : null;
-      if (tr) layers.push(tr);
-      const co = SITE_VARIANT === 'chile' ? this.createChileComunasLayer() : null;
-      if (co) layers.push(co);
-      const me = SITE_VARIANT === 'chile' ? this.createChileMercedesLayer() : null;
-      if (me) layers.push(me);
-      const c20 = SITE_VARIANT === 'chile' ? this.createChileCompras20aLayer() : null;
-      if (c20) layers.push(c20);
-      const de = SITE_VARIANT === 'chile' ? this.createChileDerechosLayer() : null;
-      if (de) layers.push(de);
-      const b20 = SITE_VARIANT === 'chile' ? this.createChileCompras20bLayer() : null;
-      if (b20) layers.push(b20);
-      const asoc = SITE_VARIANT === 'chile' ? this.createChileAsociacionesLayer() : null;
-      if (asoc) layers.push(asoc);
-      const seia = SITE_VARIANT === 'chile' ? this.createChileSeiaPuntosLayer() : null;
-      if (seia) layers.push(seia);
+      layers.push(this.createWaterwaysLayer());
     }
     if (SITE_VARIANT === 'chile') {
-      const adi = this.createChileAdiLayer();
-      if (adi) layers.push(adi);
-      const com = this.createChileComunidadesLayer();
-      if (com) layers.push(com);
+      const push = (l: Layer | null) => { if (l) layers.push(l); };
+      if (mapLayers.chileAgua) {
+        push(this.createChileCuencasLayer());
+        push(this.createChileSubcuencasLayer());
+        push(this.createChileDerechosLayer());
+      }
+      if (mapLayers.chileTierras) {
+        push(this.createChileComunasLayer());
+        push(this.createChileMercedesLayer());
+        push(this.createChileCompras20aLayer());
+        push(this.createChileCompras20bLayer());
+      }
+      if (mapLayers.chilePueblos) {
+        push(this.createChileAdiLayer());
+        push(this.createChileComunidadesLayer());
+        push(this.createChileAsociacionesLayer());
+      }
+      if (mapLayers.chileSeia) {
+        push(this.createChileSeiaPuntosLayer());
+        push(this.createChileTrazadosLayer());
+      }
+      this.syncChileVectorTiles(mapLayers);
     }
 
     // Economic centers layer — hidden at low zoom
@@ -3885,8 +3884,9 @@ export class DeckGLMap {
   private addChileVectorTiles(): void {
     if (SITE_VARIANT !== 'chile' || !this.maplibreMap) return;
     const map = this.maplibreMap;
-    const predioUrl = 'pmtiles://http://10.0.0.3:8130/tiles/predio.pmtiles';
-    const cauceUrl = 'http://10.0.0.3:8130/api/tiles/cauce/{z}/{x}/{y}.mvt';
+    const tilesBase = (import.meta.env.VITE_CHILE_TILES_URL as string | undefined) ?? 'http://10.0.0.3:8130';
+    const predioUrl = `pmtiles://${tilesBase}/tiles/predio.pmtiles`;
+    const cauceUrl = `${tilesBase}/api/tiles/cauce/{z}/{x}/{y}.mvt`;
     void (async () => {
     try {
       await registerPMTilesProtocol();
@@ -3955,6 +3955,16 @@ export class DeckGLMap {
       console.warn('[DeckGLMap] chile vector tiles', err);
     }
     })();
+  }
+
+  private syncChileVectorTiles(mapLayers: MapLayers): void {
+    const map = this.maplibreMap;
+    if (!map) return;
+    const vis = (id: string, on: boolean) => {
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+    };
+    vis('chile-predio-fill', mapLayers.chileTierras);
+    vis('chile-cauce-line', mapLayers.chileAgua);
   }
 
   private loadChileOverlays(): void {

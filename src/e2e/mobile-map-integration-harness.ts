@@ -178,6 +178,10 @@ const layers = {
   commodityPorts: false,
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: false,
+  chileTierras: false,
+  chilePueblos: false,
+  chileSeia: false,
 };
 
 await initI18n();

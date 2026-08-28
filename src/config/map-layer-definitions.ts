@@ -121,6 +121,10 @@ export const LAYER_REGISTRY: Record<keyof MapLayers, LayerDefinition> = {
   webcams:                  def('webcams',                  '&#128247;', 'webcams',                  'Live Webcams'),
   // weatherRadar removed — radar tiles now auto-start when Weather Alerts layer is toggled on
   diseaseOutbreaks:         def('diseaseOutbreaks',         '&#129440;', 'diseaseOutbreaks',         'Disease Outbreaks', ['deck']),
+  chileAgua:                def('chileAgua',                '&#128167;', 'chileAgua',                'Agua: cuencas y derechos DGA', ['deck']),
+  chileTierras:             def('chileTierras',             '&#127968;', 'chileTierras',             'Tierras: predios, mercedes, compras CONADI', ['deck']),
+  chilePueblos:             def('chilePueblos',             '&#127793;', 'chilePueblos',             'Pueblos originarios: ADI, comunidades', ['deck']),
+  chileSeia:                def('chileSeia',                '&#128203;', 'chileSeia',                'SEIA: proyectos y trazados', ['deck']),
   // DeckGL-only layers: `renderers: ['deck']` hides them from the globe
   // picker (GlobeMap has no branch in ensureStaticDataForLayer / no entry
   // in the layer-channel map) AND from the SVG/mobile fallback's CMD+K
@@ -391,7 +395,8 @@ const VARIANT_LAYER_ORDER: Record<MapVariant, Array<keyof MapLayers>> = {
   chile: [
     'bases', 'military', 'flights',
     'fires', 'natural', 'climate', 'weather',
-    'waterways', 'protests',
+    'chileAgua', 'chileTierras', 'chilePueblos', 'chileSeia',
+    'protests',
   ],
 };
 

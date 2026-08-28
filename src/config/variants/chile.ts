@@ -35,7 +35,7 @@ export const DEFAULT_MAP_LAYERS: MapLayers = {
   canadaRoads: false,
   canadaAlerts: false,
   economic: false,
-  waterways: true,
+  waterways: false,
   outages: false,
   cyberThreats: false,
   datacenters: false,
@@ -74,6 +74,10 @@ export const DEFAULT_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: true,
+  chileTierras: true,
+  chilePueblos: true,
+  chileSeia: true,
 };
 
 export const MOBILE_DEFAULT_MAP_LAYERS: MapLayers = {

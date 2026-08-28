@@ -272,6 +272,10 @@ export const DEFAULT_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: false,
+  chileTierras: false,
+  chilePueblos: false,
+  chileSeia: false,
 };
 
 // Mobile defaults for tech variant
@@ -336,6 +340,10 @@ export const MOBILE_DEFAULT_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: false,
+  chileTierras: false,
+  chilePueblos: false,
+  chileSeia: false,
 };
 
 export const VARIANT_CONFIG: VariantConfig = {
