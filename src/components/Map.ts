@@ -92,7 +92,7 @@ import { resolveClusterGlContext } from './map-cluster-gl';
 
 
 export type TimeRange = '1h' | '6h' | '24h' | '48h' | '7d' | 'all';
-export type MapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania';
+export type MapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania' | 'chile';
 
 export interface MapState {
   zoom: number;
@@ -4206,6 +4206,7 @@ export class MapComponent {
       latam: { zoom: 2.0, pan: { x: 120, y: -100 } },
       africa: { zoom: 2.2, pan: { x: -40, y: -30 } },
       oceania: { zoom: 2.2, pan: { x: -420, y: -100 } },
+      chile: { zoom: 3.2, pan: { x: 200, y: -230 } }, // ponytail: extrapolado de latam, ajustar a ojo en el SVG
     };
 
     const settings = viewSettings[view];
