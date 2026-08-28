@@ -4,7 +4,7 @@
  * `/api/download` accepts — `tests/desktop-one-binary-model.test.mjs` fails if
  * the two drift apart.
  */
-export const SITE_VARIANTS = ['full', 'tech', 'finance', 'happy', 'commodity', 'energy'] as const;
+export const SITE_VARIANTS = ['full', 'tech', 'finance', 'happy', 'commodity', 'energy', 'chile'] as const;
 
 export type SiteVariant = (typeof SITE_VARIANTS)[number];
 
@@ -22,7 +22,7 @@ const buildVariant = (() => {
 
 function loadStoredVariant(): string | null {
   try {
-    return localStorage.getItem('worldmonitor-variant');
+    return localStorage.getItem('chilemonitor-variant') || localStorage.getItem('worldmonitor-variant');
   } catch {
     return null;
   }
@@ -39,6 +39,7 @@ export const SITE_VARIANT: string = (() => {
   }
 
   const h = location.hostname;
+  if (h.startsWith('chile.') || h === '10.0.0.3' || h.includes('chilemonitor')) return 'chile';
   if (h.startsWith('tech.')) return 'tech';
   if (h.startsWith('finance.')) return 'finance';
   if (h.startsWith('happy.')) return 'happy';
@@ -51,5 +52,6 @@ export const SITE_VARIANT: string = (() => {
     return buildVariant;
   }
 
+  if (isSiteVariant(buildVariant)) return buildVariant;
   return 'full';
 })();

@@ -1140,11 +1140,96 @@ const ENERGY_MOBILE_MAP_LAYERS: MapLayers = {
   liveTankers: true,
 };
 
+
+// ============================================
+// CHILE variant — Chile Monitor (Enigma)
+// Territorio nacional: prensa Chile, Estado, incendios, clima.
+// Vuelos / bases / comisarías ON (Monitor Municipios las tiene).
+// Hormuz / CII-globo / commodity hubs OFF.
+// ============================================
+const CHILE_PANELS: Record<string, PanelConfig> = {
+  map: { name: 'Mapa Chile', enabled: true, priority: 1 },
+  'live-news': { name: 'Titulares Chile', enabled: true, priority: 1 },
+  insights: { name: 'Brief Chile', enabled: true, priority: 1 },
+  politics: { name: 'Prensa Chile', enabled: true, priority: 1 },
+  gov: { name: 'Estado', enabled: true, priority: 1 },
+  climate: { name: 'Clima y territorio', enabled: true, priority: 1 },
+  'satellite-fires': { name: 'Incendios', enabled: true, priority: 1 },
+  latam: { name: 'Cono Sur', enabled: true, priority: 2 },
+  monitors: { name: 'Mis monitores', enabled: true, priority: 2 },
+  cii: { name: 'Estrés territorial', enabled: true, priority: 1 },
+  'latest-brief': { name: 'Último brief', enabled: true, priority: 1, premium: 'locked' as const },
+};
+
+const CHILE_MAP_LAYERS: MapLayers = {
+  gpsJamming: false,
+  satellites: false,
+  conflicts: false,
+  bases: true,
+  cables: false,
+  pipelines: false,
+  hotspots: false,
+  ais: false,
+  nuclear: false,
+  irradiators: false,
+  sanctions: false,
+  weather: true,
+  canadaRoads: false,
+  canadaAlerts: false,
+  economic: false,
+  waterways: true,
+  outages: false,
+  cyberThreats: false,
+  datacenters: false,
+  protests: false,
+  flights: true,
+  military: true,
+  natural: true,
+  spaceports: false,
+  minerals: false,
+  fires: true,
+  ucdpEvents: false,
+  displacement: false,
+  climate: true,
+  startupHubs: false,
+  cloudRegions: false,
+  accelerators: false,
+  techHQs: false,
+  techEvents: false,
+  stockExchanges: false,
+  financialCenters: false,
+  centralBanks: false,
+  commodityHubs: false,
+  gulfInvestments: false,
+  positiveEvents: false,
+  kindness: false,
+  happiness: false,
+  speciesRecovery: false,
+  renewableInstallations: false,
+  tradeRoutes: false,
+  iranAttacks: false,
+  ciiChoropleth: false,
+  resilienceScore: false,
+  dayNight: false,
+  miningSites: false,
+  processingPlants: false,
+  commodityPorts: false,
+  webcams: false,
+  diseaseOutbreaks: false,
+};
+
+const CHILE_MOBILE_MAP_LAYERS: MapLayers = {
+  ...CHILE_MAP_LAYERS,
+  flights: false,
+  bases: true,
+  military: true,
+};
+
 // ============================================
 // UNIFIED PANEL REGISTRY
 // ============================================
 
-type PanelVariant = 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy';
+type PanelVariant = 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy' | 'chile';
 
 const VARIANT_PANEL_CONFIGS: Record<PanelVariant, Record<string, PanelConfig>> = {
   full: FULL_PANELS,
@@ -1153,6 +1238,7 @@ const VARIANT_PANEL_CONFIGS: Record<PanelVariant, Record<string, PanelConfig>> =
   commodity: COMMODITY_PANELS,
   energy: ENERGY_PANELS,
   happy: HAPPY_PANELS,
+  chile: CHILE_PANELS,
 };
 
 function getVariantPanelConfigs(variant: string): Record<string, PanelConfig> | undefined {
@@ -1168,6 +1254,7 @@ export const ALL_PANELS: Record<string, PanelConfig> = {
   ...ENERGY_PANELS,
   ...TECH_PANELS,
   ...FINANCE_PANELS,
+  ...CHILE_PANELS,
   ...FULL_PANELS,
 };
 
@@ -1179,6 +1266,7 @@ export const VARIANT_DEFAULTS: Record<string, string[]> = {
   commodity: Object.keys(VARIANT_PANEL_CONFIGS.commodity),
   energy:    Object.keys(VARIANT_PANEL_CONFIGS.energy),
   happy:     Object.keys(VARIANT_PANEL_CONFIGS.happy),
+  chile:     Object.keys(VARIANT_PANEL_CONFIGS.chile),
 };
 
 /**
@@ -1208,6 +1296,15 @@ export const VARIANT_PANEL_OVERRIDES: Partial<Record<string, Partial<Record<stri
   },
   happy: {
     map:         { name: 'World Map' },
+  },
+  chile: {
+    map:         { name: 'Mapa Chile' },
+    'live-news': { name: 'Titulares Chile' },
+    insights:    { name: 'Brief Chile' },
+    politics:    { name: 'Prensa Chile' },
+    gov:         { name: 'Estado' },
+    climate:     { name: 'Clima y territorio' },
+    cii:         { name: 'Estrés territorial' },
   },
 };
 
@@ -1454,7 +1551,9 @@ export const DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
         ? COMMODITY_MAP_LAYERS
         : SITE_VARIANT === 'energy'
           ? ENERGY_MAP_LAYERS
-          : FULL_MAP_LAYERS;
+          : SITE_VARIANT === 'chile'
+            ? CHILE_MAP_LAYERS
+            : FULL_MAP_LAYERS;
 
 export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
   ? HAPPY_MOBILE_MAP_LAYERS
@@ -1466,7 +1565,9 @@ export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
         ? COMMODITY_MOBILE_MAP_LAYERS
         : SITE_VARIANT === 'energy'
           ? ENERGY_MOBILE_MAP_LAYERS
-          : FULL_MOBILE_MAP_LAYERS;
+          : SITE_VARIANT === 'chile'
+            ? CHILE_MOBILE_MAP_LAYERS
+            : FULL_MOBILE_MAP_LAYERS;
 
 /** Maps map-layer toggle keys to their data-freshness source IDs (single source of truth). */
 export const LAYER_TO_SOURCE: Partial<Record<keyof MapLayers, DataSourceId[]>> = {

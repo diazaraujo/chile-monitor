@@ -1,3 +1,4 @@
+import { SITE_VARIANT } from '@/config/variant';
 /**
  * DeckGLMap - WebGL-accelerated map visualization for desktop
  * Uses deck.gl for high-performance rendering of large datasets
@@ -9,7 +10,7 @@ import { GeoJsonLayer, ScatterplotLayer, PathLayer, IconLayer, TextLayer, Polygo
 import maplibregl from 'maplibre-gl';
 import type { StyleSpecification } from 'maplibre-gl';
 import { FALLBACK_DARK_STYLE, FALLBACK_LIGHT_STYLE, getMapProvider, getMapTheme, isLightMapTheme } from '@/config/basemap';
-import { getStyleForProvider } from '@/config/basemap-styles';
+import { getStyleForProvider, registerPMTilesProtocol } from '@/config/basemap-styles';
 import Supercluster from 'supercluster';
 import type {
   MapLayers,
@@ -193,7 +194,7 @@ import {
 
 
 export type TimeRange = '1h' | '6h' | '24h' | '48h' | '7d' | 'all';
-export type DeckMapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania';
+export type DeckMapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania' | 'chile';
 type MapInteractionMode = 'flat' | '3d';
 
 export interface CountryClickPayload {
@@ -242,6 +243,7 @@ const VIEW_PRESETS: Record<DeckMapView, { longitude: number; latitude: number; z
   latam: { longitude: -60, latitude: -15, zoom: 3 },
   africa: { longitude: 20, latitude: 5, zoom: 3 },
   oceania: { longitude: 135, latitude: -25, zoom: 3.5 },
+  chile: { longitude: -71.5, latitude: -35.5, zoom: 4.2 },
 };
 
 const VIEWPORT_MOVEMENT_EVENT_KEY = 'worldMonitorViewportGeneration';
@@ -797,6 +799,18 @@ export class DeckGLMap {
 
 
   private layerCache: Map<string, Layer> = new Map();
+  private chileCuencas: GeoJSON.FeatureCollection | null = null;
+  private chileAdi: GeoJSON.FeatureCollection | null = null;
+  private chileComunidades: GeoJSON.FeatureCollection | null = null;
+  private chileSubcuencas: GeoJSON.FeatureCollection | null = null;
+  private chileTrazados: GeoJSON.FeatureCollection | null = null;
+  private chileComunas: GeoJSON.FeatureCollection | null = null;
+  private chileMercedes: GeoJSON.FeatureCollection | null = null;
+  private chileCompras20a: GeoJSON.FeatureCollection | null = null;
+  private chileDerechos: GeoJSON.FeatureCollection | null = null;
+  private chileCompras20b: GeoJSON.FeatureCollection | null = null;
+  private chileAsociaciones: GeoJSON.FeatureCollection | null = null;
+  private chileSeiaPuntos: GeoJSON.FeatureCollection | null = null;
   private lastZoomThreshold = 0;
   private protestSC: Supercluster | null = null;
   private techHQSC: Supercluster | null = null;
@@ -881,6 +895,7 @@ export class DeckGLMap {
 
     this.setupDOM();
     this.popup = new MapPopup(container);
+    if (SITE_VARIANT === 'chile') this.loadChileOverlays();
 
     this.handleThemeChange = () => {
       if (isHappyVariant) {
@@ -1141,6 +1156,7 @@ export class DeckGLMap {
         this.initDeck();
         this.loadCountryBoundaries();
         this.fetchServerBases();
+        this.addChileVectorTiles();
         this.render();
       });
     };
@@ -1150,6 +1166,7 @@ export class DeckGLMap {
       this.initDeck();
       this.loadCountryBoundaries();
       this.fetchServerBases();
+      this.addChileVectorTiles();
       this.render();
     });
 
@@ -2135,9 +2152,34 @@ export class DeckGLMap {
       layers.push(this.createMilitaryFlightClustersLayer(filteredMilitaryFlightClusters));
     }
 
-    // Strategic waterways layer
+    // Strategic waterways layer — Chile: cuencas BNA instead of Hormuz pins
     if (mapLayers.waterways) {
-      layers.push(this.createWaterwaysLayer());
+      const chileWater = SITE_VARIANT === 'chile' ? this.createChileCuencasLayer() : null;
+      layers.push(chileWater ?? this.createWaterwaysLayer());
+      const sub = SITE_VARIANT === 'chile' ? this.createChileSubcuencasLayer() : null;
+      if (sub) layers.push(sub);
+      const tr = SITE_VARIANT === 'chile' ? this.createChileTrazadosLayer() : null;
+      if (tr) layers.push(tr);
+      const co = SITE_VARIANT === 'chile' ? this.createChileComunasLayer() : null;
+      if (co) layers.push(co);
+      const me = SITE_VARIANT === 'chile' ? this.createChileMercedesLayer() : null;
+      if (me) layers.push(me);
+      const c20 = SITE_VARIANT === 'chile' ? this.createChileCompras20aLayer() : null;
+      if (c20) layers.push(c20);
+      const de = SITE_VARIANT === 'chile' ? this.createChileDerechosLayer() : null;
+      if (de) layers.push(de);
+      const b20 = SITE_VARIANT === 'chile' ? this.createChileCompras20bLayer() : null;
+      if (b20) layers.push(b20);
+      const asoc = SITE_VARIANT === 'chile' ? this.createChileAsociacionesLayer() : null;
+      if (asoc) layers.push(asoc);
+      const seia = SITE_VARIANT === 'chile' ? this.createChileSeiaPuntosLayer() : null;
+      if (seia) layers.push(seia);
+    }
+    if (SITE_VARIANT === 'chile') {
+      const adi = this.createChileAdiLayer();
+      if (adi) layers.push(adi);
+      const com = this.createChileComunidadesLayer();
+      if (com) layers.push(com);
     }
 
     // Economic centers layer — hidden at low zoom
@@ -3837,6 +3879,350 @@ export class DeckGLMap {
     });
   }
 
+
+
+  private chileFicha: Record<string, { n_exp?: number; n_obs?: number; n_exp_pac?: number; n_especie?: number; n_especie_distinta?: number; region_n_obs?: number }> = {};
+
+  private addChileVectorTiles(): void {
+    if (SITE_VARIANT !== 'chile' || !this.maplibreMap) return;
+    const map = this.maplibreMap;
+    const predioUrl = 'pmtiles://http://10.0.0.3:8130/tiles/predio.pmtiles';
+    const cauceUrl = 'http://10.0.0.3:8130/api/tiles/cauce/{z}/{x}/{y}.mvt';
+    void (async () => {
+    try {
+      await registerPMTilesProtocol();
+      if (!map.getSource('chile-predio')) {
+        map.addSource('chile-predio', {
+          type: 'vector',
+          url: predioUrl,
+          minzoom: 12,
+          maxzoom: 16,
+        });
+        map.addLayer({
+          id: 'chile-predio-fill',
+          type: 'fill',
+          source: 'chile-predio',
+          'source-layer': 'predio',
+          minzoom: 14,
+          paint: {
+            'fill-color': '#31a354',
+            'fill-opacity': 0.22,
+            'fill-outline-color': '#14532d',
+          },
+        });
+      }
+      if (!map.getSource('chile-cauce')) {
+        map.addSource('chile-cauce', {
+          type: 'vector',
+          tiles: [cauceUrl],
+          minzoom: 9,
+          maxzoom: 14,
+        });
+        map.addLayer({
+          id: 'chile-cauce-line',
+          type: 'line',
+          source: 'chile-cauce',
+          'source-layer': 'cauce',
+          minzoom: 9,
+          paint: {
+            'line-color': '#3b82f6',
+            'line-width': 1.2,
+            'line-opacity': 0.75,
+          },
+        });
+      }
+      if (!(map as unknown as { _chilePredioClick?: boolean })._chilePredioClick) {
+        (map as unknown as { _chilePredioClick?: boolean })._chilePredioClick = true;
+        map.on('click', 'chile-predio-fill', (ev) => {
+          const f = ev.features?.[0];
+          if (!f) return;
+          const p = f.properties ?? {};
+          const html = `<div class="deckgl-tooltip"><strong>${String(p.name || p.code || 'Predio')}</strong>`
+            + (p.code ? `<br/>Rol ${String(p.code)}` : '')
+            + (p.value != null && p.value !== '' ? `<br/>Avalúo ${String(p.value)}` : '')
+            + (p.dueno_rut ? `<br/>RUT ${String(p.dueno_rut)}` : '')
+            + (p.razon_social ? `<br/>${String(p.razon_social)}` : '')
+            + (p.destino ? `<br/>${String(p.destino)}` : '')
+            + `</div>`;
+          new maplibregl.Popup({ closeButton: true, maxWidth: '280px' })
+            .setLngLat(ev.lngLat)
+            .setHTML(html)
+            .addTo(map);
+        });
+        map.on('mouseenter', 'chile-predio-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'chile-predio-fill', () => { map.getCanvas().style.cursor = ''; });
+      }
+    } catch (err) {
+      console.warn('[DeckGLMap] chile vector tiles', err);
+    }
+    })();
+  }
+
+  private loadChileOverlays(): void {
+    const load = (path: string, assign: (fc: GeoJSON.FeatureCollection) => void) => {
+      fetch(path)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((fc) => {
+          if (!fc || fc.type !== 'FeatureCollection') return;
+          assign(fc);
+          this.debouncedRebuildLayers();
+        })
+        .catch(() => { /* overlay is best-effort */ });
+    };
+    load('/chile/cuencas.geojson', (fc) => { this.chileCuencas = fc; });
+    load('/chile/adi.geojson', (fc) => { this.chileAdi = fc; });
+    load('/chile/comunidades.geojson', (fc) => { this.chileComunidades = fc; });
+    load('/chile/subcuencas.geojson', (fc) => { this.chileSubcuencas = fc; });
+    load('/chile/trazados.geojson', (fc) => { this.chileTrazados = fc; });
+    load('/chile/comunas.geojson', (fc) => { this.chileComunas = fc; });
+    load('/chile/mercedes.geojson', (fc) => { this.chileMercedes = fc; });
+    load('/chile/compras20a.geojson', (fc) => { this.chileCompras20a = fc; });
+    load('/chile/derechos.geojson', (fc) => { this.chileDerechos = fc; });
+    load('/chile/compras20b.geojson', (fc) => { this.chileCompras20b = fc; });
+    load('/chile/asociaciones.geojson', (fc) => { this.chileAsociaciones = fc; });
+    load('/chile/seia-puntos.geojson', (fc) => { this.chileSeiaPuntos = fc; });
+    fetch('/chile/ficha-comuna.json')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (j?.by_comuna) this.chileFicha = j.by_comuna; })
+      .catch(() => {});
+  }
+
+
+
+
+  private createChileComunasLayer(): GeoJsonLayer | null {
+    if (!this.chileComunas) return null;
+    return new GeoJsonLayer({
+      id: 'chile-comunas-layer',
+      data: this.chileComunas,
+      filled: false,
+      stroked: true,
+      getLineColor: [200, 200, 200, 90],
+      getLineWidth: 1,
+      lineWidthMinPixels: 0.5,
+      pickable: true,
+    });
+  }
+
+  private createChileMercedesLayer(): GeoJsonLayer | null {
+    if (!this.chileMercedes || this.state.zoom < 5) return null;
+    return new GeoJsonLayer({
+      id: 'chile-mercedes-layer',
+      data: this.chileMercedes,
+      filled: true,
+      stroked: true,
+      getFillColor: [140, 70, 180, 50],
+      getLineColor: [140, 70, 180, 200],
+      getLineWidth: 1,
+      lineWidthMinPixels: 0.8,
+      pickable: true,
+    });
+  }
+
+
+
+
+
+  private createChileSeiaPuntosLayer(): ScatterplotLayer | null {
+    if (!this.chileSeiaPuntos) return null;
+    const data = this.chileSeiaPuntos.features
+      .map((f) => {
+        const g = f.geometry as GeoJSON.Point | null;
+        if (!g || g.type !== 'Point' || !g.coordinates) return null;
+        const p = (f.properties ?? {}) as Record<string, unknown>;
+        return {
+          lon: g.coordinates[0],
+          lat: g.coordinates[1],
+          nombre: String(p.nombre ?? ''),
+          titular: String(p.titular ?? ''),
+          estado: String(p.estado ?? ''),
+          comunas: String(p.comunas ?? ''),
+          n_especie: Number(p.n_especie ?? 0),
+          n_especie_distinta: Number(p.n_especie_distinta ?? 0),
+        };
+      })
+      .filter((d): d is { lon: number; lat: number; nombre: string; titular: string; estado: string; comunas: string; n_especie: number; n_especie_distinta: number } => d !== null);
+    return new ScatterplotLayer({
+      id: 'chile-seia-puntos-layer',
+      data,
+      getPosition: (d: { lon: number; lat: number }) => [d.lon, d.lat],
+      getRadius: 2000,
+      getFillColor: [220, 50, 47, 160],
+      radiusMinPixels: 2,
+      radiusMaxPixels: 7,
+      pickable: true,
+    });
+  }
+
+  private createChileAsociacionesLayer(): ScatterplotLayer | null {
+    if (!this.chileAsociaciones || this.state.zoom < 6) return null;
+    const data = this.chileAsociaciones.features
+      .map((f) => {
+        const g = f.geometry as GeoJSON.Point | null;
+        if (!g || g.type !== 'Point') return null;
+        const p = (f.properties ?? {}) as Record<string, unknown>;
+        return {
+          lon: g.coordinates[0],
+          lat: g.coordinates[1],
+          name: String(p.NOMBRE ?? ''),
+          pueblo: String(p.PUEBLO ?? ''),
+        };
+      })
+      .filter((d): d is { lon: number; lat: number; name: string; pueblo: string } => d !== null);
+    return new ScatterplotLayer({
+      id: 'chile-asociaciones-layer',
+      data,
+      getPosition: (d: { lon: number; lat: number }) => [d.lon, d.lat],
+      getRadius: 1800,
+      getFillColor: [90, 160, 80, 180],
+      radiusMinPixels: 2,
+      radiusMaxPixels: 6,
+      pickable: true,
+    });
+  }
+
+  private createChileCompras20bLayer(): GeoJsonLayer | null {
+    if (!this.chileCompras20b || this.state.zoom < 6) return null;
+    return new GeoJsonLayer({
+      id: 'chile-compras20b-layer',
+      data: this.chileCompras20b,
+      filled: true,
+      stroked: true,
+      getFillColor: [20, 110, 70, 40],
+      getLineColor: [20, 110, 70, 180],
+      getLineWidth: 1,
+      lineWidthMinPixels: 0.6,
+      pickable: true,
+    });
+  }
+
+  private createChileDerechosLayer(): ScatterplotLayer | null {
+    if (!this.chileDerechos || this.state.zoom < 5.5) return null;
+    const data = this.chileDerechos.features.map((f) => {
+      const g = f.geometry as GeoJSON.Point;
+      const p = (f.properties ?? {}) as Record<string, unknown>;
+      return {
+        lon: g.coordinates[0],
+        lat: g.coordinates[1],
+        titular: String(p.titular ?? ''),
+        comuna: String(p.comuna ?? ''),
+        uso: String(p.uso ?? ''),
+      };
+    });
+    return new ScatterplotLayer({
+      id: 'chile-derechos-layer',
+      data,
+      getPosition: (d: { lon: number; lat: number }) => [d.lon, d.lat],
+      getRadius: 1200,
+      getFillColor: [50, 140, 220, 140],
+      radiusMinPixels: 2,
+      radiusMaxPixels: 6,
+      pickable: true,
+    });
+  }
+
+  private createChileCompras20aLayer(): GeoJsonLayer | null {
+    if (!this.chileCompras20a || this.state.zoom < 6) return null;
+    return new GeoJsonLayer({
+      id: 'chile-compras20a-layer',
+      data: this.chileCompras20a,
+      filled: true,
+      stroked: true,
+      getFillColor: [40, 140, 90, 45],
+      getLineColor: [40, 140, 90, 190],
+      getLineWidth: 1,
+      lineWidthMinPixels: 0.7,
+      pickable: true,
+    });
+  }
+
+  private createChileTrazadosLayer(): GeoJsonLayer | null {
+    if (!this.chileTrazados) return null;
+    return new GeoJsonLayer({
+      id: 'chile-trazados-layer',
+      data: this.chileTrazados,
+      filled: true,
+      stroked: true,
+      getFillColor: [215, 50, 50, 70],
+      getLineColor: [215, 40, 40, 230],
+      getLineWidth: 3,
+      lineWidthMinPixels: 1.5,
+      getPointRadius: 80,
+      pointRadiusMinPixels: 4,
+      pickable: true,
+      autoHighlight: true,
+    });
+  }
+
+  private createChileSubcuencasLayer(): GeoJsonLayer | null {
+    if (!this.chileSubcuencas || this.state.zoom < 5.5) return null;
+    return new GeoJsonLayer({
+      id: 'chile-subcuencas-layer',
+      data: this.chileSubcuencas,
+      filled: false,
+      stroked: true,
+      getLineColor: [120, 190, 230, 160],
+      getLineWidth: 1,
+      lineWidthMinPixels: 0.6,
+      pickable: true,
+    });
+  }
+
+  private createChileCuencasLayer(): GeoJsonLayer | null {
+    if (!this.chileCuencas) return null;
+    return new GeoJsonLayer({
+      id: 'chile-cuencas-layer',
+      data: this.chileCuencas,
+      filled: true,
+      stroked: true,
+      getFillColor: [30, 90, 160, 36],
+      getLineColor: [80, 170, 255, 210],
+      getLineWidth: 1,
+      lineWidthMinPixels: 1,
+      pickable: true,
+      autoHighlight: true,
+    });
+  }
+
+  private createChileAdiLayer(): GeoJsonLayer | null {
+    if (!this.chileAdi) return null;
+    return new GeoJsonLayer({
+      id: 'chile-adi-layer',
+      data: this.chileAdi,
+      filled: true,
+      stroked: true,
+      getFillColor: [196, 92, 28, 50],
+      getLineColor: [232, 140, 48, 230],
+      getLineWidth: 2,
+      lineWidthMinPixels: 1.5,
+      pickable: true,
+      autoHighlight: true,
+    });
+  }
+
+  private createChileComunidadesLayer(): ScatterplotLayer | null {
+    if (!this.chileComunidades) return null;
+    const data = this.chileComunidades.features
+      .map((f) => {
+        const g = f.geometry as GeoJSON.Point | null;
+        if (!g || g.type !== 'Point' || !g.coordinates) return null;
+        const [lon, lat] = g.coordinates;
+        const p = (f.properties ?? {}) as Record<string, unknown>;
+        return { lon, lat, name: String(p.COMUNIDAD ?? p.NOMBRE ?? ''), comuna: String(p.COMUNA ?? '') };
+      })
+      .filter((d): d is { lon: number; lat: number; name: string; comuna: string } => d !== null);
+    return new ScatterplotLayer({
+      id: 'chile-comunidades-layer',
+      data,
+      getPosition: (d: { lon: number; lat: number }) => [d.lon, d.lat],
+      getRadius: 2500,
+      getFillColor: [232, 140, 48, 200],
+      radiusMinPixels: 3,
+      radiusMaxPixels: 8,
+      pickable: true,
+    });
+  }
+
   private createWaterwaysLayer(): ScatterplotLayer {
     return new ScatterplotLayer({
       id: 'waterways-layer',
@@ -4895,6 +5281,32 @@ export class DeckGLMap {
         return { html: `<div class="deckgl-tooltip"><strong>${text(obj.stormName)}</strong><br/>Forecast Cone</div>` };
       case 'ais-density-layer':
         return { html: `<div class="deckgl-tooltip"><strong>${t('components.deckgl.layers.shipTraffic')}</strong><br/>${t('popups.intensity')}: ${text(obj.intensity)}</div>` };
+      case 'chile-comunas-layer': {
+        const pr = (obj as { properties?: Record<string, unknown> }).properties ?? {};
+        const nombre = String(pr.name ?? pr.NOMBRE ?? '');
+        const cut = String(pr.cut ?? '');
+        const key = nombre.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+        const ficha = this.chileFicha[nombre.toLowerCase()] || this.chileFicha[key] || this.chileFicha[cut];
+        const extra = ficha
+          ? `<br/>SEIA ${ficha.n_exp ?? 0} exp · ${ficha.n_especie_distinta ?? 0} especies · PAC ${ficha.n_obs ?? 0} obs / ${ficha.n_exp_pac ?? 0} exp`
+          : '';
+        return { html: `<div class="deckgl-tooltip"><strong>${text(nombre || 'Comuna')}</strong><br/>CUT ${text(cut)}${extra}</div>` };
+      }
+      case 'chile-trazados-layer': {
+        const pr = (obj as { properties?: Record<string, unknown> }).properties ?? {};
+        const exp = pr.expediente_id ? ` · exp ${text(String(pr.expediente_id))}` : '';
+        return { html: `<div class="deckgl-tooltip"><strong>${text(String(pr.name || 'Trazado SEIA'))}</strong><br/>${text(String(pr.source || ''))}${exp}</div>` };
+      }
+      case 'chile-cuencas-layer':
+        return { html: `<div class="deckgl-tooltip"><strong>${text((obj as { properties?: { name?: string } }).properties?.name || 'Cuenca')}</strong><br/>Cuenca BNA</div>` };
+      case 'chile-adi-layer': {
+        const pr = (obj as { properties?: Record<string, unknown> }).properties ?? {};
+        return { html: `<div class="deckgl-tooltip"><strong>${text(String(pr.NOMBRE ?? 'ADI'))}</strong><br/>${text(String(pr.ETNIA ?? ''))} · ADI</div>` };
+      }
+      case 'chile-seia-puntos-layer':
+        return { html: `<div class="deckgl-tooltip"><strong>${text(obj.nombre || 'Proyecto SEIA')}</strong><br/>${text(obj.titular || '')}<br/>${text(obj.comunas || '')} · ${text(obj.estado || '')}${obj.n_especie_distinta ? `<br/>${obj.n_especie_distinta} especies` : ''}</div>` };
+      case 'chile-comunidades-layer':
+        return { html: `<div class="deckgl-tooltip"><strong>${text(obj.name || 'Comunidad')}</strong><br/>${text(obj.comuna || '')}</div>` };
       case 'waterways-layer':
         return { html: `<div class="deckgl-tooltip"><strong>${text(obj.name)}</strong><br/>${t('components.deckgl.layers.strategicWaterways')}</div>` };
       case 'economic-centers-layer':
@@ -5506,6 +5918,7 @@ export class DeckGLMap {
           <option value="latam">${t('components.deckgl.views.latam')}</option>
           <option value="africa">${t('components.deckgl.views.africa')}</option>
           <option value="oceania">${t('components.deckgl.views.oceania')}</option>
+          <option value="chile">Chile</option>
         </select>
       </div>
     `, "legacy direct innerHTML migration"));
@@ -6366,7 +6779,7 @@ export class DeckGLMap {
   }
 
   private resetView(): void {
-    this.setView('global');
+    this.setView(SITE_VARIANT === 'chile' ? 'chile' : 'global');
   }
 
   private createUcdpEventsLayer(events: UcdpGeoEvent[]): ScatterplotLayer<UcdpGeoEvent> {

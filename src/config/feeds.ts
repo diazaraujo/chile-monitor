@@ -1090,6 +1090,40 @@ const ENERGY_FEEDS: Record<string, Feed[]> = {
   ],
 };
 
+
+// Chile variant feeds — Chile Monitor
+const CHILE_FEEDS: Record<string, Feed[]> = {
+  'live-news': [
+    { name: 'Google News Chile', url: rss('https://news.google.com/rss?hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'BioBio', url: rss('https://news.google.com/rss/search?q=site:biobiochile.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Emol', url: rss('https://news.google.com/rss/search?q=site:emol.com+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'La Tercera', url: rss('https://news.google.com/rss/search?q=site:latercera.com+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Cooperativa', url: rss('https://news.google.com/rss/search?q=site:cooperativa.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'El Mostrador', url: rss('https://news.google.com/rss/search?q=site:elmostrador.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'CIPER', url: rss('https://news.google.com/rss/search?q=site:ciperchile.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
+  ],
+  politics: [
+    { name: 'Prensa Chile', url: rss('https://news.google.com/rss/search?q=Chile+(gobierno+OR+congreso+OR+municipal)+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'La Tercera Política', url: rss('https://news.google.com/rss/search?q=site:latercera.com+(política+OR+gobierno)+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'CIPER', url: rss('https://news.google.com/rss/search?q=site:ciperchile.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
+  ],
+  gov: [
+    { name: 'SEA / SEIA', url: rss('https://news.google.com/rss/search?q=(SEIA+OR+"Servicio+de+Evaluación+Ambiental"+OR+RCA)+Chile+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'DGA / agua', url: rss('https://news.google.com/rss/search?q=(DGA+OR+"derechos+de+agua"+OR+"escasez+hídrica")+Chile+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'Diario Oficial', url: rss('https://news.google.com/rss/search?q=site:diariooficial.interior.gob.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
+  ],
+  climate: [
+    { name: 'Clima Chile', url: rss('https://news.google.com/rss/search?q=Chile+(sequía+OR+inundación+OR+glaciar+OR+humedal+OR+CONAF)+when:3d&hl=es-CL&gl=CL&ceid=CL:es') },
+    { name: 'MMA', url: rss('https://news.google.com/rss/search?q=site:mma.gob.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
+  ],
+  'satellite-fires': [
+    { name: 'Incendios CONAF', url: rss('https://news.google.com/rss/search?q=Chile+(incendio+forestal+OR+CONAF+OR+"alerta+roja")+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+  ],
+  latam: [
+    { name: 'Cono Sur', url: rss('https://news.google.com/rss/search?q=(Chile+OR+Argentina+OR+Perú+OR+Bolivia)+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
+  ],
+};
+
 // Variant-aware exports
 export const FEEDS = SITE_VARIANT === 'tech'
   ? TECH_FEEDS
@@ -1101,7 +1135,9 @@ export const FEEDS = SITE_VARIANT === 'tech'
         ? COMMODITY_FEEDS
         : SITE_VARIANT === 'energy'
           ? ENERGY_FEEDS
-          : FULL_FEEDS;
+          : SITE_VARIANT === 'chile'
+            ? CHILE_FEEDS
+            : FULL_FEEDS;
 
 // Canonical category→feeds map: the union of every variant's feed set.
 // `FEEDS` (above) is just the active variant's PRESET; users freely customize
@@ -1117,6 +1153,7 @@ export const CANONICAL_FEEDS: Record<string, Feed[]> = mergeCanonicalFeeds([
   COMMODITY_FEEDS,
   ENERGY_FEEDS,
   HAPPY_FEEDS,
+  CHILE_FEEDS,
 ]);
 
 export const SOURCE_REGION_MAP: Record<string, { labelKey: string; feedKeys: string[] }> = {

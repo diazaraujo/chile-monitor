@@ -14388,6 +14388,132 @@
           "path": "src/config/feeds.ts"
         }
       ]
+    },
+    {
+      "host": "10.0.0.3",
+      "provider": "Enigma LAN transport",
+      "kind": "feed+structured",
+      "observed": true,
+      "license": "Excluded: local Enigma development transport",
+      "attribution": "Excluded from the provider count: LAN-only URL.",
+      "status": "excluded",
+      "references": [
+        {
+          "path": "src/config/variant-meta.ts"
+        }
+      ]
+    },
+    {
+      "host": "biobiochile.cl",
+      "provider": "Radio Bío Bío",
+      "kind": "feed",
+      "observed": true,
+      "license": "Licensed publisher content; redistribution governed by the World Monitor agreement",
+      "attribution": "Credit Radio Bío Bío and link to the original item.",
+      "status": "reviewed",
+      "references": [
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "ciperchile.cl",
+      "provider": "CIPER Chile",
+      "kind": "feed",
+      "observed": true,
+      "license": "Licensed publisher content; redistribution governed by the World Monitor agreement",
+      "attribution": "Credit CIPER and link to the original item.",
+      "status": "reviewed",
+      "references": [
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "cooperativa.cl",
+      "provider": "Cooperativa",
+      "kind": "feed",
+      "observed": true,
+      "license": "Licensed publisher content; redistribution governed by the World Monitor agreement",
+      "attribution": "Credit Cooperativa and link to the original item.",
+      "status": "reviewed",
+      "references": [
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "diariooficial.interior.gob.cl",
+      "provider": "Diario Oficial de Chile",
+      "kind": "feed",
+      "observed": true,
+      "license": "Public sector publication; credit the Diario Oficial.",
+      "attribution": "Credit Diario Oficial and link to the original item.",
+      "status": "reviewed",
+      "references": [
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "elmostrador.cl",
+      "provider": "El Mostrador",
+      "kind": "feed",
+      "observed": true,
+      "license": "Licensed publisher content; redistribution governed by the World Monitor agreement",
+      "attribution": "Credit El Mostrador and link to the original item.",
+      "status": "reviewed",
+      "references": [
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "emol.com",
+      "provider": "Emol / El Mercurio",
+      "kind": "feed",
+      "observed": true,
+      "license": "Licensed publisher content; redistribution governed by the World Monitor agreement",
+      "attribution": "Credit Emol and link to the original item.",
+      "status": "reviewed",
+      "references": [
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "latercera.com",
+      "provider": "La Tercera",
+      "kind": "feed",
+      "observed": true,
+      "license": "Licensed publisher content; redistribution governed by the World Monitor agreement",
+      "attribution": "Credit La Tercera and link to the original item.",
+      "status": "reviewed",
+      "references": [
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "mma.gob.cl",
+      "provider": "Ministerio del Medio Ambiente de Chile",
+      "kind": "feed",
+      "observed": true,
+      "license": "Public sector publication; credit MMA.",
+      "attribution": "Credit Ministerio del Medio Ambiente and link to the original item.",
+      "status": "reviewed",
+      "references": [
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
     }
   ],
   "logicalEntries": [
