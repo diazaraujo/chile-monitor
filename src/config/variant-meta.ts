@@ -108,7 +108,7 @@ export const VARIANT_META: { full: VariantMeta; [k: string]: VariantMeta } = {
     title: 'Chile Monitor - Territorio, prensa y Estado',
     description: 'Monitor territorial de Chile: comunas, SEIA, cuencas, derechos de agua, PAC, pueblos originarios, predios y prensa local.',
     keywords: 'Chile, SEIA, DGA, cuencas, derechos de agua, PAC, CONADI, comunas, predios, RCA, incendios, Monitor Municipios',
-    url: 'http://10.0.0.3:8140/dashboard',
+    url: `${(import.meta.env?.VITE_CHILE_SITE_URL as string | undefined) ?? 'http://10.0.0.3:8140'}/dashboard`,
     siteName: 'Chile Monitor',
     shortName: 'ChileMonitor',
     subject: 'Inteligencia territorial de Chile',

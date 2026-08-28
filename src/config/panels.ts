@@ -204,6 +204,10 @@ const FULL_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: false,
+  chileTierras: false,
+  chilePueblos: false,
+  chileSeia: false,
 };
 
 const FULL_MOBILE_MAP_LAYERS: MapLayers = {
@@ -271,6 +275,10 @@ const FULL_MOBILE_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: false,
+  chileTierras: false,
+  chilePueblos: false,
+  chileSeia: false,
 };
 
 // ============================================
@@ -382,6 +390,10 @@ const TECH_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: false,
+  chileTierras: false,
+  chilePueblos: false,
+  chileSeia: false,
 };
 
 const TECH_MOBILE_MAP_LAYERS: MapLayers = {
@@ -446,6 +458,10 @@ const TECH_MOBILE_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: false,
+  chileTierras: false,
+  chilePueblos: false,
+  chileSeia: false,
 };
 
 // ============================================
@@ -589,6 +605,10 @@ const FINANCE_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: false,
+  chileTierras: false,
+  chilePueblos: false,
+  chileSeia: false,
 };
 
 const FINANCE_MOBILE_MAP_LAYERS: MapLayers = {
@@ -653,6 +673,10 @@ const FINANCE_MOBILE_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: false,
+  chileTierras: false,
+  chilePueblos: false,
+  chileSeia: false,
 };
 
 // ============================================
@@ -733,6 +757,10 @@ const HAPPY_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: false,
+  chileTierras: false,
+  chilePueblos: false,
+  chileSeia: false,
 };
 
 const HAPPY_MOBILE_MAP_LAYERS: MapLayers = {
@@ -797,6 +825,10 @@ const HAPPY_MOBILE_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: false,
+  chileTierras: false,
+  chilePueblos: false,
+  chileSeia: false,
 };
 
 // ============================================
@@ -907,6 +939,10 @@ const COMMODITY_MAP_LAYERS: MapLayers = {
   commodityPorts: true,
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: false,
+  chileTierras: false,
+  chilePueblos: false,
+  chileSeia: false,
 };
 
 const COMMODITY_MOBILE_MAP_LAYERS: MapLayers = {
@@ -971,6 +1007,10 @@ const COMMODITY_MOBILE_MAP_LAYERS: MapLayers = {
   commodityPorts: true,
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: false,
+  chileTierras: false,
+  chilePueblos: false,
+  chileSeia: false,
 };
 
 // ============================================
@@ -1075,6 +1115,10 @@ const ENERGY_MAP_LAYERS: MapLayers = {
   commodityPorts: true,   // LNG import/export + crude terminals
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: false,
+  chileTierras: false,
+  chilePueblos: false,
+  chileSeia: false,
   storageFacilities: true, // UGS / SPR / LNG / crude hubs (Day 9-10 registry)
   fuelShortages: true,     // Global fuel shortage alerts (Day 11-12 registry)
   liveTankers: true,       // AIS ship type 80-89 inside chokepoint bboxes (parity-push PR 3)
@@ -1135,6 +1179,10 @@ const ENERGY_MOBILE_MAP_LAYERS: MapLayers = {
   commodityPorts: true,
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: false,
+  chileTierras: false,
+  chilePueblos: false,
+  chileSeia: false,
   storageFacilities: true,
   fuelShortages: true,
   liveTankers: true,
@@ -1177,7 +1225,7 @@ const CHILE_MAP_LAYERS: MapLayers = {
   canadaRoads: false,
   canadaAlerts: false,
   economic: false,
-  waterways: true,
+  waterways: false,
   outages: false,
   cyberThreats: false,
   datacenters: false,
@@ -1216,6 +1264,10 @@ const CHILE_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
   webcams: false,
   diseaseOutbreaks: false,
+  chileAgua: true,
+  chileTierras: true,
+  chilePueblos: true,
+  chileSeia: true,
 };
 
 const CHILE_MOBILE_MAP_LAYERS: MapLayers = {

@@ -731,6 +731,10 @@ export interface MapLayers {
   webcams: boolean;
   // Health layers
   diseaseOutbreaks: boolean;
+  chileAgua: boolean;
+  chileTierras: boolean;
+  chilePueblos: boolean;
+  chileSeia: boolean;
   // Energy variant layers (new — optional so existing MapLayers literals
   // across all other variants remain valid without touching them).
   storageFacilities?: boolean;

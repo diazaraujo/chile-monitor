@@ -147,3 +147,4 @@ src-tauri/notices/*
 data/kmz-inbox/
 data/derechos_*
 .venv-gis/
+public/chile/

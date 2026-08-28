@@ -143,6 +143,16 @@ export const PROVIDER_IDENTITY_GROUPS = Object.freeze({
 });
 
 const PROVIDER_OVERRIDES = {
+  // Chile Monitor (variante chile)
+  '10.0.0.3': { provider: 'Enigma LAN transport', status: 'excluded', license: 'Excluded: local Enigma development transport', attribution: 'Excluded from the provider count: LAN-only URL.' },
+  'biobiochile.cl': { provider: 'Radio Bío Bío' },
+  'ciperchile.cl': { provider: 'CIPER Chile' },
+  'cooperativa.cl': { provider: 'Cooperativa' },
+  'diariooficial.interior.gob.cl': { provider: 'Diario Oficial de Chile' },
+  'elmostrador.cl': { provider: 'El Mostrador' },
+  'emol.com': { provider: 'Emol / El Mercurio' },
+  'latercera.com': { provider: 'La Tercera' },
+  'mma.gob.cl': { provider: 'Ministerio del Medio Ambiente de Chile' },
   'api.adsb.lol': { provider: 'adsb.lol' },
   'api.airplanes.live': { provider: 'airplanes.live' },
   'api.worldbank.org': {
@@ -820,8 +830,8 @@ const PROVIDER_OVERRIDES = {
 // a provider-bearing override a separate, explicit lifecycle event instead of
 // something `--write` can silently normalize into the manifest.
 export const PROVIDER_IDENTITY_REVIEW = Object.freeze({
-  sha256: 'a7ab631b0e17d681791f6978832fb0a8c4f8567bfa1c90d9e79a747b5a7dfbfe',
-  reason: 'Keep Toronto Police Service C4S live-dispatch on services.arcgis.com distinct from Toronto Police Service Open Data on data.tps.ca and www.tps.ca, so live CAD is not catalogued as Open Data / geopolitics.',
+  sha256: '990e2b5ab1f1cd494ee2e41063e70a6e1699e2c441d8f630d278075600735bb7',
+  reason: 'Chile Monitor: 8 medios/organismos chilenos (Google News RSS) + transporte LAN Enigma excluido. ' + 'Keep Toronto Police Service C4S live-dispatch on services.arcgis.com distinct from Toronto Police Service Open Data on data.tps.ca and www.tps.ca, so live CAD is not catalogued as Open Data / geopolitics.',
   // A URL cited here is scanned like any other: this file sits inside
   // SOURCE_ROOTS, so citing a host that is not already a registered source
   // invents a provider row for it. The B.C. catalogue URLs above are safe
