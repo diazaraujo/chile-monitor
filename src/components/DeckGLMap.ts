@@ -1,4 +1,3 @@
-import { SITE_VARIANT } from '@/config/variant';
 /**
  * DeckGLMap - WebGL-accelerated map visualization for desktop
  * Uses deck.gl for high-performance rendering of large datasets
