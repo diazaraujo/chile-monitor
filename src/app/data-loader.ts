@@ -819,6 +819,8 @@ export class DataLoaderManager implements AppModule {
     // Desktop: server digest has fewer categories than client FEEDS config.
     // Enable per-feed RSS fallback so missing categories fetch directly.
     if (isDesktopRuntime()) return true;
+    // Chile: el digest público no cubre las categorías chilenas; feeds directos vía rss-proxy (cap 3/categoría).
+    if (SITE_VARIANT === 'chile') return true;
     return isFeatureEnabled('newsPerFeedFallback');
   }
 

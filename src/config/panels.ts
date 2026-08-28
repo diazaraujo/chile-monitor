@@ -1197,12 +1197,11 @@ const ENERGY_MOBILE_MAP_LAYERS: MapLayers = {
 // ============================================
 const CHILE_PANELS: Record<string, PanelConfig> = {
   map: { name: 'Mapa Chile', enabled: true, priority: 1 },
-  'live-news': { name: 'Titulares Chile', enabled: true, priority: 1 },
   insights: { name: 'Brief Chile', enabled: true, priority: 1 },
-  politics: { name: 'Prensa Chile', enabled: true, priority: 1 },
+  politics: { name: 'Titulares Chile', enabled: true, priority: 1 },
+  us: { name: 'Política', enabled: true, priority: 1 },
   gov: { name: 'Estado', enabled: true, priority: 1 },
   climate: { name: 'Clima y territorio', enabled: true, priority: 1 },
-  'satellite-fires': { name: 'Incendios', enabled: true, priority: 1 },
   latam: { name: 'Cono Sur', enabled: true, priority: 2 },
   monitors: { name: 'Mis monitores', enabled: true, priority: 2 },
   cii: { name: 'Estrés territorial', enabled: true, priority: 1 },
@@ -1351,9 +1350,9 @@ export const VARIANT_PANEL_OVERRIDES: Partial<Record<string, Partial<Record<stri
   },
   chile: {
     map:         { name: 'Mapa Chile' },
-    'live-news': { name: 'Titulares Chile' },
     insights:    { name: 'Brief Chile' },
-    politics:    { name: 'Prensa Chile' },
+    politics:    { name: 'Titulares Chile' },
+    us:          { name: 'Política' },
     gov:         { name: 'Estado' },
     climate:     { name: 'Clima y territorio' },
     cii:         { name: 'Estrés territorial' },
