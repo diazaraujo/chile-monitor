@@ -131,6 +131,15 @@ jobs:
         continue-on-error: true
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+      - id: seed_review_case_write_lock
+        name: Seed review-case write lock (idempotent)
+        # Review openings and authority updates fail closed until this global,
+        # document-backed OCC lock exists. The workflow seeds it immediately
+        # after deploy so first-insert races cannot rely on an empty index range.
+        run: npx convex run --prod reviewCases:_seedReviewWriteLock
+        continue-on-error: true
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
       - id: seed_followed_countries_shards
         name: Seed followedCountries shards (idempotent)
         # The `followCountry` / `unfollowCountry` / `mergeAnonymousLocal`
@@ -162,6 +171,7 @@ jobs:
         run: |
           if [ "${{ steps.seed_dodo_webhook_failure_summary.outcome }}" != "success" ] \
             || [ "${{ steps.seed_intel_history_append_lock.outcome }}" != "success" ] \
+            || [ "${{ steps.seed_review_case_write_lock.outcome }}" != "success" ] \
             || [ "${{ steps.seed_followed_countries_shards.outcome }}" != "success" ] \
             || [ "${{ steps.seed_followed_countries_country_locks.outcome }}" != "success" ]; then
             echo "::error::One or more post-deploy seeds failed; inspect the seed steps above"

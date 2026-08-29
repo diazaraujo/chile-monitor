@@ -2254,4 +2254,88 @@ http.route({
   }),
 });
 
+const REVIEW_STORAGE_MAX_BODY_BYTES = 4 * 1024 * 1024;
+
+function reviewStorageJson(value: unknown, status: number): Response {
+  return new Response(JSON.stringify(value), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
+async function reviewStorageUnauthorized(request: Request): Promise<boolean> {
+  const expected = process.env.REVIEW_CASE_STORAGE_SECRET ?? "";
+  const provided = request.headers.get("x-review-case-storage-secret") ?? "";
+  return !expected || !(await timingSafeEqualStrings(provided, expected));
+}
+
+async function parseBoundedReviewBody(request: Request): Promise<Record<string, unknown> | null> {
+  const declaredLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > REVIEW_STORAGE_MAX_BODY_BYTES) return null;
+  let text: string;
+  try {
+    text = await request.text();
+  } catch {
+    return null;
+  }
+  if (new TextEncoder().encode(text).byteLength > REVIEW_STORAGE_MAX_BODY_BYTES) return null;
+  try {
+    const value: unknown = JSON.parse(text);
+    return value !== null && typeof value === "object" && !Array.isArray(value)
+      ? value as Record<string, unknown>
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+http.route({
+  path: "/api/internal-review-case-operation",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (await reviewStorageUnauthorized(request)) {
+      return reviewStorageJson({ error: "UNAUTHORIZED" }, 401);
+    }
+    const body = await parseBoundedReviewBody(request);
+    if (!body || body.lookup === undefined) {
+      return reviewStorageJson({ error: "INVALID_REQUEST" }, 400);
+    }
+    try {
+      const result = await ctx.runQuery(
+        anyApi.reviewCases!.readOpenLicenseReviewOperation as any,
+        { lookup: body.lookup },
+      );
+      return reviewStorageJson(result, 200);
+    } catch {
+      return reviewStorageJson({ error: "REVIEW_STORAGE_FAILURE" }, 500);
+    }
+  }),
+});
+
+http.route({
+  path: "/api/internal-open-license-review",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (await reviewStorageUnauthorized(request)) {
+      return reviewStorageJson({ error: "UNAUTHORIZED" }, 401);
+    }
+    const body = await parseBoundedReviewBody(request);
+    if (!body || body.request === undefined) {
+      return reviewStorageJson({ error: "INVALID_REQUEST" }, 400);
+    }
+    try {
+      const result = await ctx.runMutation(
+        anyApi.reviewCases!.commitOpenLicenseReview as any,
+        { request: body.request },
+      );
+      return reviewStorageJson(result, 200);
+    } catch {
+      return reviewStorageJson({ error: "REVIEW_STORAGE_FAILURE" }, 500);
+    }
+  }),
+});
+
 export default http;
