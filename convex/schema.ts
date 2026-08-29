@@ -28,6 +28,20 @@ import {
   companyMonitoringXStorageStateValidator,
 } from "./companyMonitoring/validators";
 
+const reviewRole = v.union(v.literal("rentas"), v.literal("control"));
+const reviewMarking = v.union(
+  v.literal("PUBLIC"),
+  v.literal("PII"),
+  v.literal("LICENSED"),
+  v.literal("MUNICIPAL_INTERNAL"),
+  v.literal("ACTIVE_REVIEW"),
+  v.literal("AUTHORITY_ONLY"),
+);
+const reviewRepresentation = v.union(
+  v.literal("public"),
+  v.literal("municipal_restricted"),
+);
+
 // Subscription status enum — maps Dodo statuses to our internal set
 const subscriptionStatus = v.union(
   v.literal("active"),
@@ -1681,6 +1695,110 @@ export default defineSchema({
   })
     .index("by_webhookEventId", ["webhookEventId"])
     .index("by_broadcast_event", ["broadcastId", "eventType"]),
+
+  // Server-derived municipal authority used by the commercial-license review
+  // workflow. The opening mutation reads this row inside the same transaction
+  // that persists the case, so revocation/version changes invalidate a stale
+  // authority fence through Convex OCC rather than a best-effort precheck.
+  reviewAuthorityGrants: defineTable({
+    authorityId: v.string(),
+    authorityVersion: v.number(),
+    actorId: v.string(),
+    municipalityCut: v.string(),
+    roles: v.array(reviewRole),
+    permittedActions: v.array(v.literal("OpenLicenseReview")),
+    allowedMarkings: v.array(reviewMarking),
+    allowedRepresentations: v.array(reviewRepresentation),
+    validFrom: v.string(),
+    validTo: v.optional(v.string()),
+    revokedAt: v.optional(v.string()),
+    updatedAt: v.number(),
+  })
+    .index("by_authorityId", ["authorityId"])
+    .index("by_actor_municipality", ["actorId", "municipalityCut"]),
+
+  // Low-volume MVP serialization point. Every authority update and review
+  // opening reads and patches this singleton, covering first-insert races for
+  // operation bindings, active targets and globally generated identifiers.
+  reviewWriteLocks: defineTable({
+    lockKey: v.literal("review-write"),
+    lastTouchedAt: v.number(),
+  }).index("by_lockKey", ["lockKey"]),
+
+  reviewOperations: defineTable({
+    actorId: v.string(),
+    actionType: v.literal("OpenLicenseReview"),
+    operationKeySha256: v.string(),
+    commandSha256: v.string(),
+    municipalityCut: v.string(),
+    caseId: v.string(),
+    actionId: v.string(),
+    createdAt: v.number(),
+  }).index("by_actor_action_key", ["actorId", "actionType", "operationKeySha256"]),
+
+  reviewCases: defineTable({
+    caseId: v.string(),
+    caseVersion: v.number(),
+    municipalityCut: v.string(),
+    licenseId: v.string(),
+    status: v.literal("open"),
+    snapshotJson: v.string(),
+    packetId: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_case_version", ["caseId", "caseVersion"])
+    .index("by_municipality_license", ["municipalityCut", "licenseId"]),
+
+  reviewActiveCases: defineTable({
+    municipalityCut: v.string(),
+    licenseId: v.string(),
+    caseId: v.string(),
+    caseVersion: v.number(),
+    openedAt: v.number(),
+  })
+    .index("by_municipality_license", ["municipalityCut", "licenseId"])
+    .index("by_case_version", ["caseId", "caseVersion"]),
+
+  reviewEvidencePackets: defineTable({
+    packetId: v.string(),
+    caseId: v.string(),
+    caseVersion: v.number(),
+    packetContentSha256: v.string(),
+    primaryReleaseId: v.string(),
+    nature: v.literal("historical_non_executable"),
+    packetBytes: v.number(),
+    chunkCount: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_packetId", ["packetId"])
+    .index("by_packet_hash", ["packetId", "packetContentSha256"])
+    .index("by_case_version", ["caseId", "caseVersion"]),
+
+  // Packet JSON may reach the opener's 2 MiB cap, above Convex's per-document
+  // limit. The adapter sends bounded base64 chunks; the metadata row above
+  // commits their total byte count and content hash.
+  reviewEvidencePacketChunks: defineTable({
+    packetId: v.string(),
+    ordinal: v.number(),
+    encodedBase64: v.string(),
+    byteLength: v.number(),
+  }).index("by_packet_ordinal", ["packetId", "ordinal"]),
+
+  // Append-only action ledger. Review mutations may insert new rows but never
+  // patch or replace an existing action.
+  reviewActions: defineTable({
+    actionId: v.string(),
+    caseId: v.string(),
+    actionType: v.literal("OpenLicenseReview"),
+    resultingCaseVersion: v.number(),
+    actorId: v.string(),
+    legalEffect: v.literal("none"),
+    actionJson: v.string(),
+    occurredAt: v.number(),
+  })
+    .index("by_actionId", ["actionId"])
+    .index("by_case_version", ["caseId", "resultingCaseVersion"]),
 
   // Pre-seeded, document-backed serialization point for `intelHistory.append`.
   //
