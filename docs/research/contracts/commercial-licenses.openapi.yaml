@@ -1,0 +1,951 @@
+openapi: 3.1.0
+info:
+  title: Commercial Licenses Capability Contract
+  version: 0.1.0-draft
+  description: >-
+    Contrato de lectura entre Inteligencia Inmobiliaria, productor del data
+    product commercial-licenses, y Chile Monitor. Los identificadores son
+    opacos. El consumidor no accede a tablas internas ni reingesta fuentes.
+servers:
+  - url: https://inteligencia-inmobiliaria.example.cl
+    description: URL por acordar
+tags:
+  - name: Patents
+  - name: Establishments
+security:
+  - ServiceBearerAuth: []
+paths:
+  /v1/patents/{municipality_cut}/{license_id}:
+    get:
+      operationId: patentsGet
+      tags: [Patents]
+      summary: Obtiene una patente y su contexto trazable
+      parameters:
+        - $ref: '#/components/parameters/MunicipalityCut'
+        - $ref: '#/components/parameters/LicenseId'
+        - $ref: '#/components/parameters/ReleaseId'
+        - $ref: '#/components/parameters/EffectiveOn'
+        - $ref: '#/components/parameters/Representation'
+      responses:
+        '200':
+          description: Patente encontrada en un release promovido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentGetResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/InvalidRequest'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/patents/{municipality_cut}/{license_id}/timeline:
+    get:
+      operationId: patentsTimeline
+      tags: [Patents]
+      summary: Obtiene los eventos conocidos sin completar eventos ausentes
+      parameters:
+        - $ref: '#/components/parameters/MunicipalityCut'
+        - $ref: '#/components/parameters/LicenseId'
+        - $ref: '#/components/parameters/ReleaseId'
+        - $ref: '#/components/parameters/Representation'
+      responses:
+        '200':
+          description: Timeline ordenado por fecha efectiva y observación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentTimelineResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/InvalidRequest'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/patents/search:
+    get:
+      operationId: patentsSearch
+      tags: [Patents]
+      summary: Busca patentes dentro de un release promovido
+      parameters:
+        - $ref: '#/components/parameters/ReleaseId'
+        - $ref: '#/components/parameters/MunicipalityCutQuery'
+        - $ref: '#/components/parameters/Representation'
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: license_type
+          in: query
+          schema:
+            type: string
+        - name: activity
+          in: query
+          schema:
+            type: string
+        - name: legal_entity_rut
+          in: query
+          description: Sólo RUT de persona jurídica, sin puntos y con guion.
+          schema:
+            type: string
+            pattern: '^[0-9]{7,8}-[0-9Kk]$'
+        - name: address
+          in: query
+          schema:
+            type: string
+        - name: establishment_id
+          in: query
+          schema:
+            type: string
+        - name: parcel_id
+          in: query
+          schema:
+            type: string
+        - name: effective_on
+          in: query
+          description: Estado conocido a esta fecha, sin aplicar relaciones actuales retrospectivamente.
+          schema:
+            type: string
+            format: date
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        '200':
+          description: Resultados y cobertura del release consultado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentSearchResponse'
+        '422':
+          $ref: '#/components/responses/InvalidRequest'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/patents/coverage:
+    get:
+      operationId: patentsCoverage
+      tags: [Patents]
+      summary: Expone cobertura, frescura y brechas por municipio y período
+      parameters:
+        - $ref: '#/components/parameters/ReleaseId'
+        - $ref: '#/components/parameters/MunicipalityCutQuery'
+        - $ref: '#/components/parameters/Representation'
+        - name: period_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: period_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Cobertura declarada del producto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentCoverageResponse'
+        '422':
+          $ref: '#/components/responses/InvalidRequest'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/establishments/resolve:
+    post:
+      operationId: establishmentsResolve
+      tags: [Establishments]
+      summary: Resuelve candidatos de establecimiento y predio sin forzar certeza
+      parameters:
+        - $ref: '#/components/parameters/ReleaseId'
+        - $ref: '#/components/parameters/Representation'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EstablishmentResolveRequest'
+      responses:
+        '200':
+          description: Resultado resolved, ambiguous o unresolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstablishmentResolveResponse'
+        '422':
+          $ref: '#/components/responses/InvalidRequest'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+components:
+  securitySchemes:
+    ServiceBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: service-token
+      description: Mecanismo provisional; el productor debe confirmar emisor, audiencia y rotación.
+  parameters:
+    MunicipalityCut:
+      name: municipality_cut
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/CutCode'
+    MunicipalityCutQuery:
+      name: municipality_cut
+      in: query
+      required: true
+      schema:
+        $ref: '#/components/schemas/CutCode'
+    LicenseId:
+      name: license_id
+      in: path
+      required: true
+      description: ID fuente estable o identificador canónico opaco del productor.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 200
+    ReleaseId:
+      name: release_id
+      in: query
+      required: false
+      description: >-
+        Release promovido exacto. Si se omite, el productor usa el último release
+        bueno y devuelve su identificador en metadata.
+      schema:
+        type: string
+        minLength: 1
+    EffectiveOn:
+      name: effective_on
+      in: query
+      required: false
+      description: >-
+        Reconstruye la representación conocida para esta fecha. Los atributos sin
+        historia suficiente se devuelven con una limitación; nunca se completan con
+        el valor actual.
+      schema:
+        type: string
+        format: date
+    Representation:
+      name: representation
+      in: query
+      required: false
+      description: La representación restringida exige autorización municipal explícita.
+      schema:
+        type: string
+        enum: [public, municipal_restricted]
+        default: public
+  responses:
+    NotFound:
+      description: El objeto no está presente en la cobertura declarada del release
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InvalidRequest:
+      description: Parámetros inválidos o combinación no soportada
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unavailable:
+      description: No existe un release bueno utilizable o la capability no puede responder
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    CutCode:
+      type: string
+      pattern: '^[0-9]{5}$'
+      description: Código CUT comunal de cinco dígitos.
+    ReleaseMetadata:
+      type: object
+      additionalProperties: false
+      required:
+        - producer
+        - product
+        - release_id
+        - schema_version
+        - data_as_of
+        - promoted_at
+        - quality_status
+        - availability
+        - data_marking
+        - last_good_release_id
+        - quality_report_uri
+      properties:
+        producer:
+          type: string
+          const: inteligencia-inmobiliaria
+        product:
+          type: string
+          const: commercial-licenses
+        release_id:
+          type: string
+          minLength: 1
+        schema_version:
+          type: string
+          pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
+        data_as_of:
+          type: string
+          format: date-time
+        promoted_at:
+          type: string
+          format: date-time
+        quality_status:
+          type: string
+          const: promoted
+        availability:
+          type: string
+          enum: [current, stale_last_good]
+        data_marking:
+          type: string
+          enum: [PUBLIC, MUNICIPAL_INTERNAL]
+        last_good_release_id:
+          type: [string, 'null']
+        quality_report_uri:
+          type: string
+          format: uri-reference
+      allOf:
+        - if:
+            properties:
+              availability:
+                const: stale_last_good
+          then:
+            properties:
+              last_good_release_id:
+                type: string
+                minLength: 1
+    SourceRef:
+      type: object
+      additionalProperties: false
+      required: [source_ref, source_kind, observed_at]
+      properties:
+        source_ref:
+          type: string
+        source_kind:
+          type: string
+          enum: [active_transparency, access_response, municipal_export, administrative_act, other]
+        municipality_cut:
+          $ref: '#/components/schemas/CutCode'
+        source_record_id:
+          type: [string, 'null']
+        uri:
+          type: [string, 'null']
+          format: uri-reference
+        sha256:
+          type: [string, 'null']
+          pattern: '^[a-fA-F0-9]{64}$'
+        observed_at:
+          type: string
+          format: date-time
+        effective_at:
+          type: [string, 'null']
+          format: date-time
+    Holder:
+      type: object
+      additionalProperties: false
+      required: [holder_kind, display_name, valid_from, source_refs]
+      properties:
+        holder_kind:
+          type: string
+          enum: [legal_entity, natural_person_redacted, unknown]
+        legal_entity_id:
+          type: [string, 'null']
+        legal_entity_rut:
+          description: Sólo puede informarse cuando holder_kind es legal_entity.
+          type: [string, 'null']
+          pattern: '^[0-9]{7,8}-[0-9Kk]$'
+        display_name:
+          type: string
+          description: Para persona natural debe contener un valor redactado, no el nombre fuente.
+        valid_from:
+          type: string
+          format: date-time
+        valid_to:
+          type: [string, 'null']
+          format: date-time
+        source_refs:
+          type: array
+          minItems: 1
+          items:
+            type: string
+      allOf:
+        - if:
+            properties:
+              holder_kind:
+                const: natural_person_redacted
+            required: [holder_kind]
+          then:
+            required: [legal_entity_id, legal_entity_rut, display_name]
+            properties:
+              legal_entity_id:
+                type: 'null'
+              legal_entity_rut:
+                type: 'null'
+              display_name:
+                const: REDACTED
+    Address:
+      type: object
+      additionalProperties: false
+      required: [original, municipality_cut, source_refs]
+      properties:
+        original:
+          type: string
+          minLength: 1
+        normalized:
+          type: [string, 'null']
+        unit:
+          type: [string, 'null']
+        municipality_cut:
+          $ref: '#/components/schemas/CutCode'
+        valid_from:
+          type: [string, 'null']
+          format: date-time
+        valid_to:
+          type: [string, 'null']
+          format: date-time
+        source_refs:
+          type: array
+          minItems: 1
+          items:
+            type: string
+    Establishment:
+      type: object
+      additionalProperties: false
+      required: [establishment_id, address, source_refs]
+      properties:
+        establishment_id:
+          type: string
+        name:
+          type: [string, 'null']
+        address:
+          $ref: '#/components/schemas/Address'
+        valid_from:
+          type: [string, 'null']
+          format: date-time
+        valid_to:
+          type: [string, 'null']
+          format: date-time
+        source_refs:
+          type: array
+          minItems: 1
+          items:
+            type: string
+    ParcelMatch:
+      type: object
+      additionalProperties: false
+      required: [candidate_id, match_status, method, confidence, parcel_release_id, source_refs]
+      properties:
+        candidate_id:
+          type: string
+        parcel_id:
+          type: [string, 'null']
+        role:
+          type: [string, 'null']
+        match_status:
+          type: string
+          enum: [resolved, ambiguous, unresolved]
+        method:
+          type: string
+          enum: [source_role_exact, normalized_address_exact, spatial, composite, manual_review, none]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        parcel_release_id:
+          type: string
+        geometry:
+          oneOf:
+            - type: 'null'
+            - type: object
+              description: Geometría GeoJSON cuando la clasificación de publicación lo permita.
+        explanation:
+          type: [string, 'null']
+        source_refs:
+          type: array
+          items:
+            type: string
+    LicenseEvent:
+      type: object
+      additionalProperties: false
+      required: [event_id, event_type, observed_at, source_refs]
+      properties:
+        event_id:
+          type: string
+        event_type:
+          type: string
+          enum:
+            - application
+            - granted
+            - renewed
+            - modified
+            - holder_changed
+            - activity_changed
+            - address_changed
+            - provisional_converted
+            - suspended
+            - expired
+            - revoked
+            - closed
+            - reopened
+            - regularized
+            - other
+        effective_at:
+          type: [string, 'null']
+          format: date-time
+        observed_at:
+          type: string
+          format: date-time
+        previous_status:
+          type: [string, 'null']
+        next_status:
+          type: [string, 'null']
+        administrative_act_ref:
+          type: [string, 'null']
+        source_refs:
+          type: array
+          minItems: 1
+          items:
+            type: string
+    LicenseActivity:
+      type: object
+      additionalProperties: false
+      required: [activity, valid_from, source_refs]
+      properties:
+        activity:
+          type: string
+          minLength: 1
+        valid_from:
+          type: [string, 'null']
+          format: date-time
+        valid_to:
+          type: [string, 'null']
+          format: date-time
+        source_refs:
+          type: array
+          minItems: 1
+          items:
+            type: string
+    Requirement:
+      type: object
+      additionalProperties: false
+      required: [requirement_id, requirement_type, reported_status, source_refs]
+      properties:
+        requirement_id:
+          type: string
+        requirement_type:
+          type: string
+        responsible_organization:
+          type: [string, 'null']
+        document_ref:
+          type: [string, 'null']
+        issued_at:
+          type: [string, 'null']
+          format: date-time
+        expires_at:
+          type: [string, 'null']
+          format: date-time
+        reported_status:
+          type: string
+          description: Estado informado por la fuente; no constituye evaluación jurídica de Chile Monitor.
+        verified_at:
+          type: [string, 'null']
+          format: date-time
+        source_refs:
+          type: array
+          minItems: 1
+          items:
+            type: string
+    AdministrativeMeasure:
+      type: object
+      additionalProperties: false
+      required: [measure_id, measure_type, observed_at, source_refs]
+      properties:
+        measure_id:
+          type: string
+        measure_type:
+          type: string
+          enum: [requirement, fine, closure, reopening, filing, other]
+        effective_at:
+          type: [string, 'null']
+          format: date-time
+        observed_at:
+          type: string
+          format: date-time
+        administrative_act_ref:
+          type: [string, 'null']
+        source_refs:
+          type: array
+          minItems: 1
+          items:
+            type: string
+    CommercialLicense:
+      type: object
+      additionalProperties: false
+      required:
+        - license_id
+        - source_license_id
+        - municipality_cut
+        - license_type
+        - reported_status
+        - provisional_status
+        - address
+        - holders
+        - activities
+        - source_refs
+      properties:
+        license_id:
+          type: string
+        source_license_id:
+          type: string
+        license_number:
+          type: [string, 'null']
+        municipality_cut:
+          $ref: '#/components/schemas/CutCode'
+        license_type:
+          type: string
+        reported_status:
+          type: string
+        provisional_status:
+          type: string
+          enum: [provisional, definitive, unknown]
+        applied_at:
+          type: [string, 'null']
+          format: date-time
+        granted_at:
+          type: [string, 'null']
+          format: date-time
+        renewed_at:
+          type: [string, 'null']
+          format: date-time
+        expires_at:
+          type: [string, 'null']
+          format: date-time
+        address:
+          $ref: '#/components/schemas/Address'
+        holders:
+          type: array
+          items:
+            $ref: '#/components/schemas/Holder'
+        activities:
+          type: array
+          items:
+            $ref: '#/components/schemas/LicenseActivity'
+        source_refs:
+          type: array
+          minItems: 1
+          items:
+            type: string
+    Limitation:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum:
+            - data_gap
+            - stale_release
+            - restricted_field
+            - source_conflict
+            - unresolved_match
+            - ambiguous_match
+            - incomplete_timeline
+            - unavailable_capability
+            - other
+        message:
+          type: string
+        affected_fields:
+          type: array
+          items:
+            type: string
+        source_refs:
+          type: array
+          items:
+            type: string
+    PatentGetResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - metadata
+        - license
+        - timeline
+        - establishments
+        - parcel_matches
+        - requirements
+        - measures
+        - source_refs
+        - limitations
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ReleaseMetadata'
+        effective_on:
+          type: [string, 'null']
+          format: date
+        license:
+          $ref: '#/components/schemas/CommercialLicense'
+        timeline:
+          type: array
+          items:
+            $ref: '#/components/schemas/LicenseEvent'
+        establishments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Establishment'
+        parcel_matches:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParcelMatch'
+        requirements:
+          type: array
+          items:
+            $ref: '#/components/schemas/Requirement'
+        measures:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdministrativeMeasure'
+        source_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceRef'
+        limitations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Limitation'
+    PatentTimelineResponse:
+      type: object
+      additionalProperties: false
+      required: [metadata, license_id, events, source_refs, limitations]
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ReleaseMetadata'
+        license_id:
+          type: string
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/LicenseEvent'
+        source_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceRef'
+        limitations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Limitation'
+    PatentSearchItem:
+      type: object
+      additionalProperties: false
+      required: [license, establishments, parcel_matches, limitations]
+      properties:
+        license:
+          $ref: '#/components/schemas/CommercialLicense'
+        establishments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Establishment'
+        parcel_matches:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParcelMatch'
+        limitations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Limitation'
+    PatentSearchResponse:
+      type: object
+      additionalProperties: false
+      required: [metadata, items, source_refs, limitations]
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ReleaseMetadata'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatentSearchItem'
+        next_cursor:
+          type: [string, 'null']
+          description: Cursor opaco ligado al release y a los filtros de la consulta original.
+        source_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceRef'
+        limitations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Limitation'
+    Coverage:
+      type: object
+      additionalProperties: false
+      required:
+        - municipality_cut
+        - period_from
+        - period_to
+        - received_records
+        - included_license_types
+        - available_fields
+        - freshness_status
+        - gaps
+      properties:
+        municipality_cut:
+          $ref: '#/components/schemas/CutCode'
+        period_from:
+          type: string
+          format: date
+        period_to:
+          type: string
+          format: date
+        declared_universe:
+          type: [integer, 'null']
+          minimum: 0
+        received_records:
+          type: integer
+          minimum: 0
+        included_license_types:
+          type: array
+          items:
+            type: string
+        available_fields:
+          type: array
+          items:
+            type: string
+        freshness_status:
+          type: string
+          enum: [current, stale, unknown]
+        gaps:
+          type: array
+          items:
+            $ref: '#/components/schemas/Limitation'
+    PatentCoverageResponse:
+      type: object
+      additionalProperties: false
+      required: [metadata, coverage, source_refs, limitations]
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ReleaseMetadata'
+        coverage:
+          type: array
+          items:
+            $ref: '#/components/schemas/Coverage'
+        source_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceRef'
+        limitations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Limitation'
+    EstablishmentResolveRequest:
+      type: object
+      additionalProperties: false
+      required: [municipality_cut]
+      anyOf:
+        - required: [address]
+        - required: [role]
+      properties:
+        municipality_cut:
+          $ref: '#/components/schemas/CutCode'
+        address:
+          type: string
+          minLength: 1
+        unit:
+          type: [string, 'null']
+        role:
+          type: string
+          minLength: 1
+        effective_on:
+          type: [string, 'null']
+          format: date
+    EstablishmentCandidate:
+      type: object
+      additionalProperties: false
+      required: [candidate_id, establishment, parcel_match]
+      properties:
+        candidate_id:
+          type: string
+        establishment:
+          $ref: '#/components/schemas/Establishment'
+        parcel_match:
+          $ref: '#/components/schemas/ParcelMatch'
+    EstablishmentResolveResponse:
+      type: object
+      additionalProperties: false
+      required: [metadata, resolution_status, selected_candidate_id, candidates, source_refs, limitations]
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ReleaseMetadata'
+        resolution_status:
+          type: string
+          enum: [resolved, ambiguous, unresolved]
+        selected_candidate_id:
+          type: [string, 'null']
+          description: Debe ser null si resolution_status no es resolved.
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/EstablishmentCandidate'
+        source_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceRef'
+        limitations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Limitation'
+      allOf:
+        - if:
+            properties:
+              resolution_status:
+                const: resolved
+            required: [resolution_status]
+          then:
+            properties:
+              selected_candidate_id:
+                type: string
+                minLength: 1
+              candidates:
+                minItems: 1
+        - if:
+            properties:
+              resolution_status:
+                enum: [ambiguous, unresolved]
+            required: [resolution_status]
+          then:
+            properties:
+              selected_candidate_id:
+                type: 'null'
+        - if:
+            properties:
+              resolution_status:
+                const: ambiguous
+            required: [resolution_status]
+          then:
+            properties:
+              candidates:
+                minItems: 2
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [code, message, retryable]
+      properties:
+        code:
+          type: string
+          enum: [not_found, invalid_request, release_not_found, schema_incompatible, unavailable]
+        message:
+          type: string
+        retryable:
+          type: boolean
+        metadata:
+          oneOf:
+            - $ref: '#/components/schemas/ReleaseMetadata'
+            - type: 'null'

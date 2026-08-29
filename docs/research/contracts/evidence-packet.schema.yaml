@@ -1,0 +1,865 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://chile-monitor.example.cl/schemas/evidence-packet/0.1.0
+title: EvidencePacket de revisión de patente comercial
+description: >-
+  Expediente reproducible y de sólo lectura que reúne hechos consumidos desde
+  releases fijados. No constituye por sí mismo una decisión, fiscalización ni
+  acto administrativo, y la ausencia de datos no acredita incumplimiento.
+type: object
+additionalProperties: false
+required:
+  - packet_id
+  - schema_version
+  - generated_at
+  - case_id
+  - municipality_cut
+  - classification
+  - pinned_releases
+  - license
+  - timeline
+  - establishments
+  - parcel_resolutions
+  - holders
+  - requirements
+  - evidence
+  - source_refs
+  - gaps
+  - conflicts
+  - alternative_explanations
+  - legal_authorities
+  - permitted_next_actions
+  - reproducibility
+properties:
+  packet_id:
+    type: string
+    minLength: 1
+    maxLength: 200
+  schema_version:
+    type: string
+    const: 0.1.0
+  generated_at:
+    type: string
+    format: date-time
+  case_id:
+    type: string
+    minLength: 1
+    maxLength: 200
+  municipality_cut:
+    $ref: '#/$defs/CutCode'
+  classification:
+    type: array
+    description: Markings aplicables al paquete completo; las propiedades pueden ser más restrictivas.
+    minItems: 1
+    uniqueItems: true
+    items:
+      $ref: '#/$defs/Marking'
+  pinned_releases:
+    type: array
+    description: >-
+      Releases exactos usados para construir el paquete. Una capacidad sin
+      release utilizable se registra como gap y no como un release ficticio.
+    minItems: 1
+    items:
+      $ref: '#/$defs/PinnedRelease'
+  license:
+    $ref: '#/$defs/CommercialLicenseSnapshot'
+  timeline:
+    type: array
+    items:
+      $ref: '#/$defs/LicenseEvent'
+  establishments:
+    type: array
+    items:
+      $ref: '#/$defs/Establishment'
+  parcel_resolutions:
+    type: array
+    items:
+      $ref: '#/$defs/ParcelResolution'
+  holders:
+    type: array
+    description: Titulares vigentes por intervalo; nunca se infiere retrospectivamente el titular actual.
+    items:
+      $ref: '#/$defs/TemporalHolder'
+  requirements:
+    type: array
+    items:
+      $ref: '#/$defs/Requirement'
+  evidence:
+    type: array
+    items:
+      $ref: '#/$defs/EvidenceArtifact'
+  source_refs:
+    type: array
+    description: Registro autocontenido de fuentes citado por los demás objetos mediante source_ref.
+    minItems: 1
+    items:
+      $ref: '#/$defs/SourceRef'
+  gaps:
+    type: array
+    items:
+      $ref: '#/$defs/DataGap'
+  conflicts:
+    type: array
+    items:
+      $ref: '#/$defs/EvidenceConflict'
+  alternative_explanations:
+    type: array
+    items:
+      $ref: '#/$defs/AlternativeExplanation'
+  legal_authorities:
+    type: array
+    items:
+      $ref: '#/$defs/LegalAuthority'
+  permitted_next_actions:
+    type: array
+    description: >-
+      Acciones que el actor puede ejecutar en el estado actual. Una recomendación
+      no equivale a un acto oficial ni amplía las facultades legales del actor.
+    minItems: 1
+    contains:
+      type: object
+      properties:
+        permitted:
+          const: true
+      required: [permitted]
+    minContains: 1
+    items:
+      $ref: '#/$defs/PermittedNextAction'
+  recommended_next_action_id:
+    description: Identificador de una acción permitida recomendada, o null si se requiere más revisión.
+    type: [string, 'null']
+  reproducibility:
+    $ref: '#/$defs/Reproducibility'
+
+$defs:
+  CutCode:
+    type: string
+    pattern: '^[0-9]{5}$'
+
+  Marking:
+    type: string
+    enum:
+      - PUBLIC
+      - PII
+      - LICENSED
+      - MUNICIPAL_INTERNAL
+      - ACTIVE_REVIEW
+      - AUTHORITY_ONLY
+
+  StringRefList:
+    type: array
+    uniqueItems: true
+    items:
+      type: string
+      minLength: 1
+
+  NonEmptyStringRefList:
+    allOf:
+      - $ref: '#/$defs/StringRefList'
+      - minItems: 1
+
+  PinnedRelease:
+    type: object
+    additionalProperties: false
+    required:
+      - producer
+      - product
+      - capability
+      - capability_version
+      - release_id
+      - schema_version
+      - data_as_of
+      - promoted_at
+      - quality_status
+      - availability
+      - data_marking
+      - last_good_release_id
+      - quality_report_uri
+      - queried_at
+    properties:
+      producer:
+        type: string
+        minLength: 1
+      product:
+        type: string
+        minLength: 1
+      capability:
+        type: string
+        minLength: 1
+      capability_version:
+        type: string
+        minLength: 1
+      release_id:
+        type: string
+        minLength: 1
+      schema_version:
+        type: string
+        minLength: 1
+      data_as_of:
+        type: string
+        format: date-time
+      promoted_at:
+        type: string
+        format: date-time
+      quality_status:
+        type: string
+        enum: [promoted, trusted]
+      availability:
+        type: string
+        enum: [current, stale_last_good]
+      data_marking:
+        $ref: '#/$defs/Marking'
+      last_good_release_id:
+        type: [string, 'null']
+      quality_report_uri:
+        type: string
+        format: uri-reference
+      queried_at:
+        type: string
+        format: date-time
+      response_sha256:
+        type: [string, 'null']
+        pattern: '^[a-fA-F0-9]{64}$'
+      limitation_ids:
+        $ref: '#/$defs/StringRefList'
+    allOf:
+      - if:
+          properties:
+            availability:
+              const: stale_last_good
+          required: [availability]
+        then:
+          properties:
+            last_good_release_id:
+              type: string
+              minLength: 1
+
+  Address:
+    type: object
+    additionalProperties: false
+    required: [original, municipality_cut]
+    properties:
+      original:
+        type: string
+        minLength: 1
+      normalized:
+        type: [string, 'null']
+      unit:
+        type: [string, 'null']
+      municipality_cut:
+        $ref: '#/$defs/CutCode'
+
+  CommercialLicenseSnapshot:
+    type: object
+    additionalProperties: false
+    required:
+      - license_id
+      - source_license_id
+      - municipality_cut
+      - license_type
+      - reported_status
+      - provisional_status
+      - address
+      - observed_at
+      - source_refs
+    properties:
+      license_id:
+        type: string
+        minLength: 1
+      source_license_id:
+        type: string
+        minLength: 1
+      license_number:
+        type: [string, 'null']
+      municipality_cut:
+        $ref: '#/$defs/CutCode'
+      license_type:
+        type: string
+        minLength: 1
+      reported_status:
+        type: string
+        minLength: 1
+      provisional_status:
+        type: string
+        enum: [provisional, definitive, unknown]
+      applied_at:
+        type: [string, 'null']
+        format: date-time
+      granted_at:
+        type: [string, 'null']
+        format: date-time
+      renewed_at:
+        type: [string, 'null']
+        format: date-time
+      expires_at:
+        type: [string, 'null']
+        format: date-time
+      address:
+        $ref: '#/$defs/Address'
+      activities:
+        type: array
+        items:
+          type: string
+      observed_at:
+        type: string
+        format: date-time
+      source_refs:
+        $ref: '#/$defs/NonEmptyStringRefList'
+
+  LicenseEvent:
+    type: object
+    additionalProperties: false
+    required: [event_id, event_type, observed_at, source_refs]
+    properties:
+      event_id:
+        type: string
+        minLength: 1
+      event_type:
+        type: string
+        enum:
+          - application
+          - granted
+          - renewed
+          - modified
+          - holder_changed
+          - activity_changed
+          - address_changed
+          - provisional_converted
+          - suspended
+          - expired
+          - revoked
+          - closed
+          - reopened
+          - regularized
+          - other
+      effective_at:
+        type: [string, 'null']
+        format: date-time
+      observed_at:
+        type: string
+        format: date-time
+      previous_status:
+        type: [string, 'null']
+      next_status:
+        type: [string, 'null']
+      administrative_act_ref:
+        type: [string, 'null']
+      source_refs:
+        $ref: '#/$defs/NonEmptyStringRefList'
+
+  Establishment:
+    type: object
+    additionalProperties: false
+    required: [establishment_id, address, source_refs]
+    properties:
+      establishment_id:
+        type: string
+        minLength: 1
+      name:
+        type: [string, 'null']
+      address:
+        $ref: '#/$defs/Address'
+      valid_from:
+        type: [string, 'null']
+        format: date-time
+      valid_to:
+        type: [string, 'null']
+        format: date-time
+      source_refs:
+        $ref: '#/$defs/NonEmptyStringRefList'
+
+  ParcelCandidate:
+    type: object
+    additionalProperties: false
+    required: [candidate_id, method, confidence, parcel_release_id, source_refs]
+    properties:
+      candidate_id:
+        type: string
+        minLength: 1
+      parcel_id:
+        type: [string, 'null']
+      role:
+        type: [string, 'null']
+      method:
+        type: string
+        enum: [source_role_exact, normalized_address_exact, spatial, composite, manual_review, none]
+      confidence:
+        type: number
+        minimum: 0
+        maximum: 1
+      parcel_release_id:
+        type: string
+        minLength: 1
+      explanation:
+        type: [string, 'null']
+      source_refs:
+        $ref: '#/$defs/NonEmptyStringRefList'
+
+  ParcelResolution:
+    type: object
+    additionalProperties: false
+    required: [resolution_id, establishment_id, status, selected_candidate_id, candidates, resolved_at]
+    properties:
+      resolution_id:
+        type: string
+        minLength: 1
+      establishment_id:
+        type: string
+        minLength: 1
+      status:
+        type: string
+        enum: [resolved, ambiguous, unresolved]
+      selected_candidate_id:
+        type: [string, 'null']
+        description: Debe ser null cuando status sea ambiguous o unresolved.
+      candidates:
+        type: array
+        items:
+          $ref: '#/$defs/ParcelCandidate'
+      resolved_at:
+        type: string
+        format: date-time
+      justification:
+        type: [string, 'null']
+    allOf:
+      - if:
+          properties:
+            status:
+              const: resolved
+          required: [status]
+        then:
+          properties:
+            selected_candidate_id:
+              type: string
+              minLength: 1
+        else:
+          properties:
+            selected_candidate_id:
+              type: 'null'
+
+  TemporalHolder:
+    type: object
+    additionalProperties: false
+    required: [holder_id, holder_kind, display_name, valid_from, source_refs]
+    properties:
+      holder_id:
+        type: string
+        minLength: 1
+      holder_kind:
+        type: string
+        enum: [legal_entity, natural_person_redacted, unknown]
+      legal_entity_id:
+        type: [string, 'null']
+      legal_entity_rut:
+        description: Sólo puede informarse para una persona jurídica.
+        type: [string, 'null']
+        pattern: '^[0-9]{7,8}-[0-9Kk]$'
+      display_name:
+        type: string
+        minLength: 1
+        description: Para persona natural contiene un valor redactado, no el nombre fuente.
+      valid_from:
+        type: string
+        format: date-time
+      valid_to:
+        type: [string, 'null']
+        format: date-time
+      source_refs:
+        $ref: '#/$defs/NonEmptyStringRefList'
+    allOf:
+      - if:
+          properties:
+            holder_kind:
+              const: natural_person_redacted
+          required: [holder_kind]
+        then:
+          required: [legal_entity_id, legal_entity_rut, display_name]
+          properties:
+            legal_entity_id:
+              type: 'null'
+            legal_entity_rut:
+              type: 'null'
+            display_name:
+              const: REDACTED
+
+  Requirement:
+    type: object
+    additionalProperties: false
+    required: [requirement_id, requirement_type, reported_status, source_refs]
+    properties:
+      requirement_id:
+        type: string
+        minLength: 1
+      requirement_type:
+        type: string
+        minLength: 1
+      responsible_organization:
+        type: [string, 'null']
+      document_ref:
+        type: [string, 'null']
+      issued_at:
+        type: [string, 'null']
+        format: date-time
+      expires_at:
+        type: [string, 'null']
+        format: date-time
+      reported_status:
+        type: string
+        minLength: 1
+        description: Estado informado por la fuente, no evaluación jurídica de Chile Monitor.
+      verified_at:
+        type: [string, 'null']
+        format: date-time
+      source_refs:
+        $ref: '#/$defs/NonEmptyStringRefList'
+
+  EvidenceArtifact:
+    type: object
+    additionalProperties: false
+    required:
+      - evidence_id
+      - artifact_type
+      - title
+      - captured_at
+      - integrity
+      - source_refs
+      - classification
+    properties:
+      evidence_id:
+        type: string
+        minLength: 1
+      artifact_type:
+        type: string
+        enum: [source_record, document, administrative_act, image, dataset_extract, api_response, other]
+      title:
+        type: string
+        minLength: 1
+      uri:
+        type: [string, 'null']
+        format: uri-reference
+      media_type:
+        type: [string, 'null']
+      captured_at:
+        type: string
+        format: date-time
+      integrity:
+        type: object
+        additionalProperties: false
+        required: [sha256]
+        properties:
+          sha256:
+            type: string
+            pattern: '^[a-fA-F0-9]{64}$'
+          byte_size:
+            type: integer
+            minimum: 0
+      source_refs:
+        $ref: '#/$defs/NonEmptyStringRefList'
+      supports:
+        description: IDs de hechos, eventos, requisitos, conflictos o explicaciones respaldados.
+        $ref: '#/$defs/StringRefList'
+      classification:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          $ref: '#/$defs/Marking'
+
+  SourceRef:
+    type: object
+    additionalProperties: false
+    required: [source_ref, producer, source_kind, observed_at]
+    properties:
+      source_ref:
+        type: string
+        minLength: 1
+      producer:
+        type: string
+        minLength: 1
+      product:
+        type: [string, 'null']
+      release_id:
+        type: [string, 'null']
+      source_kind:
+        type: string
+        enum:
+          - active_transparency
+          - access_response
+          - municipal_export
+          - administrative_act
+          - official_registry
+          - legal_authority
+          - capability_response
+          - other
+      municipality_cut:
+        anyOf:
+          - $ref: '#/$defs/CutCode'
+          - type: 'null'
+      source_record_id:
+        type: [string, 'null']
+      uri:
+        type: [string, 'null']
+        format: uri-reference
+      sha256:
+        type: [string, 'null']
+        pattern: '^[a-fA-F0-9]{64}$'
+      observed_at:
+        type: string
+        format: date-time
+      effective_at:
+        type: [string, 'null']
+        format: date-time
+
+  DataGap:
+    type: object
+    additionalProperties: false
+    required: [gap_id, code, description, affected_objects, consequence, status, detected_at]
+    properties:
+      gap_id:
+        type: string
+        minLength: 1
+      code:
+        type: string
+        enum:
+          - missing_field
+          - incomplete_timeline
+          - stale_release
+          - unavailable_capability
+          - restricted_field
+          - unresolved_match
+          - coverage_gap
+          - other
+      description:
+        type: string
+        minLength: 1
+      affected_objects:
+        $ref: '#/$defs/StringRefList'
+      consequence:
+        type: string
+        minLength: 1
+        description: Explica qué conclusión o acción queda impedida por la brecha.
+      status:
+        type: string
+        enum: [open, mitigated, resolved, accepted]
+      detected_at:
+        type: string
+        format: date-time
+      source_refs:
+        $ref: '#/$defs/NonEmptyStringRefList'
+
+  EvidenceConflict:
+    type: object
+    additionalProperties: false
+    required: [conflict_id, description, assertions, status, detected_at]
+    properties:
+      conflict_id:
+        type: string
+        minLength: 1
+      description:
+        type: string
+        minLength: 1
+      assertions:
+        type: array
+        minItems: 2
+        items:
+          type: object
+          additionalProperties: false
+          required: [value, source_refs]
+          properties:
+            object_ref:
+              type: [string, 'null']
+            field:
+              type: [string, 'null']
+            value: {}
+            effective_at:
+              type: [string, 'null']
+              format: date-time
+            source_refs:
+              $ref: '#/$defs/NonEmptyStringRefList'
+      status:
+        type: string
+        enum: [open, resolved, accepted_unresolved]
+      resolution:
+        type: [string, 'null']
+      resolved_at:
+        type: [string, 'null']
+        format: date-time
+      detected_at:
+        type: string
+        format: date-time
+
+  AlternativeExplanation:
+    type: object
+    additionalProperties: false
+    required:
+      - explanation_id
+      - description
+      - status
+      - recorded_at
+      - evidence_refs
+      - source_refs
+    properties:
+      explanation_id:
+        type: string
+        minLength: 1
+      description:
+        type: string
+        minLength: 1
+      status:
+        type: string
+        enum: [proposed, under_review, supported, rejected, inconclusive]
+      recorded_at:
+        type: string
+        format: date-time
+      recorded_by_actor_id:
+        type: [string, 'null']
+        description: Identidad derivada del servidor, nunca confiada desde el body del cliente.
+      evidence_refs:
+        $ref: '#/$defs/StringRefList'
+      source_refs:
+        $ref: '#/$defs/NonEmptyStringRefList'
+      reviewer_note:
+        type: [string, 'null']
+
+  LegalAuthority:
+    type: object
+    additionalProperties: false
+    required:
+      - authority_id
+      - authority_type
+      - citation
+      - proposition
+      - relevance
+      - retrieved_at
+      - source_refs
+    properties:
+      authority_id:
+        type: string
+        minLength: 1
+      authority_type:
+        type: string
+        enum: [law, regulation, ordinance, administrative_ruling, court_decision, official_guidance, other]
+      citation:
+        type: string
+        minLength: 1
+      title:
+        type: [string, 'null']
+      issuing_authority:
+        type: [string, 'null']
+      proposition:
+        type: string
+        minLength: 1
+        description: Regla o criterio respaldado, sin sustituir la fuente jurídica citada.
+      relevance:
+        type: string
+        minLength: 1
+      effective_from:
+        type: [string, 'null']
+        format: date
+      effective_to:
+        type: [string, 'null']
+        format: date
+      retrieved_at:
+        type: string
+        format: date-time
+      source_refs:
+        $ref: '#/$defs/NonEmptyStringRefList'
+
+  PermittedNextAction:
+    type: object
+    additionalProperties: false
+    required:
+      - action_id
+      - action_type
+      - permitted
+      - authorized_roles
+      - reason
+      - legal_effect
+      - evaluated_at
+    properties:
+      action_id:
+        type: string
+        minLength: 1
+      action_type:
+        type: string
+        enum:
+          - OpenLicenseReview
+          - AssignReviewer
+          - RequestMissingRequirement
+          - ResolveEstablishment
+          - RecordAlternativeExplanation
+          - RecommendInspection
+          - RecordInspectionOutcome
+          - RecommendAdministrativeMeasure
+          - RecordOfficialDecision
+          - RequestCorrection
+          - CloseReview
+      permitted:
+        type: boolean
+      authorized_roles:
+        type: array
+        items:
+          type: string
+          minLength: 1
+      reason:
+        type: string
+        minLength: 1
+      legal_effect:
+        type: string
+        enum: [none, external_communication_only, reflects_external_act]
+      prerequisites:
+        type: array
+        items:
+          type: string
+      blocking_gap_ids:
+        $ref: '#/$defs/StringRefList'
+      blocking_conflict_ids:
+        $ref: '#/$defs/StringRefList'
+      legal_authority_refs:
+        $ref: '#/$defs/StringRefList'
+      evaluated_at:
+        type: string
+        format: date-time
+
+  Reproducibility:
+    type: object
+    additionalProperties: false
+    required:
+      - builder
+      - builder_version
+      - input_queries
+      - packet_content_sha256
+    properties:
+      builder:
+        type: string
+        const: chile-monitor
+      builder_version:
+        type: string
+        minLength: 1
+      input_queries:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required: [producer, capability, release_id, request_sha256, response_sha256]
+          properties:
+            producer:
+              type: string
+              minLength: 1
+            capability:
+              type: string
+              minLength: 1
+            release_id:
+              type: string
+              minLength: 1
+            request_sha256:
+              type: string
+              pattern: '^[a-fA-F0-9]{64}$'
+            response_sha256:
+              type: string
+              pattern: '^[a-fA-F0-9]{64}$'
+      packet_content_sha256:
+        type: string
+        pattern: '^[a-fA-F0-9]{64}$'
+        description: Hash de la representación canónica acordada, excluyendo este campo.
