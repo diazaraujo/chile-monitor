@@ -323,6 +323,8 @@ jobs:
           npm run bundle:check:pro
           npm run bundle:check:embed
       - run: WM_EXPECT_BUILT_OUTPUT=1 npm run test:data
+      - name: Server contract tests
+        run: npm run test:server
       - name: Edge function bundle check
         # Shared checker with caller-specific profiles. Tracked files are the
         # deployable contract, so ignored Node sidecar bundles left by local
