@@ -1,4 +1,5 @@
 import './styles/base-layer.css';
+import '@/styles/chile-monitor.css';
 import './bootstrap/zod-csp';
 import { SITE_VARIANT } from '@/config/variant';
 import { installLcpAttributionDebug } from '@/bootstrap/lcp-attribution';

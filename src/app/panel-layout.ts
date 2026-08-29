@@ -2531,6 +2531,9 @@ export class PanelLayoutManager implements AppModule {
     }
 
     this.lazyDefaultPanel('insights', () => import('@/components/InsightsPanel'), 'InsightsPanel');
+    if (isPanelInVariantDefaults('territorial')) {
+      this.lazyDefaultPanel('territorial', () => import('@/components/ChileTerritorialPanel'), 'ChileTerritorialPanel');
+    }
     if (isPanelInVariantDefaults('threat-timeline')) {
       this.lazyDefaultPanel('threat-timeline', () => import('@/components/ThreatTimelinePanel'), 'ThreatTimelinePanel');
     }

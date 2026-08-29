@@ -1198,6 +1198,7 @@ const ENERGY_MOBILE_MAP_LAYERS: MapLayers = {
 const CHILE_PANELS: Record<string, PanelConfig> = {
   map: { name: 'Mapa Chile', enabled: true, priority: 1 },
   insights: { name: 'Brief Chile', enabled: true, priority: 1 },
+  territorial: { name: 'Brief territorial', enabled: true, priority: 1 },
   politics: { name: 'Titulares Chile', enabled: true, priority: 1 },
   us: { name: 'Política', enabled: true, priority: 1 },
   gov: { name: 'Estado', enabled: true, priority: 1 },
@@ -1351,6 +1352,7 @@ export const VARIANT_PANEL_OVERRIDES: Partial<Record<string, Partial<Record<stri
   chile: {
     map:         { name: 'Mapa Chile' },
     insights:    { name: 'Brief Chile' },
+    territorial: { name: 'Brief territorial' },
     politics:    { name: 'Titulares Chile' },
     us:          { name: 'Política' },
     gov:         { name: 'Estado' },
