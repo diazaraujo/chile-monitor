@@ -388,7 +388,7 @@ function date(value: unknown, path: string): string {
 function uriReference(value: unknown, path: string): string {
   const result = string(value, path);
   if (/\s/.test(result)) fail(path, 'must be a URI reference without whitespace');
-  try { new URL(result, 'https://contract.invalid/'); } catch { fail(path, 'must be a URI reference'); }
+  try { new URL(result, 'file:///'); } catch { fail(path, 'must be a URI reference'); }
   return result;
 }
 
