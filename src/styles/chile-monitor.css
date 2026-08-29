@@ -1,0 +1,17 @@
+/* Chile Monitor — Brief territorial */
+.chile-brief { font-size: 12px; line-height: 1.45; }
+.chile-brief-kpis { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; opacity: .9; }
+.chile-brief-kpis strong { font-size: 15px; }
+.chile-brief-resumen { margin: 6px 0 8px; }
+.chile-brief-resumen sup { opacity: .7; font-size: 9px; }
+.chile-brief-degradado { opacity: .6; font-style: italic; }
+.chile-brief-sub { opacity: .75; margin-bottom: 4px; }
+.chile-hechos { list-style: none; padding: 0; margin: 8px 0 0; }
+.chile-hecho { padding: 6px 0; border-top: 1px solid rgba(128,128,128,.25); }
+.chile-hecho-n { opacity: .6; font-family: monospace; }
+.chile-hecho-tag { font-size: 9px; letter-spacing: .06em; padding: 1px 4px; border-radius: 3px; background: rgba(128,128,128,.2); margin-right: 4px; }
+.chile-hecho-calificacion .chile-hecho-tag { background: rgba(46,160,67,.25); }
+.chile-hecho-tribunal .chile-hecho-tag { background: rgba(215,58,73,.25); }
+.chile-hecho-conflicto .chile-hecho-tag { background: rgba(227,160,8,.3); }
+.chile-hecho-meta { opacity: .7; font-size: 11px; margin-top: 2px; }
+.chile-brief-foot { opacity: .55; font-size: 10px; margin-top: 8px; }

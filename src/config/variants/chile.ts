@@ -9,6 +9,7 @@ export * from './base';
 export const DEFAULT_PANELS: Record<string, PanelConfig> = {
   map: { name: 'Mapa Chile', enabled: true, priority: 1 },
   insights: { name: 'Brief Chile', enabled: true, priority: 1 },
+  territorial: { name: 'Brief territorial', enabled: true, priority: 1 },
   politics: { name: 'Titulares Chile', enabled: true, priority: 1 },
   us: { name: 'Política', enabled: true, priority: 1 },
   gov: { name: 'Estado', enabled: true, priority: 1 },
