@@ -13,7 +13,7 @@ tags:
   - name: Patents
   - name: Establishments
 security:
-  - ServiceBearerAuth: []
+  - ServiceKeyAuth: []
 paths:
   /v1/patents/{municipality_cut}/{license_id}:
     get:
@@ -186,11 +186,11 @@ paths:
           $ref: '#/components/responses/Unavailable'
 components:
   securitySchemes:
-    ServiceBearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: service-token
-      description: Mecanismo provisional; el productor debe confirmar emisor, audiencia y rotación.
+    ServiceKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Service-Key
+      description: Credencial exclusiva del runtime servidor, fuera de Git y nunca expuesta como VITE_*.
   parameters:
     MunicipalityCut:
       name: municipality_cut

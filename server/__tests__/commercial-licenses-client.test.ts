@@ -23,6 +23,7 @@ vi.mock('../_shared/commercial-licenses-contract', () => ({
 import {
   CommercialLicensesClientError,
   createCommercialLicensesClient,
+  createCommercialLicensesClientFromEnv,
 } from '../_shared/commercial-licenses-client';
 
 const RELEASE_ID = 'release-2026-08-28';
@@ -56,13 +57,13 @@ function createHarness(values: Array<Response | Error> = [jsonResponse(response(
     if (next instanceof Error) throw next;
     return next;
   });
-  const getBearerToken = vi.fn(async () => 'secret-service-token');
+  const getServiceKey = vi.fn(async () => 'secret-service-key');
   const client = createCommercialLicensesClient({
     baseUrl: 'https://licenses.test/capabilities/',
-    getBearerToken,
+    getServiceKey,
     fetchImpl,
   });
-  return { client, fetchImpl, getBearerToken };
+  return { client, fetchImpl, getServiceKey };
 }
 
 afterEach(() => {
@@ -95,7 +96,7 @@ describe('commercial licenses HTTP client', () => {
       method: 'GET',
       headers: {
         Accept: 'application/json',
-        Authorization: 'Bearer secret-service-token',
+        'X-Service-Key': 'secret-service-key',
         'User-Agent': 'chile-monitor-server/1.0 (commercial-licenses)',
       },
     });
@@ -193,10 +194,10 @@ describe('commercial licenses HTTP client', () => {
     });
   });
 
-  test('uses an eight second timeout and resolves bearer auth for each request', async () => {
+  test('uses an eight second timeout and resolves service-key auth for each request', async () => {
     const signal = new AbortController().signal;
     const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(signal);
-    const { client, getBearerToken } = createHarness([
+    const { client, getServiceKey } = createHarness([
       jsonResponse(response()),
       jsonResponse(response()),
     ]);
@@ -206,7 +207,7 @@ describe('commercial licenses HTTP client', () => {
 
     expect(timeout).toHaveBeenNthCalledWith(1, 8_000);
     expect(timeout).toHaveBeenNthCalledWith(2, 8_000);
-    expect(getBearerToken).toHaveBeenCalledTimes(2);
+    expect(getServiceKey).toHaveBeenCalledTimes(2);
   });
 
   test('rejects a response that does not match the exact pinned release', async () => {
@@ -310,14 +311,14 @@ describe('commercial licenses HTTP client', () => {
     expect(() =>
       createCommercialLicensesClient({
         baseUrl: 'https://token:secret@licenses.test/',
-        getBearerToken: () => 'token',
+        getServiceKey: () => 'token',
       }),
     ).toThrowError(CommercialLicensesClientError);
 
     const fetchImpl = vi.fn();
     const client = createCommercialLicensesClient({
       baseUrl: 'https://licenses.test',
-      getBearerToken: () => ' token-with-whitespace ',
+      getServiceKey: () => ' key-with-whitespace ',
       fetchImpl,
     });
     await expect(client.getPatentCoverage({ municipalityCut: '13101' })).rejects.toMatchObject({
@@ -328,9 +329,43 @@ describe('commercial licenses HTTP client', () => {
     expect(() =>
       createCommercialLicensesClient({
         baseUrl: 'https://licenses.test/',
-        getBearerToken: () => 'token',
+        getServiceKey: () => 'key',
         supportedSchemaMajor: -1,
       }),
     ).toThrowError(CommercialLicensesClientError);
+  });
+
+  test('builds a server-only client from the Purranque environment contract', async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse(response('purranque-2026-s1')));
+    const client = createCommercialLicensesClientFromEnv({
+      CHILE_COMMERCIAL_LICENSES_BASE_URL: 'http://10.0.0.3:8130/api/commercial-licenses/',
+      CHILE_COMMERCIAL_LICENSES_SERVICE_KEY: 'purranque-test-service-key',
+      CHILE_COMMERCIAL_LICENSES_TIMEOUT_MS: '1200',
+    }, fetchImpl);
+
+    await client.getPatentCoverage({
+      municipalityCut: '10303',
+      releaseId: 'purranque-2026-s1',
+    });
+
+    const [input, init] = fetchImpl.mock.calls[0];
+    expect(new URL(String(input)).pathname).toBe('/api/commercial-licenses/v1/patents/coverage');
+    expect(new Headers(init?.headers).get('X-Service-Key')).toBe('purranque-test-service-key');
+    expect(new Headers(init?.headers).get('Authorization')).toBeNull();
+  });
+
+  test('rejects missing env, public HTTP and invalid timeout before transport', () => {
+    expect(() => createCommercialLicensesClientFromEnv({})).toThrowError(
+      CommercialLicensesClientError,
+    );
+    expect(() => createCommercialLicensesClient({
+      baseUrl: 'http://licenses.example.test/',
+      getServiceKey: () => 'key',
+    })).toThrowError(CommercialLicensesClientError);
+    expect(() => createCommercialLicensesClientFromEnv({
+      CHILE_COMMERCIAL_LICENSES_BASE_URL: 'https://licenses.test/',
+      CHILE_COMMERCIAL_LICENSES_SERVICE_KEY: 'key',
+      CHILE_COMMERCIAL_LICENSES_TIMEOUT_MS: '30001',
+    })).toThrowError(CommercialLicensesClientError);
   });
 });

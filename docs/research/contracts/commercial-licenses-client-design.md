@@ -21,6 +21,11 @@ proto/sebuf del repositorio.
 | `server/__tests__/commercial-licenses-cache.test.ts` | claves, aislamiento y política de caché |
 | `tests/fixtures/commercial-licenses/` | fixtures acordados con el productor |
 
+El transporte autentica con `X-Service-Key` exclusivamente desde runtime
+servidor. La configuración se obtiene de `CHILE_COMMERCIAL_LICENSES_BASE_URL`,
+`CHILE_COMMERCIAL_LICENSES_SERVICE_KEY` y, opcionalmente,
+`CHILE_COMMERCIAL_LICENSES_TIMEOUT_MS`; no existe equivalente `VITE_*`.
+
 ## Interfaz
 
 ```ts
