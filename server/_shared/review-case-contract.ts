@@ -40,6 +40,12 @@ const packetRefSchema = z.object({
   required_markings: z.array(markingSchema).min(1).refine((values) => new Set(values).size === values.length),
 }).strict();
 
+const reviewCaseAssignmentSchema = z.object({
+  reviewer_id: z.string().min(1).max(200),
+  assigned_by: z.string().min(1).max(200),
+  assigned_at: dateTime,
+}).strict();
+
 const reviewCaseSnapshotSchema = z.object({
   schema_version: z.literal('0.1.0'),
   case_id: z.string().min(1).max(200),
@@ -51,9 +57,20 @@ const reviewCaseSnapshotSchema = z.object({
   created_at: dateTime,
   updated_at: dateTime,
   packet_ref: packetRefSchema,
+  assignment: reviewCaseAssignmentSchema.optional(),
 }).strict().superRefine((value, context) => {
   if (Date.parse(value.updated_at) < Date.parse(value.created_at)) {
     context.addIssue({ code: 'custom', path: ['updated_at'], message: 'must not predate created_at' });
+  }
+  if (value.assignment && (
+    Date.parse(value.assignment.assigned_at) < Date.parse(value.created_at)
+      || Date.parse(value.assignment.assigned_at) > Date.parse(value.updated_at)
+  )) {
+    context.addIssue({
+      code: 'custom',
+      path: ['assignment', 'assigned_at'],
+      message: 'must fall within the case snapshot lifetime',
+    });
   }
 });
 
@@ -95,6 +112,7 @@ const reviewCaseDossierOuterSchema = z.object({
 
 export type ReviewCaseStatus = 'open' | 'in_review' | 'waiting_external' | 'closed';
 export type ReviewCasePacketRef = z.infer<typeof packetRefSchema>;
+export type ReviewCaseAssignment = z.infer<typeof reviewCaseAssignmentSchema>;
 export type ReviewCaseSnapshot = z.infer<typeof reviewCaseSnapshotSchema>;
 export type HistoricalReviewCaseActionEvaluation = z.infer<typeof historicalActionEvaluationSchema>;
 export type ReviewCaseDossierAssessment = z.infer<typeof dossierAssessmentSchema>;

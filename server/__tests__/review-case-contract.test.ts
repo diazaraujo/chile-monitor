@@ -104,6 +104,20 @@ describe('ReviewCase runtime contract', () => {
     expect(parseEvidencePacket(parsed.evidence_packet_snapshot.packet).packet_id).toBe('packet-001');
   });
 
+  test('accepts an assignment within the snapshot lifetime and rejects impossible dates', () => {
+    const assigned = snapshot();
+    assigned.case_version = 2;
+    assigned.assignment = {
+      reviewer_id: 'reviewer-001',
+      assigned_by: 'coordinator-001',
+      assigned_at: '2026-08-28T15:30:00Z',
+    };
+    expect(parseReviewCaseSnapshot(assigned).assignment?.reviewer_id).toBe('reviewer-001');
+
+    assigned.assignment.assigned_at = '2026-08-28T16:30:00Z';
+    expect(() => parseReviewCaseSnapshot(assigned)).toThrow(ReviewCaseContractError);
+  });
+
   test('rejects a direct top-level packet or an unlabeled snapshot', () => {
     const direct = dossier();
     direct.evidence_packet = direct.evidence_packet_snapshot.packet;
