@@ -6,12 +6,20 @@
 
 **Consumidor:** Chile Monitor
 
+**Piloto:** Purranque (`10303`), release promovido `purranque-2026-s1`, último
+release bueno `purranque-2025-s2`.
+
 Esta pauta complementa
 [`commercial-licenses.openapi.yaml`](commercial-licenses.openapi.yaml). Una tabla,
 una descarga o un endpoint sin estos controles no constituye una entrega aceptada.
 
 Los diez escenarios mínimos tienen una representación sintética y procesable en
 [`commercial-licenses.fixtures.yaml`](commercial-licenses.fixtures.yaml).
+
+La autenticación acordada es `X-Service-Key` desde runtime servidor. La URL, la
+clave y su rotación se configuran fuera de Git mediante
+`CHILE_COMMERCIAL_LICENSES_BASE_URL` y
+`CHILE_COMMERCIAL_LICENSES_SERVICE_KEY`; ningún secreto usa prefijo `VITE_*`.
 
 ## Insumos para la prueba
 

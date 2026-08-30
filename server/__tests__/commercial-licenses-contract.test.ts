@@ -1,6 +1,10 @@
 // @vitest-environment node
 
+// @vitest-environment node
+
+import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
+import { parse as parseYaml } from 'yaml';
 
 import {
   CommercialLicensesContractError,
@@ -145,6 +149,52 @@ function clone<T>(value: T): T {
 }
 
 describe('commercial-licenses response contract', () => {
+  test('keeps ten processable Purranque acceptance fixtures on the pinned release', () => {
+    const document = parseYaml(readFileSync(new URL(
+      '../../docs/research/contracts/commercial-licenses.fixtures.yaml',
+      import.meta.url,
+    ), 'utf8')) as {
+      municipality_cut: string;
+      release: { release_id: string; last_good_release_id: string };
+      fixtures: Array<{
+        fixture_id: string;
+        request: { municipality_cut: string };
+        expected: Record<string, unknown>;
+      }>;
+    };
+
+    expect(document.municipality_cut).toBe('10303');
+    expect(document.release).toMatchObject({
+      release_id: 'purranque-2026-s1',
+      last_good_release_id: 'purranque-2025-s2',
+    });
+    expect(document.fixtures).toHaveLength(10);
+    expect(new Set(document.fixtures.map((fixture) => fixture.fixture_id)).size).toBe(10);
+    expect(document.fixtures.every((fixture) => fixture.request.municipality_cut === '10303'))
+      .toBe(true);
+    expect(document.fixtures.map((fixture) => fixture.fixture_id)).toEqual([
+      'CL-VIG-001', 'CL-PROV-002', 'CL-HIST-003', 'CL-MATCH-004', 'CL-AMB-005',
+      'CL-NOMATCH-006', 'CL-GAP-007', 'CL-NAT-008', 'CL-CLOSE-009', 'CL-ABSENT-010',
+    ]);
+    expect(JSON.stringify(document)).not.toMatch(/\b\d{7,8}-[0-9K]\b/iu);
+  });
+
+  test('publishes X-Service-Key as the only OpenAPI security scheme', () => {
+    const document = parseYaml(readFileSync(new URL(
+      '../../docs/research/contracts/commercial-licenses.openapi.yaml',
+      import.meta.url,
+    ), 'utf8')) as {
+      security: Array<Record<string, unknown>>;
+      components: { securitySchemes: Record<string, Record<string, unknown>> };
+    };
+    expect(document.security).toEqual([{ ServiceKeyAuth: [] }]);
+    expect(document.components.securitySchemes).toEqual({
+      ServiceKeyAuth: expect.objectContaining({
+        type: 'apiKey', in: 'header', name: 'X-Service-Key',
+      }),
+    });
+  });
+
   test('parses a complete patents.get response', () => {
     const parsed = parsePatentGetResponse(patentGet());
     expect(parsed.metadata.release_id).toBe('commercial-licenses-2026-08-28-001');

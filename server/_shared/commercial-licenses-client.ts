@@ -16,6 +16,7 @@ import {
 export type { EstablishmentResolveRequest } from './commercial-licenses-contract';
 
 const DEFAULT_TIMEOUT_MS = 8_000;
+const MAX_TIMEOUT_MS = 30_000;
 const DEFAULT_SUPPORTED_SCHEMA_MAJOR = 0;
 const USER_AGENT = 'chile-monitor-server/1.0 (commercial-licenses)';
 
@@ -118,12 +119,12 @@ export class CommercialLicensesClientError extends Error {
   }
 }
 
-type BearerTokenProvider = () => string | Promise<string>;
+type ServiceKeyProvider = () => string | Promise<string>;
 type FetchImplementation = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 export interface CommercialLicensesClientConfig {
   baseUrl: string;
-  getBearerToken: BearerTokenProvider;
+  getServiceKey: ServiceKeyProvider;
   timeoutMs?: number;
   supportedSchemaMajor?: number;
   fetchImpl?: FetchImplementation;
@@ -156,7 +157,7 @@ export function createCommercialLicensesClient(
     body?: unknown;
     parse: ResponseParser<T>;
   }): Promise<T> {
-    const token = await resolveBearerToken(config.getBearerToken);
+    const serviceKey = await resolveServiceKey(config.getServiceKey);
     const url = new URL(options.path, baseUrl);
     url.search = options.query.toString();
 
@@ -166,7 +167,7 @@ export function createCommercialLicensesClient(
         method: options.method,
         headers: {
           Accept: 'application/json',
-          Authorization: `Bearer ${token}`,
+          'X-Service-Key': serviceKey,
           'User-Agent': USER_AGENT,
           ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }),
         },
@@ -312,6 +313,44 @@ export function createCommercialLicensesClient(
   };
 }
 
+export interface CommercialLicensesEnvironment {
+  CHILE_COMMERCIAL_LICENSES_BASE_URL?: string;
+  CHILE_COMMERCIAL_LICENSES_SERVICE_KEY?: string;
+  CHILE_COMMERCIAL_LICENSES_TIMEOUT_MS?: string;
+}
+
+/** Server-only environment adapter. No `VITE_*` credential is accepted. */
+export function createCommercialLicensesClientFromEnv(
+  env: CommercialLicensesEnvironment = process.env,
+  fetchImpl?: FetchImplementation,
+): CommercialLicensesClient {
+  const baseUrl = env.CHILE_COMMERCIAL_LICENSES_BASE_URL;
+  const serviceKey = env.CHILE_COMMERCIAL_LICENSES_SERVICE_KEY;
+  if (!baseUrl || !serviceKey) {
+    throw new CommercialLicensesClientError(
+      'configuration',
+      'Commercial licenses environment configuration is unavailable',
+    );
+  }
+  const timeoutText = env.CHILE_COMMERCIAL_LICENSES_TIMEOUT_MS;
+  let timeoutMs: number | undefined;
+  if (timeoutText !== undefined) {
+    if (!/^\d{1,5}$/u.test(timeoutText)) {
+      throw new CommercialLicensesClientError(
+        'configuration',
+        'Commercial licenses timeout environment value is invalid',
+      );
+    }
+    timeoutMs = Number(timeoutText);
+  }
+  return createCommercialLicensesClient({
+    baseUrl,
+    getServiceKey: () => serviceKey,
+    timeoutMs,
+    fetchImpl,
+  });
+}
+
 function parseBaseUrl(value: string): URL {
   let url: URL;
   try {
@@ -320,7 +359,7 @@ function parseBaseUrl(value: string): URL {
     throw new CommercialLicensesClientError('configuration', 'Commercial licenses base URL is invalid');
   }
   if (
-    (url.protocol !== 'https:' && url.protocol !== 'http:') ||
+    (url.protocol !== 'https:' && !isPrivateHttpUrl(url)) ||
     url.username !== '' ||
     url.password !== '' ||
     url.search !== '' ||
@@ -334,7 +373,7 @@ function parseBaseUrl(value: string): URL {
 
 function parseTimeout(value: number | undefined): number {
   const timeoutMs = value ?? DEFAULT_TIMEOUT_MS;
-  if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) {
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > MAX_TIMEOUT_MS) {
     throw new CommercialLicensesClientError('configuration', 'Commercial licenses timeout is invalid');
   }
   return timeoutMs;
@@ -351,10 +390,10 @@ function parseSchemaMajor(value: number | undefined): number {
   return major;
 }
 
-async function resolveBearerToken(provider: BearerTokenProvider): Promise<string> {
-  let token: unknown;
+async function resolveServiceKey(provider: ServiceKeyProvider): Promise<string> {
+  let serviceKey: unknown;
   try {
-    token = await provider();
+    serviceKey = await provider();
   } catch {
     throw new CommercialLicensesClientError(
       'configuration',
@@ -362,17 +401,32 @@ async function resolveBearerToken(provider: BearerTokenProvider): Promise<string
     );
   }
   if (
-    typeof token !== 'string' ||
-    token.trim() === '' ||
-    token !== token.trim() ||
-    /[\r\n]/u.test(token)
+    typeof serviceKey !== 'string' ||
+    serviceKey.length > 2_048 ||
+    serviceKey.trim() === '' ||
+    serviceKey !== serviceKey.trim() ||
+    /[\r\n]/u.test(serviceKey)
   ) {
     throw new CommercialLicensesClientError(
       'configuration',
       'Commercial licenses authentication is unavailable',
     );
   }
-  return token;
+  return serviceKey;
+}
+
+function isPrivateHttpUrl(url: URL): boolean {
+  if (url.protocol !== 'http:') return false;
+  const hostname = url.hostname.toLowerCase();
+  if (hostname === 'localhost' || hostname === '::1') return true;
+  if (/^127(?:\.\d{1,3}){3}$/u.test(hostname)) return true;
+  const match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/u.exec(hostname);
+  if (!match) return false;
+  const octets = match.slice(1).map(Number);
+  if (octets.some((octet) => octet > 255)) return false;
+  return octets[0] === 10
+    || (octets[0] === 172 && octets[1]! >= 16 && octets[1]! <= 31)
+    || (octets[0] === 192 && octets[1] === 168);
 }
 
 function commonQuery(params: CommercialLicensesRequestOptions): URLSearchParams {

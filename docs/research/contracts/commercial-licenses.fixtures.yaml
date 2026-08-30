@@ -2,22 +2,22 @@ fixture_set: commercial-licenses-contract-v0.1
 description: >-
   Casos sintéticos mínimos para probar el contrato entre Inteligencia
   Inmobiliaria y Chile Monitor. No contienen datos personales reales.
-municipality_cut: '13101'
+municipality_cut: '10303'
 release:
   producer: inteligencia-inmobiliaria
   product: commercial-licenses
-  release_id: test-commercial-licenses-2026-08-28-001
+  release_id: purranque-2026-s1
   schema_version: 0.1.0
-  data_as_of: '2026-08-28T12:00:00Z'
+  data_as_of: '2026-06-30T23:59:59Z'
   promoted_at: '2026-08-28T13:00:00Z'
   quality_status: promoted
   availability: current
-  last_good_release_id: test-commercial-licenses-2026-08-21-001
-  quality_report_uri: quality/test-commercial-licenses-2026-08-28-001.json
+  last_good_release_id: purranque-2025-s2
+  quality_report_uri: quality/purranque-2026-s1.json
 source_catalog:
   - source_ref: src-stock-2026-08
     source_kind: municipal_export
-    municipality_cut: '13101'
+    municipality_cut: '10303'
     source_record_id: stock-2026-08
     uri: sources/stock-2026-08.csv
     sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
@@ -25,7 +25,7 @@ source_catalog:
     effective_at: '2026-08-28T00:00:00Z'
   - source_ref: src-events-2021-2026
     source_kind: municipal_export
-    municipality_cut: '13101'
+    municipality_cut: '10303'
     source_record_id: events-2021-2026
     uri: sources/events-2021-2026.csv
     sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
@@ -33,7 +33,7 @@ source_catalog:
     effective_at: null
   - source_ref: src-act-closure-009
     source_kind: administrative_act
-    municipality_cut: '13101'
+    municipality_cut: '10303'
     source_record_id: decreto-009-2026
     uri: sources/decreto-009-2026.pdf
     sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -44,7 +44,7 @@ fixtures:
     purpose: Patente definitiva vigente con titular jurídico.
     request:
       operation_id: patentsGet
-      municipality_cut: '13101'
+      municipality_cut: '10303'
       license_id: lic-vig-001
     expected:
       http_status: 200
@@ -57,7 +57,7 @@ fixtures:
     purpose: Patente provisoria con vencimiento conocido.
     request:
       operation_id: patentsGet
-      municipality_cut: '13101'
+      municipality_cut: '10303'
       license_id: lic-prov-002
     expected:
       http_status: 200
@@ -70,7 +70,7 @@ fixtures:
     purpose: Historia que impide aplicar el titular o domicilio actual retrospectivamente.
     request:
       operation_id: patentsTimeline
-      municipality_cut: '13101'
+      municipality_cut: '10303'
       license_id: lic-hist-003
     expected:
       http_status: 200
@@ -88,7 +88,7 @@ fixtures:
     purpose: Resolución inequívoca de establecimiento y predio.
     request:
       operation_id: establishmentsResolve
-      municipality_cut: '13101'
+      municipality_cut: '10303'
       address: AV. PRUEBA 400
       role: 100-20
     expected:
@@ -103,7 +103,7 @@ fixtures:
     purpose: Dos candidatos plausibles sin selección automática.
     request:
       operation_id: establishmentsResolve
-      municipality_cut: '13101'
+      municipality_cut: '10303'
       address: LOCAL 5 CENTRO COMERCIAL SINTETICO
     expected:
       http_status: 200
@@ -115,7 +115,7 @@ fixtures:
     purpose: Dirección sin candidato predial.
     request:
       operation_id: establishmentsResolve
-      municipality_cut: '13101'
+      municipality_cut: '10303'
       address: DIRECCION SINTETICA SIN CATASTRO 6
     expected:
       http_status: 200
@@ -127,7 +127,7 @@ fixtures:
     purpose: Falta de publicación de requisitos sin inferir cumplimiento.
     request:
       operation_id: patentsGet
-      municipality_cut: '13101'
+      municipality_cut: '10303'
       license_id: lic-gap-007
     expected:
       http_status: 200
@@ -138,7 +138,7 @@ fixtures:
     purpose: Titular natural protegido en la representación pública.
     request:
       operation_id: patentsGet
-      municipality_cut: '13101'
+      municipality_cut: '10303'
       license_id: lic-natural-008
     expected:
       http_status: 200
@@ -151,7 +151,7 @@ fixtures:
     purpose: Clausura respaldada por acto municipal.
     request:
       operation_id: patentsTimeline
-      municipality_cut: '13101'
+      municipality_cut: '10303'
       license_id: lic-close-009
     expected:
       http_status: 200
@@ -162,7 +162,7 @@ fixtures:
     purpose: ID válido ausente del universo cubierto.
     request:
       operation_id: patentsGet
-      municipality_cut: '13101'
+      municipality_cut: '10303'
       license_id: lic-absent-010
     expected:
       http_status: 404
