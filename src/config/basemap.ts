@@ -83,10 +83,14 @@ const DEFAULT_THEME: Record<MapProvider, string> = {
 
 export function getMapProvider(): MapProvider {
   const stored = readStorageValue(STORAGE_KEY) as MapProvider | null;
+  // chile: 'carto' raster muestra placeholders "Zoom Level Not Supported" en zooms
+  // medios — para esta variante se cae a OpenFreeMap (vector, todos los zooms).
+  const isChile = typeof document !== 'undefined' && document.documentElement.dataset.variant === 'chile';
   if (stored) {
     if (stored === 'pmtiles' || stored === 'auto') {
       return hasTilesUrl ? stored : 'openfreemap';
     }
+    if (isChile && stored === 'carto') return 'openfreemap';
     return stored;
   }
   return hasTilesUrl ? 'auto' : 'openfreemap';
