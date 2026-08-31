@@ -485,6 +485,10 @@ describe('crawlable content corpus deployment contracts', () => {
       dockerfileSource.indexOf('node scripts/generate-inventory-facts.mjs') < dockerfileSource.indexOf('node docker/build-handlers.mjs'),
       'the self-host image must generate the Edge inventory module before handler bundling',
     );
+    assert.ok(
+      dockerfileSource.indexOf('npm run build:crawlable-corpus') < dockerfileSource.indexOf('node docker/build-handlers.mjs'),
+      'the self-host image must validate source attribution before generated handler bundles alter api/',
+    );
     assert.match(frontendDockerfileSource, /RUN test -s dist\/product-facts\.json/);
     assert.ok(!packageJson.scripts['build:full'].includes('npm run build:blog &&'), 'build:full must not regenerate inventory facts inside build:blog');
   });
