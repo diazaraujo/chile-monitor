@@ -12,7 +12,7 @@ import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 import { isAllowedWebcamEmbedMessageOrigin } from './_live-webcams-origin';
 
 
-type WebcamRegion = 'middle-east' | 'europe' | 'asia' | 'americas' | 'space';
+type WebcamRegion = 'chile' | 'middle-east' | 'europe' | 'asia' | 'americas' | 'space';
 
 interface WebcamFeed {
   id: string;
@@ -26,6 +26,13 @@ interface WebcamFeed {
 // Verified YouTube live stream IDs — validated Feb 2026 via title cross-check.
 // IDs may rotate; update when stale.
 const WEBCAM_FEEDS: WebcamFeed[] = [
+  // Chile — verificadas 31-ago-2026 (IDs rotan; el canal /live resuelve el vigente)
+  { id: 'renaca', city: 'Reñaca — Viña del Mar', country: 'Chile', region: 'chile', channelHandle: '@MarejadasUV', fallbackVideoId: 'PK2kYc1p9R0' },
+  { id: 'santiago-canal', city: 'Santiago — Canal San Carlos', country: 'Chile', region: 'chile', channelHandle: '@Ledrium', fallbackVideoId: 'BnfzkTSks8k' },
+  { id: 'concepcion', city: 'Concepción Centro', country: 'Chile', region: 'chile', channelHandle: '@concecam', fallbackVideoId: 'RhdmP5017VM' },
+  { id: 'nunoa', city: 'Santiago — Ñuñoa', country: 'Chile', region: 'chile', channelHandle: '@SCLSkylineLive', fallbackVideoId: 'E9FK3QGdpqE' },
+  { id: 'vina', city: 'Viña del Mar', country: 'Chile', region: 'chile', channelHandle: '@Viña-Cam', fallbackVideoId: 'UgakTDFKMuM' },
+  { id: 'punta-arenas', city: 'Punta Arenas — Estrecho', country: 'Chile', region: 'chile', channelHandle: '@surtvchile', fallbackVideoId: '_n4_pECcuZE' },
   // Middle East — Jerusalem & Tehran adjacent (conflict hotspots)
   { id: 'jerusalem', city: 'Jerusalem', country: 'Israel', region: 'middle-east', channelHandle: '@TheWesternWall', fallbackVideoId: 'e34xb-Fbl0U' },
   { id: 'middle-east', city: 'Middle East', country: 'Multi', region: 'middle-east', channelHandle: '@MiddleEastCams', fallbackVideoId: 'oxT5R6I0N6E' },
@@ -222,6 +229,7 @@ export class LiveWebcamsPanel extends Panel {
 
     const regions: { key: RegionFilter; label: string }[] = [
       { key: 'all', label: t('components.webcams.regions.all') },
+      { key: 'chile', label: 'Chile' },
       { key: 'middle-east', label: t('components.webcams.regions.mideast') },
       { key: 'europe', label: t('components.webcams.regions.europe') },
       { key: 'americas', label: t('components.webcams.regions.americas') },
