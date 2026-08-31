@@ -137,4 +137,11 @@ def selfcheck():
 if __name__ == "__main__":
     if "--check" in sys.argv:
         selfcheck(); sys.exit(0)
+    import threading
+    # bridge docker: alcanzable solo por contenedores locales, no por la LAN
+    try:
+        extra = ThreadingHTTPServer(("172.17.0.1", PORT), H)
+        threading.Thread(target=extra.serve_forever, daemon=True).start()
+    except OSError:
+        pass  # sin docker0, seguimos solo en loopback
     ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever()
