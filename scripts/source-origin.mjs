@@ -568,6 +568,11 @@ const HOST_ORIGINS = Object.freeze({
 // platform that would otherwise point at the wrong country.
 const PROVIDER_ORIGINS = Object.freeze({
   // Chile Monitor (variante chile)
+  'api.mapbox.com': 'US',
+  'cnnchile.com': 'CL',
+  'elpinguino.com': 'CL',
+  'lasegunda.com': 'CL',
+  'laderasur.com': 'CL',
   'Emol / El Mercurio': 'CL',
   'La Tercera': 'CL',
   'Radio Bío Bío': 'CL',
