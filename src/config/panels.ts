@@ -1205,8 +1205,6 @@ const CHILE_PANELS: Record<string, PanelConfig> = {
   climate: { name: 'Clima y territorio', enabled: true, priority: 1 },
   latam: { name: 'Cono Sur', enabled: true, priority: 2 },
   monitors: { name: 'Mis monitores', enabled: true, priority: 2 },
-  cii: { name: 'Estrés territorial', enabled: true, priority: 1 },
-  'latest-brief': { name: 'Último brief', enabled: true, priority: 1, premium: 'locked' as const },
 };
 
 const CHILE_MAP_LAYERS: MapLayers = {
@@ -1355,9 +1353,11 @@ export const VARIANT_PANEL_OVERRIDES: Partial<Record<string, Partial<Record<stri
     territorial: { name: 'Brief territorial' },
     politics:    { name: 'Titulares Chile' },
     us:          { name: 'Política' },
+    latam:       { name: 'Cono Sur' },
+    monitors:    { name: 'Mis monitores' },
+    territorial: { name: 'Brief territorial' },
     gov:         { name: 'Estado' },
     climate:     { name: 'Clima y territorio' },
-    cii:         { name: 'Estrés territorial' },
   },
 };
 

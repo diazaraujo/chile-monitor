@@ -741,7 +741,7 @@ export class InsightsPanel extends Panel {
       SITE_VARIANT === 'tech'      ? `🚀 ${t('components.insights.briefTech')}`
     : SITE_VARIANT === 'commodity' ? `⛏️ ${t('components.insights.briefCommodity')}`
     : SITE_VARIANT === 'energy'    ? `⚡ ${t('components.insights.briefEnergy')}`
-    :                                `🌍 ${t('components.insights.briefWorld')}`;
+    :                                (SITE_VARIANT === 'chile' ? '🇨🇱 BRIEF CHILE' : `🌍 ${t('components.insights.briefWorld')}`);
     return `
       <div class="insights-brief">
         <div class="insights-section-title">${heading}</div>
