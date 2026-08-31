@@ -6403,7 +6403,22 @@ export class DeckGLMap {
       { shape: shapes.square('rgb(132, 204, 22)'), label: 'Resilience: High', layerKey: 'resilienceScore' },
       { shape: shapes.square('rgb(34, 197, 94)'), label: 'Resilience: Very High', layerKey: 'resilienceScore' },
     ];
-    const legendItems: { shape: string; label: string; layerKey: keyof MapLayers }[] = SITE_VARIANT === 'tech'
+    const legendItems: { shape: string; label: string; layerKey: keyof MapLayers }[] = SITE_VARIANT === 'chile'
+      ? [
+        { shape: shapes.circle('rgb(46, 160, 67)'), label: 'SEIA: aprobado', layerKey: 'chileSeia' },
+        { shape: shapes.circle('rgb(227, 160, 8)'), label: 'SEIA: en calificación', layerKey: 'chileSeia' },
+        { shape: shapes.circle('rgb(215, 58, 73)'), label: 'SEIA: rechazado', layerKey: 'chileSeia' },
+        { shape: shapes.circle('rgb(130, 130, 130)'), label: 'SEIA: desistido / no admitido', layerKey: 'chileSeia' },
+        { shape: shapes.triangle('rgb(56, 189, 248)'), label: 'Trazado lineal (transmisión, ductos)', layerKey: 'chileSeia' },
+        { shape: shapes.square('rgb(167, 139, 250)'), label: 'Área de influencia / layout', layerKey: 'chileSeia' },
+        { shape: shapes.circle('rgb(50, 140, 220)'), label: 'Derecho de agua (DGA)', layerKey: 'chileAgua' },
+        { shape: shapes.square('rgb(80, 170, 255)'), label: 'Cuenca / subcuenca', layerKey: 'chileAgua' },
+        { shape: shapes.square('rgb(140, 70, 180)'), label: 'Merced de agua', layerKey: 'chileTierras' },
+        { shape: shapes.square('rgb(40, 140, 90)'), label: 'Compra CONADI (20a/20b)', layerKey: 'chileTierras' },
+        { shape: shapes.circle('rgb(232, 140, 48)'), label: 'Comunidad / ADI', layerKey: 'chilePueblos' },
+        { shape: shapes.circle('rgb(255, 100, 50)'), label: 'Foco de incendio', layerKey: 'fires' },
+      ]
+      : SITE_VARIANT === 'tech'
       ? [
         { shape: shapes.circle(isLight ? 'rgb(22, 163, 74)' : 'rgb(0, 255, 150)'), label: t('components.deckgl.legend.startupHub'), layerKey: 'startupHubs' },
         { shape: shapes.circle('rgb(100, 200, 255)'), label: t('components.deckgl.legend.techHQ'), layerKey: 'techHQs' },
