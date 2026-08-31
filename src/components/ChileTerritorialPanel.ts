@@ -44,8 +44,15 @@ const esc = (v: unknown): string => String(v ?? '')
 
 const musd = (v?: number): string => (v && v > 0 ? `USD ${Math.round(v).toLocaleString('es-CL')} MM` : '');
 
+interface Health {
+  status: string;
+  checkedAt: string;
+  checks: { name: string; ok: boolean; detail: string }[];
+}
+
 export class ChileTerritorialPanel extends Panel {
   private data: BriefTerritorial | null = null;
+  private health: Health | null = null;
 
   constructor() {
     super({
@@ -66,6 +73,10 @@ export class ChileTerritorialPanel extends Panel {
     try {
       const resp = await fetch('/chile/brief-territorial.json', { cache: 'no-cache' });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      try {
+        const h = await fetch('/chile/health.json', { cache: 'no-cache' });
+        this.health = h.ok ? ((await h.json()) as Health) : null;
+      } catch { this.health = null; }
       const json = (await resp.json()) as BriefTerritorial;
       if (!json || !Array.isArray(json.hechos)) throw new Error('shape');
       this.data = json;
@@ -106,7 +117,12 @@ export class ChileTerritorialPanel extends Panel {
       ? `<p class="chile-brief-resumen">${esc(d.resumen).replace(/\[(\d{1,2})\]/g, '<sup>[$1]</sup>')}</p>`
       : '<p class="chile-brief-resumen chile-brief-degradado">Sin resumen LLM en esta corrida — los hechos siguen abajo.</p>';
     const regiones = d.regiones.map((r) => `${esc(r.region)} ${r.n}`).join(' · ');
+    const fallas = this.health && this.health.status !== 'ok'
+      ? this.health.checks.filter((c) => !c.ok).map((c) => `${esc(c.name)} (${esc(c.detail)})`).join(' · ')
+      : '';
+    const salud = fallas ? `<div class="chile-health-alerta">⚠ Integridad degradada: ${fallas}</div>` : '';
     const html = `
+      ${salud}
       <div class="chile-brief">
         <div class="chile-brief-kpis">
           <span><strong>${k.ingresos}</strong> ingresos SEIA</span>
