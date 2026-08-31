@@ -18,6 +18,8 @@ RUN npm ci --ignore-scripts
 
 # Copy full source
 COPY . .
+ARG VITE_VARIANT=full
+ENV VITE_VARIANT=${VITE_VARIANT}
 
 # Generated inventory modules are intentionally untracked. Recreate them in
 # the clean image context before handlers import or bundle them.
