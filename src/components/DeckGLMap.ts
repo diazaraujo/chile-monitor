@@ -4051,14 +4051,24 @@ export class DeckGLMap {
         };
       })
       .filter((d): d is { lon: number; lat: number; nombre: string; titular: string; estado: string; comunas: string; n_especie: number; n_especie_distinta: number } => d !== null);
+    // Color por estado del expediente: verde aprobado, ámbar en calificación,
+    // rojo rechazado, gris desistido/no admitido, azul otros.
+    const colorEstado = (estado: string): [number, number, number, number] => {
+      const e = (estado || '').toLowerCase();
+      if (e.includes('aprobado')) return [46, 160, 67, 150];
+      if (e.includes('calificaci')) return [227, 160, 8, 170];
+      if (e.includes('rechazado')) return [215, 58, 73, 180];
+      if (e.includes('desistido') || e.includes('no admitido')) return [130, 130, 130, 120];
+      return [70, 130, 220, 150];
+    };
     return new ScatterplotLayer({
       id: 'chile-seia-puntos-layer',
       data,
       getPosition: (d: { lon: number; lat: number }) => [d.lon, d.lat],
-      getRadius: 2000,
-      getFillColor: [220, 50, 47, 160],
-      radiusMinPixels: 2,
-      radiusMaxPixels: 7,
+      getRadius: 1600,
+      getFillColor: (d: { estado: string }) => colorEstado(d.estado),
+      radiusMinPixels: 1.5,
+      radiusMaxPixels: 6,
       pickable: true,
     });
   }
@@ -4147,17 +4157,22 @@ export class DeckGLMap {
 
   private createChileTrazadosLayer(): GeoJsonLayer | null {
     if (!this.chileTrazados) return null;
+    // Color por geometría: líneas (transmisión/ductos) celeste, polígonos (áreas de
+    // influencia/layouts) violeta translúcido, puntos (obras) naranjo.
+    type TrazadoFeature = { geometry?: { type?: string } };
+    const esLinea = (f: TrazadoFeature) => (f.geometry?.type || '').includes('LineString');
     return new GeoJsonLayer({
       id: 'chile-trazados-layer',
       data: this.chileTrazados,
       filled: true,
       stroked: true,
-      getFillColor: [215, 50, 50, 70],
-      getLineColor: [215, 40, 40, 230],
-      getLineWidth: 3,
-      lineWidthMinPixels: 1.5,
-      getPointRadius: 80,
-      pointRadiusMinPixels: 4,
+      getFillColor: (f: TrazadoFeature) => ((f.geometry?.type || '').includes('Polygon') ? [167, 139, 250, 28] : [251, 146, 60, 120]),
+      getLineColor: (f: TrazadoFeature) => (esLinea(f) ? [56, 189, 248, 220] : [139, 92, 246, 170]),
+      getLineWidth: (f: TrazadoFeature) => (esLinea(f) ? 2.5 : 1),
+      lineWidthMinPixels: 1,
+      getPointRadius: 60,
+      pointRadiusMinPixels: 2,
+      pointRadiusMaxPixels: 5,
       pickable: true,
       autoHighlight: true,
     });
