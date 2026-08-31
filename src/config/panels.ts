@@ -1355,7 +1355,6 @@ export const VARIANT_PANEL_OVERRIDES: Partial<Record<string, Partial<Record<stri
     us:          { name: 'Política' },
     latam:       { name: 'Cono Sur' },
     monitors:    { name: 'Mis monitores' },
-    territorial: { name: 'Brief territorial' },
     gov:         { name: 'Estado' },
     climate:     { name: 'Clima y territorio' },
   },
