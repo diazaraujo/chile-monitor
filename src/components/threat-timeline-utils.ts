@@ -4,13 +4,18 @@ import type { ClusteredEvent } from '@/types';
 export const THREAT_LEVELS = ['critical', 'high', 'medium', 'low', 'info'] as const;
 export type TimelineThreatLevel = typeof THREAT_LEVELS[number];
 
-export const THREAT_LEVEL_LABELS: Record<TimelineThreatLevel, string> = {
-  critical: 'Critical',
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low',
-  info: 'Info',
+import { getCurrentLanguage } from '@/services/i18n';
+const ES = () => getCurrentLanguage().startsWith('es');
+
+const THREAT_LEVEL_LABELS_EN: Record<TimelineThreatLevel, string> = {
+  critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low', info: 'Info',
 };
+const THREAT_LEVEL_LABELS_ES: Record<TimelineThreatLevel, string> = {
+  critical: 'Crítico', high: 'Alto', medium: 'Medio', low: 'Bajo', info: 'Info',
+};
+export const THREAT_LEVEL_LABELS: Record<TimelineThreatLevel, string> = new Proxy(THREAT_LEVEL_LABELS_EN, {
+  get: (t, k) => (ES() ? THREAT_LEVEL_LABELS_ES : t)[k as TimelineThreatLevel],
+}) as Record<TimelineThreatLevel, string>;
 
 export const THREAT_LEVEL_COLORS: Record<TimelineThreatLevel, string> = {
   critical: '#ef4444',
@@ -184,12 +189,12 @@ export function describeThreatTimelineTrend(days: ThreatTimelineDay[]): ThreatTi
     return { label: 'Quiet', copy: 'No critical/high days', className: 'quiet' };
   }
   if (lastThree >= firstThree + 2) {
-    return { label: 'Worsening', copy: `${lastThree} recent vs ${firstThree} earlier`, className: 'worsening' };
+    return { label: ES() ? 'Empeorando' : 'Worsening', copy: ES() ? `${lastThree} recientes vs ${firstThree} previos` : `${lastThree} recent vs ${firstThree} earlier`, className: 'worsening' };
   }
   if (firstThree >= lastThree + 2) {
-    return { label: 'Easing', copy: `${lastThree} recent vs ${firstThree} earlier`, className: 'easing' };
+    return { label: ES() ? 'Mejorando' : 'Easing', copy: ES() ? `${lastThree} recientes vs ${firstThree} previos` : `${lastThree} recent vs ${firstThree} earlier`, className: 'easing' };
   }
-  return { label: 'Noisy', copy: `${lastThree} recent vs ${firstThree} earlier`, className: 'noisy' };
+  return { label: ES() ? 'Ruidoso' : 'Noisy', copy: ES() ? `${lastThree} recientes vs ${firstThree} previos` : `${lastThree} recent vs ${firstThree} earlier`, className: 'noisy' };
 }
 
 export function compareThreatTimelineItems(a: ThreatTimelineItem, b: ThreatTimelineItem): number {
@@ -245,7 +250,7 @@ function normalizeClusterStory(cluster: ClusteredEvent, index: number): ThreatTi
 
 function inferProvenance(source: string, threatSource?: string): string {
   const normalizedThreatSource = String(threatSource ?? '').trim().toLowerCase();
-  if (normalizedThreatSource === 'keyword') return 'Keyword fallback';
+  if (normalizedThreatSource === 'keyword') return ES() ? 'Respaldo por palabras clave' : 'Keyword fallback';
   const normalizedSource = source.toLowerCase();
   if (normalizedSource.includes('acled')) return 'ACLED';
   if (normalizedSource.includes('news digest')) return 'News Digest';

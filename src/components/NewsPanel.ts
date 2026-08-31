@@ -555,10 +555,10 @@ export class NewsPanel extends Panel {
           ${escapeHtml(item.source)}
           ${renderCredibilityBadge(item.source, item)}
           ${item.lang && item.lang !== getCurrentLanguage() ? `<span class="lang-badge">${item.lang.toUpperCase()}</span>` : ''}
-          ${item.storyMeta?.phase === 'breaking' ? '<span class="phase-badge breaking">BREAKING</span>' : ''}
-          ${item.storyMeta?.phase === 'developing' ? `<span class="phase-badge developing">DEVELOPING${item.storyMeta.mentionCount > 1 ? ` ×${item.storyMeta.mentionCount}` : ''}</span>` : ''}
-          ${item.storyMeta?.phase === 'sustained' ? '<span class="phase-badge sustained">ONGOING</span>' : ''}
-          ${item.isAlert ? '<span class="alert-tag">ALERT</span>' : ''}
+          ${item.storyMeta?.phase === 'breaking' ? `<span class="phase-badge breaking">${getCurrentLanguage().startsWith('es') ? 'ÚLTIMA HORA' : 'BREAKING'}</span>` : ''}
+          ${item.storyMeta?.phase === 'developing' ? `<span class="phase-badge developing">${getCurrentLanguage().startsWith('es') ? 'EN DESARROLLO' : 'DEVELOPING'}${item.storyMeta.mentionCount > 1 ? ` ×${item.storyMeta.mentionCount}` : ''}</span>` : ''}
+          ${item.storyMeta?.phase === 'sustained' ? `<span class="phase-badge sustained">${getCurrentLanguage().startsWith('es') ? 'EN CURSO' : 'ONGOING'}</span>` : ''}
+          ${item.isAlert ? `<span class="alert-tag">${getCurrentLanguage().startsWith('es') ? 'ALERTA' : 'ALERT'}</span>` : ''}
         </div>
         <a class="item-title" href="${sanitizeUrl(item.link)}" target="_blank" rel="noopener">${escapeHtml(item.title)}</a>
         ${item.snippet ? `<div class="item-snippet">${escapeHtml(item.snippet.length > 200 ? item.snippet.slice(0, 200).replace(/\s+\S*$/, '') + '…' : item.snippet)}</div>` : ''}
