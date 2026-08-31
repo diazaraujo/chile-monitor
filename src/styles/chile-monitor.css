@@ -28,3 +28,5 @@ html[data-variant="chile"].wm-pro-banner-reserved #app::before,
 [data-variant="chile"] .variant-switcher,
 [data-variant="chile"] .site-footer nav a:not(.chile-keep),
 [data-variant="chile"] #footerDownloadMount { display: none !important; }
+
+.chile-health-alerta { background: rgba(215,58,73,.18); border: 1px solid rgba(215,58,73,.5); color: inherit; padding: 6px 8px; border-radius: 4px; font-size: 11px; margin-bottom: 8px; }

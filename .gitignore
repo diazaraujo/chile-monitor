@@ -149,3 +149,4 @@ data/derechos_*
 .venv-gis/
 public/chile/
 data/seia-estado-snapshot.json
+public/chile/health.json
