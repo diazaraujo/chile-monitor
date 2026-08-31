@@ -11,6 +11,7 @@ import { openExternalUrl } from '@/services/external-navigation';
 import { lockSvg, upgradeSvg } from '@/components/gate-icons';
 import { createCheckoutConsentElement } from '@/utils/legal-links';
 import { WEB_APP_ORIGIN } from '@/config/web-origin';
+import { SITE_VARIANT, VARIANT_PANEL_OVERRIDES } from '@/config';
 import { dataFreshness, type PanelFreshnessSummary } from '@/services/data-freshness';
 import { formatPanelFreshnessDisplay } from '@/services/panel-freshness-display';
 import {
@@ -206,7 +207,9 @@ export class Panel {
 
     const title = document.createElement('span');
     title.className = 'panel-title';
-    title.textContent = options.title;
+    // chile: los títulos i18n del upstream (WORLD NEWS, GOVERNMENT…) pisan los names de la
+    // variante; acá gana el override de config si existe.
+    title.textContent = (SITE_VARIANT === 'chile' && VARIANT_PANEL_OVERRIDES.chile?.[options.id]?.name) || options.title;
     // Panels are the dashboard's sections, but a real <h2> would drag along
     // element styles; role/aria-level gives the outline with zero visual change.
     title.setAttribute('role', 'heading');

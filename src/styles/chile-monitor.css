@@ -15,3 +15,16 @@
 .chile-hecho-conflicto .chile-hecho-tag { background: rgba(227,160,8,.3); }
 .chile-hecho-meta { opacity: .7; font-size: 11px; margin-top: 2px; }
 .chile-brief-foot { opacity: .55; font-size: 10px; margin-top: 8px; }
+
+/* Chile Monitor: sin Pro, sin auth, sin Discord, sin switcher de variantes del upstream */
+[data-variant="chile"] .pro-banner,
+[data-variant="chile"] .pro-banner-cta,
+html[data-variant="chile"].wm-pro-banner-reserved #app::before,
+[data-variant="chile"] .auth-signin-btn,
+[data-variant="chile"] .auth-signup-link,
+[data-variant="chile"] .mobile-auth-fallback,
+[data-variant="chile"] .community-widget,
+[data-variant="chile"] .credit-link,
+[data-variant="chile"] .variant-switcher,
+[data-variant="chile"] .site-footer nav a:not(.chile-keep),
+[data-variant="chile"] #footerDownloadMount { display: none !important; }

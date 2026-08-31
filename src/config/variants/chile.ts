@@ -16,7 +16,6 @@ export const DEFAULT_PANELS: Record<string, PanelConfig> = {
   climate: { name: 'Clima y territorio', enabled: true, priority: 1 },
   latam: { name: 'Cono Sur', enabled: true, priority: 2 },
   monitors: { name: 'Mis monitores', enabled: true, priority: 2 },
-  cii: { name: 'Estrés territorial', enabled: true, priority: 1 },
 };
 
 export const DEFAULT_MAP_LAYERS: MapLayers = {
