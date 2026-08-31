@@ -57,6 +57,31 @@ export async function buildPMTilesStyle(flavor: PMTilesTheme): Promise<StyleSpec
   };
 }
 
+
+// ---- Mapbox (requiere VITE_MAPBOX_TOKEN) ----
+import { MAPBOX_TOKEN } from './basemap';
+
+const MAPBOX_STYLES: Record<'dark' | 'light', string> = {
+  dark: `https://api.mapbox.com/styles/v1/mapbox/dark-v11?access_token=${MAPBOX_TOKEN}`,
+  light: `https://api.mapbox.com/styles/v1/mapbox/light-v11?access_token=${MAPBOX_TOKEN}`,
+};
+
+/**
+ * MapLibre no resuelve URLs mapbox:// — este transformRequest las traduce a la API
+ * HTTP de Mapbox con el token. Passthrough para todo lo demás (inofensivo con otros
+ * proveedores), así se puede pasar siempre al crear el mapa.
+ */
+export function mapboxTransformRequest(url: string): { url: string } {
+  if (!url.startsWith('mapbox://') || !MAPBOX_TOKEN) return { url };
+  const token = `access_token=${MAPBOX_TOKEN}`;
+  const withToken = (u: string) => ({ url: u + (u.includes('?') ? '&' : '?') + token });
+  if (url.startsWith('mapbox://styles/')) return withToken(`https://api.mapbox.com/styles/v1/${url.slice('mapbox://styles/'.length)}`);
+  if (url.startsWith('mapbox://sprites/')) return withToken(`https://api.mapbox.com/styles/v1/${url.slice('mapbox://sprites/'.length).replace('/sprite', '/sprite')}`);
+  if (url.startsWith('mapbox://fonts/')) return withToken(`https://api.mapbox.com/fonts/v1/${url.slice('mapbox://fonts/'.length)}`);
+  // fuente de tiles: mapbox://{tileset-id[,id2...]} -> TileJSON v4
+  return withToken(`https://api.mapbox.com/v4/${url.slice('mapbox://'.length)}.json?secure`);
+}
+
 const CARTO_DARK = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 const CARTO_VOYAGER = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
 const CARTO_POSITRON = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
@@ -91,6 +116,8 @@ export async function getStyleForProvider(provider: MapProvider, mapTheme: strin
       return mapTheme === 'positron' ? FALLBACK_LIGHT_STYLE : FALLBACK_DARK_STYLE;
     case 'carto':
       return CARTO_STYLES[mapTheme] ?? CARTO_DARK;
+    case 'mapbox':
+      return MAPBOX_STYLES[lightFallback ? 'light' : 'dark'];
     default: {
       const pmtiles = await tryBuildRegisteredPMTilesStyle(asPMTilesTheme(mapTheme));
       return pmtiles ?? (lightFallback ? FALLBACK_LIGHT_STYLE : FALLBACK_DARK_STYLE);

@@ -9,7 +9,7 @@ import { GeoJsonLayer, ScatterplotLayer, PathLayer, IconLayer, TextLayer, Polygo
 import maplibregl from 'maplibre-gl';
 import type { StyleSpecification } from 'maplibre-gl';
 import { FALLBACK_DARK_STYLE, FALLBACK_LIGHT_STYLE, getMapProvider, getMapTheme, isLightMapTheme } from '@/config/basemap';
-import { getStyleForProvider, registerPMTilesProtocol } from '@/config/basemap-styles';
+import { getStyleForProvider, registerPMTilesProtocol, mapboxTransformRequest } from '@/config/basemap-styles';
 import Supercluster from 'supercluster';
 import type {
   MapLayers,
@@ -1098,6 +1098,7 @@ export class DeckGLMap {
     if (!basemapEl) return;
 
     this.maplibreMap = new maplibregl.Map({
+        transformRequest: mapboxTransformRequest,
       container: basemapEl,
       style: primaryStyle,
       center: [preset.longitude, preset.latitude],
@@ -1132,6 +1133,7 @@ export class DeckGLMap {
       const fallbackEl = document.getElementById('deckgl-basemap');
       if (!fallbackEl) return;
       this.maplibreMap = new maplibregl.Map({
+        transformRequest: mapboxTransformRequest,
         container: fallbackEl,
         style: fallback,
         center: [preset.longitude, preset.latitude],

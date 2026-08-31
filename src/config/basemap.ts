@@ -4,6 +4,8 @@
 // maplibre-using helpers live in `./basemap-styles.ts` and are loaded
 // lazily alongside MapContainer/DeckGLMap when the map panel mounts.
 
+export const MAPBOX_TOKEN: string = (import.meta.env?.VITE_MAPBOX_TOKEN as string | undefined) ?? '';
+export const hasMapboxToken = MAPBOX_TOKEN.length > 0;
 const R2_PROXY = import.meta.env.VITE_PMTILES_URL ?? '';
 const R2_PUBLIC = import.meta.env.VITE_PMTILES_URL_PUBLIC ?? '';
 const isTauri = typeof window !== 'undefined' && '__TAURI__' in window;
@@ -18,7 +20,7 @@ export type CartoTheme = 'dark-matter' | 'voyager' | 'positron';
 export const FALLBACK_DARK_STYLE = 'https://tiles.openfreemap.org/styles/dark';
 export const FALLBACK_LIGHT_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
-export type MapProvider = 'auto' | 'pmtiles' | 'openfreemap' | 'carto';
+export type MapProvider = 'auto' | 'pmtiles' | 'openfreemap' | 'carto' | 'mapbox';
 
 const STORAGE_KEY = 'wm-map-provider';
 const THEME_STORAGE_PREFIX = 'wm-map-theme:';
@@ -47,6 +49,7 @@ export const MAP_PROVIDER_OPTIONS: { value: MapProvider; label: string }[] = (()
     opts.push({ value: 'auto', label: 'Auto (PMTiles → OpenFreeMap fallback)' });
     opts.push({ value: 'pmtiles', label: 'PMTiles (self-hosted)' });
   }
+  if (hasMapboxToken) opts.push({ value: 'mapbox', label: 'Mapbox' });
   opts.push({ value: 'openfreemap', label: 'OpenFreeMap' });
   opts.push({ value: 'carto', label: 'CARTO' });
   return opts;
@@ -67,6 +70,10 @@ export const MAP_THEME_OPTIONS: Record<MapProvider, { value: string; label: stri
     { value: 'dark', label: 'Dark' },
     { value: 'positron', label: 'Positron (light)' },
   ],
+  mapbox: [
+    { value: 'dark', label: 'Dark v11' },
+    { value: 'light', label: 'Light v11' },
+  ],
   carto: [
     { value: 'dark-matter', label: 'Dark Matter' },
     { value: 'voyager', label: 'Voyager (light)' },
@@ -79,6 +86,7 @@ const DEFAULT_THEME: Record<MapProvider, string> = {
   auto: 'black',
   openfreemap: 'dark',
   carto: 'dark-matter',
+  mapbox: 'dark',
 };
 
 export function getMapProvider(): MapProvider {
@@ -90,9 +98,11 @@ export function getMapProvider(): MapProvider {
     if (stored === 'pmtiles' || stored === 'auto') {
       return hasTilesUrl ? stored : 'openfreemap';
     }
-    if (isChile && stored === 'carto') return 'openfreemap';
+    if (stored === 'mapbox') return hasMapboxToken ? 'mapbox' : 'openfreemap';
+    if (isChile && stored === 'carto') return hasMapboxToken ? 'mapbox' : 'openfreemap';
     return stored;
   }
+  if (isChile && hasMapboxToken) return 'mapbox';
   return hasTilesUrl ? 'auto' : 'openfreemap';
 }
 
