@@ -1359,6 +1359,8 @@ export const VARIANT_PANEL_OVERRIDES: Partial<Record<string, Partial<Record<stri
     latam:       { name: 'Cono Sur' },
     monitors:    { name: 'Mis monitores' },
     camaras:     { name: 'Cámaras por comuna' },
+    'threat-timeline': { name: 'Línea de amenazas' },
+    'live-webcams': { name: 'Cámaras en vivo' },
     gov:         { name: 'Estado' },
     climate:     { name: 'Clima y territorio' },
   },
