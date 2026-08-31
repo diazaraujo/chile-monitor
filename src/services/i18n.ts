@@ -1,3 +1,4 @@
+import { SITE_VARIANT } from '@/config/variant';
 import i18next from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
@@ -179,6 +180,12 @@ export async function initI18n(): Promise<void> {
     },
     cacheUserLanguage: () => { /* writes go through explicit changeLanguage() */ },
   });
+  detector.addDetector({
+    name: 'wmVariantDefault',
+    // chile: audiencia chilena — español salvo elección explícita en Settings → Language.
+    lookup: () => (SITE_VARIANT === 'chile' ? 'es' : undefined),
+    cacheUserLanguage: () => { /* default de variante, nunca se persiste */ },
+  });
 
   await i18next
     .use(detector)
@@ -194,7 +201,7 @@ export async function initI18n(): Promise<void> {
         escapeValue: false, // not needed for these simple strings
       },
       detection: {
-        order: ['wmQuery', 'wmExplicit', 'navigator'],
+        order: ['wmQuery', 'wmExplicit', 'wmVariantDefault', 'navigator'],
         caches: [], // never auto-write — only changeLanguage() persists
       },
     });

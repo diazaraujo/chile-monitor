@@ -396,7 +396,7 @@ const VARIANT_LAYER_ORDER: Record<MapVariant, Array<keyof MapLayers>> = {
     'bases', 'military', 'flights',
     'fires', 'natural', 'climate', 'weather',
     'chileAgua', 'chileTierras', 'chilePueblos', 'chileSeia',
-    'protests',
+    'cables', 'pipelines', 'ais', 'protests',
   ],
 };
 

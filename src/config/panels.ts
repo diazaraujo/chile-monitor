@@ -1205,6 +1205,8 @@ const CHILE_PANELS: Record<string, PanelConfig> = {
   climate: { name: 'Clima y territorio', enabled: true, priority: 1 },
   latam: { name: 'Cono Sur', enabled: true, priority: 2 },
   monitors: { name: 'Mis monitores', enabled: true, priority: 2 },
+  'threat-timeline': { name: 'Línea de amenazas', enabled: true, priority: 2 },
+  webcams: { name: 'Webcams en vivo', enabled: true, priority: 2 },
 };
 
 const CHILE_MAP_LAYERS: MapLayers = {
@@ -1212,8 +1214,8 @@ const CHILE_MAP_LAYERS: MapLayers = {
   satellites: false,
   conflicts: false,
   bases: true,
-  cables: false,
-  pipelines: false,
+  cables: true,
+  pipelines: true,
   hotspots: false,
   ais: false,
   nuclear: false,
