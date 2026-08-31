@@ -9,7 +9,12 @@ const VITE_ENV_NAME = /^VITE_[A-Za-z0-9_]+$/;
 const SECRET_NAME = /(?:api_?key|access_?token|secret|token|password|private_?key|credential)/i;
 const VITE_ENV_FILE = /^\.env(?:\.[A-Za-z0-9_-]+)?(?:\.local)?$/;
 
+// Claves publishable: diseñadas para embeberse en el bundle público (no son secretos).
+// Mapbox pk.* es el caso canónico — su docs exigen exponerla en el cliente.
+const PUBLISHABLE_ALLOWLIST = new Set(['VITE_MAPBOX_TOKEN']);
+
 function isViteSecretEnvVar(name) {
+  if (PUBLISHABLE_ALLOWLIST.has(name)) return false;
   return VITE_ENV_NAME.test(name) && SECRET_NAME.test(name);
 }
 
