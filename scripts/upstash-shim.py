@@ -108,12 +108,26 @@ class H(BaseHTTPRequestHandler):
         except Exception as e:  # noqa: BLE001
             self._send(500, {"error": str(e)})
 
+    def _read_body(self):
+        if self.headers.get("Transfer-Encoding", "").lower() == "chunked":
+            out = []
+            while True:
+                size = int(self.rfile.readline().strip() or b"0", 16)
+                if size == 0:
+                    self.rfile.readline()
+                    break
+                out.append(self.rfile.read(size))
+                self.rfile.readline()
+            return b"".join(out)
+        return self.rfile.read(int(self.headers.get("Content-Length") or 0))
+
     def do_POST(self):
         if not self._auth():
             return
-        n = int(self.headers.get("Content-Length") or 0)
         try:
-            body = json.loads(self.rfile.read(n) or b"null")
+            body = json.loads(self._read_body() or b"null")
+            if not isinstance(body, list):
+                return self._send(400, {"error": "body debe ser una lista de comandos"})
             path = self.path.split("?")[0].rstrip("/")
             if path == "":
                 self._send(200, wrap(run([body])[0]))
