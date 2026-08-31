@@ -231,6 +231,19 @@ describe('sources catalog origin countries', () => {
     assert.equal(sourceOriginLabel('QA'), 'Qatar');
   });
 
+  it('classifies Chilean publishers that use generic TLDs', () => {
+    for (const host of [
+      'cnnchile.com',
+      'elpinguino.com',
+      'emol.com',
+      'laderasur.com',
+      'lasegunda.com',
+      'latercera.com',
+    ]) {
+      assert.equal(resolveSourceOrigin({ provider: host, hosts: [host] }), 'CL');
+    }
+  });
+
   it('classifies every crisis-desk publisher added by #6813-#6830 and the Annahar follow-up', () => {
     const expectedOrigins = new Map([
       ['actuniger.com', 'NE'],
