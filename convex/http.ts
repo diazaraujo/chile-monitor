@@ -2338,4 +2338,73 @@ http.route({
   }),
 });
 
+http.route({
+  path: "/api/internal-assign-reviewer-operation",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (await reviewStorageUnauthorized(request)) {
+      return reviewStorageJson({ error: "UNAUTHORIZED" }, 401);
+    }
+    const body = await parseBoundedReviewBody(request);
+    if (!body || body.lookup === undefined) {
+      return reviewStorageJson({ error: "INVALID_REQUEST" }, 400);
+    }
+    try {
+      const result = await ctx.runQuery(
+        anyApi.reviewCases!.readAssignReviewerOperation as any,
+        { lookup: body.lookup },
+      );
+      return reviewStorageJson(result, 200);
+    } catch {
+      return reviewStorageJson({ error: "REVIEW_STORAGE_FAILURE" }, 500);
+    }
+  }),
+});
+
+http.route({
+  path: "/api/internal-review-case-assignment-snapshot",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (await reviewStorageUnauthorized(request)) {
+      return reviewStorageJson({ error: "UNAUTHORIZED" }, 401);
+    }
+    const body = await parseBoundedReviewBody(request);
+    if (!body || body.lookup === undefined) {
+      return reviewStorageJson({ error: "INVALID_REQUEST" }, 400);
+    }
+    try {
+      const result = await ctx.runQuery(
+        anyApi.reviewCases!.readReviewCaseSnapshotForAssignment as any,
+        { lookup: body.lookup },
+      );
+      return reviewStorageJson(result, 200);
+    } catch {
+      return reviewStorageJson({ error: "REVIEW_STORAGE_FAILURE" }, 500);
+    }
+  }),
+});
+
+http.route({
+  path: "/api/internal-assign-reviewer",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (await reviewStorageUnauthorized(request)) {
+      return reviewStorageJson({ error: "UNAUTHORIZED" }, 401);
+    }
+    const body = await parseBoundedReviewBody(request);
+    if (!body || body.request === undefined) {
+      return reviewStorageJson({ error: "INVALID_REQUEST" }, 400);
+    }
+    try {
+      const result = await ctx.runMutation(
+        anyApi.reviewCases!.commitAssignReviewer as any,
+        { request: body.request },
+      );
+      return reviewStorageJson(result, 200);
+    } catch {
+      return reviewStorageJson({ error: "REVIEW_STORAGE_FAILURE" }, 500);
+    }
+  }),
+});
+
 export default http;

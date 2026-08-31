@@ -41,6 +41,10 @@ const reviewRepresentation = v.union(
   v.literal("public"),
   v.literal("municipal_restricted"),
 );
+const reviewActionType = v.union(
+  v.literal("OpenLicenseReview"),
+  v.literal("AssignReviewer"),
+);
 
 // Subscription status enum — maps Dodo statuses to our internal set
 const subscriptionStatus = v.union(
@@ -1717,6 +1721,33 @@ export default defineSchema({
     .index("by_authorityId", ["authorityId"])
     .index("by_actor_municipality", ["actorId", "municipalityCut"]),
 
+  reviewAssignmentAuthorityGrants: defineTable({
+    authorityId: v.string(),
+    authorityVersion: v.number(),
+    actorId: v.string(),
+    municipalityCut: v.string(),
+    roles: v.array(v.literal("coordinator")),
+    permittedActions: v.array(v.literal("AssignReviewer")),
+    validFrom: v.string(),
+    validTo: v.optional(v.string()),
+    revokedAt: v.optional(v.string()),
+    updatedAt: v.number(),
+  })
+    .index("by_authorityId", ["authorityId"])
+    .index("by_actor_municipality", ["actorId", "municipalityCut"]),
+
+  reviewReviewerEligibilityGrants: defineTable({
+    reviewerId: v.string(),
+    reviewerVersion: v.number(),
+    municipalityCut: v.string(),
+    eligible: v.boolean(),
+    validFrom: v.string(),
+    validTo: v.optional(v.string()),
+    revokedAt: v.optional(v.string()),
+    updatedAt: v.number(),
+  })
+    .index("by_reviewer_municipality", ["reviewerId", "municipalityCut"]),
+
   // Low-volume MVP serialization point. Every authority update and review
   // opening reads and patches this singleton, covering first-insert races for
   // operation bindings, active targets and globally generated identifiers.
@@ -1727,7 +1758,7 @@ export default defineSchema({
 
   reviewOperations: defineTable({
     actorId: v.string(),
-    actionType: v.literal("OpenLicenseReview"),
+    actionType: reviewActionType,
     operationKeySha256: v.string(),
     commandSha256: v.string(),
     municipalityCut: v.string(),
@@ -1741,7 +1772,7 @@ export default defineSchema({
     caseVersion: v.number(),
     municipalityCut: v.string(),
     licenseId: v.string(),
-    status: v.literal("open"),
+    status: v.union(v.literal("open"), v.literal("in_review")),
     snapshotJson: v.string(),
     packetId: v.string(),
     createdAt: v.number(),
@@ -1790,7 +1821,7 @@ export default defineSchema({
   reviewActions: defineTable({
     actionId: v.string(),
     caseId: v.string(),
-    actionType: v.literal("OpenLicenseReview"),
+    actionType: reviewActionType,
     resultingCaseVersion: v.number(),
     actorId: v.string(),
     legalEffect: v.literal("none"),
