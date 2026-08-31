@@ -126,6 +126,7 @@ const SOURCE_DOMAIN_OVERRIDES = new Map([
   ['GTA Update', 'geopolitics'],
   ['contxto.com', 'technology'],
   ['corridorrisk.io', 'infrastructure'],
+  ['api.mapbox.com', 'infrastructure'],
   ['CWFIS / CWFIF (NRCan)', 'environment'],
   ['BC Wildfire Service (OpenMaps)', 'environment'],
   ['data.ecb.europa.eu', 'finance'],
