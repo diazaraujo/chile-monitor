@@ -63,8 +63,13 @@ def incendios(dias: int) -> dict:
     except Exception as e:  # noqa: BLE001
         print(f"FIRMS no disponible: {e}", file=sys.stderr)
         return {}
-    from shapely.geometry import Point, shape
-    from shapely.strtree import STRtree
+    try:
+        from shapely.geometry import Point, shape
+        from shapely.strtree import STRtree
+    except ImportError as e:
+        # ponytail: sin shapely el brief sale igual, solo sin incendios (correr con .venv-gis para tenerlos)
+        print(f"shapely no disponible ({e}): brief sin incendios", file=sys.stderr)
+        return {}
 
     desde = (date.today() - timedelta(days=dias)).isoformat()
     x0, y0, x1, y1 = CHILE_BBOX
