@@ -17,7 +17,7 @@ export const DEFAULT_PANELS: Record<string, PanelConfig> = {
   latam: { name: 'Cono Sur', enabled: true, priority: 2 },
   monitors: { name: 'Mis monitores', enabled: true, priority: 2 },
   'threat-timeline': { name: 'Línea de amenazas', enabled: true, priority: 2 },
-  webcams: { name: 'Webcams en vivo', enabled: true, priority: 2 },
+  'live-webcams': { name: 'Webcams en vivo', enabled: true, priority: 2 },
 };
 
 export const DEFAULT_MAP_LAYERS: MapLayers = {
