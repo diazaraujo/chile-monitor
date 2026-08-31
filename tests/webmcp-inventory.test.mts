@@ -188,6 +188,7 @@ describe('WebMCP canonical inventories', () => {
       happy: [],
       commodity: [],
       energy: [],
+      chile: [],
     };
 
     for (const variant of SITE_VARIANTS) {
