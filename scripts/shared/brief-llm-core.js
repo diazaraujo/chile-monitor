@@ -341,6 +341,9 @@ const TITLE_PREFIX_STOP = new Set([
   'Presidente', 'Presidenta', 'Ministro', 'Ministra', 'Subsecretario', 'Subsecretaria',
   'Senador', 'Senadora', 'Diputado', 'Diputada', 'Alcalde', 'Alcaldesa', 'Gobernador', 'Gobernadora',
   'Fiscal', 'Juez', 'Jueza', 'General', 'Contralor', 'Contralora', 'Superintendente', 'Director', 'Directora',
+  // Conectores/adverbios españoles capitalizados por posición, nunca nombres propios.
+  'Además', 'Mientras', 'Tras', 'Según', 'Asimismo', 'Luego', 'Ahora', 'Hoy', 'Ayer',
+  'Finalmente', 'Paralelamente', 'También', 'Entretanto', 'Simultáneamente',
 ]);
 
 // Joiner words — lowercase tokens that bridge proper-noun sequences.
