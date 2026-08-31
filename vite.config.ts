@@ -1015,7 +1015,7 @@ export default defineConfig(({ mode }) => {
       rssProxyPlugin(),
       youtubeLivePlugin(),
       gpsjamDevPlugin(),
-      chileVercelApiPlugin(),
+      activeVariant === 'chile' && chileVercelApiPlugin(),
       sebufApiPlugin(),
       brotliPrecompressPlugin(),
       VitePWA({
