@@ -73,7 +73,7 @@ const IDLE_ACTIVITY_EVENTS = ['mousedown', 'keydown', 'scroll', 'touchstart', 'm
 type ViewMode = 'grid' | 'single';
 type RegionFilter = 'all' | WebcamRegion;
 
-const ALL_REGIONS: RegionFilter[] = ['all', 'middle-east', 'europe', 'americas', 'asia', 'space'];
+const ALL_REGIONS: RegionFilter[] = ['chile', 'all', 'middle-east', 'europe', 'americas', 'asia', 'space'];
 
 interface WebcamPrefs {
   regionFilter: RegionFilter;
