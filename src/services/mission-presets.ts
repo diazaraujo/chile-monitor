@@ -14,6 +14,10 @@ export const MISSION_PRESET_STORAGE_KEY = 'worldmonitor-mission-preset-v1';
 export const MISSION_PRESET_DISMISSED_KEY = 'worldmonitor-mission-preset-dismissed-v1';
 
 export type MissionPresetId =
+  | 'mesa-crisis'
+  | 'territorio-agua'
+  | 'sala-prensa'
+  | 'proyectos-inversion'
   | 'crisis-desk'
   | 'supply-chain-risk'
   | 'energy-security'
@@ -22,7 +26,7 @@ export type MissionPresetId =
   | 'tech-ai-watch'
   | 'good-news-explorer';
 
-export type MissionMapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania';
+export type MissionMapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania' | 'chile';
 export type MissionTimeRange = '1h' | '6h' | '24h' | '48h' | '7d' | 'all';
 
 export interface MissionPreset {
@@ -51,7 +55,7 @@ export interface ResetMissionPresetState {
   mapLayers: MapLayers;
 }
 
-export const MISSION_PRESETS: readonly MissionPreset[] = [
+const BASE_MISSION_PRESETS: readonly MissionPreset[] = [
   {
     id: 'crisis-desk',
     label: 'Crisis Desk',
@@ -326,6 +330,62 @@ export const MISSION_PRESETS: readonly MissionPreset[] = [
     ],
   },
 ];
+
+
+// Chile Monitor: misiones territoriales. Paneles y capas de la variante chile.
+const CHILE_MISSION_PRESETS: readonly MissionPreset[] = [
+  {
+    id: 'mesa-crisis',
+    label: 'Mesa de crisis',
+    shortLabel: 'Crisis',
+    description: 'Incendios, sismos, clima severo y cobertura de prensa en tiempo real.',
+    icon: '!',
+    view: 'chile',
+    zoom: 4.2,
+    timeRange: '24h',
+    panels: ['map', 'territorial', 'climate', 'threat-timeline', 'politics', 'gov', 'camaras', 'live-webcams'],
+    layers: ['fires', 'natural', 'weather', 'climate', 'protests'],
+  },
+  {
+    id: 'territorio-agua',
+    label: 'Territorio y agua',
+    shortLabel: 'Territorio',
+    description: 'SEIA, derechos de agua, tierras y pueblos originarios sobre el mapa.',
+    icon: 'T',
+    view: 'chile',
+    zoom: 4.2,
+    timeRange: '7d',
+    panels: ['map', 'territorial', 'gov', 'insights', 'camaras'],
+    layers: ['chileAgua', 'chileTierras', 'chilePueblos', 'chileSeia'],
+  },
+  {
+    id: 'sala-prensa',
+    label: 'Sala de prensa',
+    shortLabel: 'Prensa',
+    description: 'Titulares, política, regiones, Cono Sur y cámaras en vivo.',
+    icon: 'N',
+    view: 'chile',
+    zoom: 4.2,
+    timeRange: '24h',
+    panels: ['map', 'insights', 'politics', 'us', 'gov', 'climate', 'latam', 'live-webcams', 'monitors'],
+    layers: ['fires', 'natural', 'weather'],
+  },
+  {
+    id: 'proyectos-inversion',
+    label: 'Proyectos e inversión',
+    shortLabel: 'Proyectos',
+    description: 'Ingresos SEIA, calificaciones, infraestructura y trazados de proyectos.',
+    icon: '$',
+    view: 'chile',
+    zoom: 4.2,
+    timeRange: '7d',
+    panels: ['map', 'territorial', 'gov', 'insights', 'threat-timeline'],
+    layers: ['chileSeia', 'chileTierras', 'chileAgua', 'cables', 'pipelines'],
+  },
+];
+
+export const MISSION_PRESETS: readonly MissionPreset[] =
+  SITE_VARIANT === 'chile' ? CHILE_MISSION_PRESETS : BASE_MISSION_PRESETS;
 
 const DYNAMIC_PANEL_PREFIXES = ['cw-', 'mcp-'];
 const MIN_PRESET_PANEL_MATCHES = 2;

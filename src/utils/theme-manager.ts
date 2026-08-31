@@ -39,6 +39,8 @@ export function getThemePreference(): ThemePreference {
 }
 
 function resolveAutoTheme(): Theme {
+  // chile: identidad oscura del monitor — auto resuelve dark; la elección explícita del usuario sigue ganando.
+  if (typeof document !== 'undefined' && document.documentElement.dataset.variant === 'chile') return 'dark';
   if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: light)').matches) {
     return 'light';
   }

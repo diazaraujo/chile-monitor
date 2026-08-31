@@ -66,6 +66,15 @@ export interface LiveChannel {
 
 
 // Full variant: World news channels (24/7 live streams)
+// Chile variant: señales chilenas 24/7 verificadas 31-ago-2026 (/@handle/live resuelve el ID vigente)
+const CHILE_LIVE_CHANNELS: LiveChannel[] = [
+  { id: 'cnnchile', name: 'CNN Chile', handle: '@cnnchile', fallbackVideoId: 'bqhmbR3qidU' },
+  { id: 'chv', name: 'Chilevisión', handle: '@chilevision', fallbackVideoId: 'g4u2M52ZB6Q' },
+  { id: 'latercera-tv', name: 'La Tercera', handle: '@latercera', fallbackVideoId: 'Z39TfXkpOV0' },
+  { id: 'mega', name: 'Meganoticias', handle: '@Meganoticias', fallbackVideoId: 'rc9slWLNjNw' },
+  { id: 'dw-es', name: 'DW Español', handle: '@dwespanol', fallbackVideoId: 'yZh3xsFqCt8' },
+];
+
 const FULL_LIVE_CHANNELS: LiveChannel[] = [
   { id: 'bloomberg', name: 'Bloomberg', handle: '@markets', fallbackVideoId: 'iEpJwprxDdk' },
   { id: 'sky', name: 'SkyNews', handle: '@SkyNews', fallbackVideoId: 'uvviIF4725I' },
@@ -205,7 +214,7 @@ export const OPTIONAL_CHANNEL_REGIONS: { key: string; labelKey: string; channelI
   ..._REGION_ENTRIES,
 ];
 
-const DEFAULT_LIVE_CHANNELS = SITE_VARIANT === 'tech' ? TECH_LIVE_CHANNELS : SITE_VARIANT === 'happy' ? [] : FULL_LIVE_CHANNELS;
+const DEFAULT_LIVE_CHANNELS = SITE_VARIANT === 'chile' ? CHILE_LIVE_CHANNELS : SITE_VARIANT === 'tech' ? TECH_LIVE_CHANNELS : SITE_VARIANT === 'happy' ? [] : FULL_LIVE_CHANNELS;
 
 /** Default channel list for the current variant (for restore in channel management). */
 export function getDefaultLiveChannels(): LiveChannel[] {
@@ -304,7 +313,7 @@ const PROXIED_HLS_MAP: Readonly<Record<string, ProxiedHlsEntry>> = {
 const IDLE_ACTIVITY_EVENTS = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'] as const;
 
 if (import.meta.env.DEV) {
-  const allChannels = [...FULL_LIVE_CHANNELS, ...TECH_LIVE_CHANNELS, ...OPTIONAL_LIVE_CHANNELS];
+  const allChannels = [...FULL_LIVE_CHANNELS, ...TECH_LIVE_CHANNELS, ...CHILE_LIVE_CHANNELS, ...OPTIONAL_LIVE_CHANNELS];
   for (const id of Object.keys(DIRECT_HLS_MAP)) {
     const ch = allChannels.find(c => c.id === id);
     if (!ch) console.error(`[LiveNews] DIRECT_HLS_MAP key '${id}' has no matching channel`);
@@ -317,6 +326,7 @@ if (import.meta.env.DEV) {
 export const BUILTIN_IDS = new Set([
   ...FULL_LIVE_CHANNELS.map((c) => c.id),
   ...TECH_LIVE_CHANNELS.map((c) => c.id),
+  ...CHILE_LIVE_CHANNELS.map((c) => c.id),
   ...OPTIONAL_LIVE_CHANNELS.map((c) => c.id),
 ]);
 
