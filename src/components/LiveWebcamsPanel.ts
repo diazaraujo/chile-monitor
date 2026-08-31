@@ -1,4 +1,5 @@
 import { Panel } from './Panel';
+import { SITE_VARIANT } from '@/config';
 import { IDLE_PAUSE_MS, STORAGE_KEYS } from '@/config';
 import { isDesktopRuntime, getLocalApiPort } from '@/services/runtime';
 import { escapeHtml } from '@/utils/sanitize';
@@ -106,7 +107,8 @@ interface WebcamIframeTracker {
 
 export class LiveWebcamsPanel extends Panel {
   private viewMode: ViewMode = 'grid';
-  private regionFilter: RegionFilter = 'all';
+  // chile: las cámaras del resto del mundo son ruido de entrada — abrir en Chile.
+  private regionFilter: RegionFilter = SITE_VARIANT === 'chile' ? 'chile' : 'all';
   private activeFeed: WebcamFeed = WEBCAM_FEEDS[0]!;
   private toolbar: HTMLElement | null = null;
   private iframes: HTMLIFrameElement[] = [];
