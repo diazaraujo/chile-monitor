@@ -67,6 +67,23 @@
       ]
     },
     {
+      "host": "24horas.cl",
+      "provider": "24horas.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit 24horas.cl and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
       "host": "36kr.com",
       "provider": "36kr.com",
       "kind": "feed",
@@ -249,6 +266,23 @@
       "license": "Publisher-provided feed or Google News link metadata; ingest is limited to headlines, summaries, timestamps, publisher credit, and link-out",
       "attribution": "Credit ActuNiger and link to the original publisher item.",
       "status": "reviewed",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "adnradio.cl",
+      "provider": "adnradio.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit adnradio.cl and link to the original feed publisher.",
+      "status": "terms-review",
       "references": [
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
@@ -588,6 +622,9 @@
       "status": "excluded",
       "references": [
         {
+          "path": "api/user/passkey-offer.ts"
+        },
+        {
           "path": "server/auth-session.ts"
         }
       ]
@@ -844,7 +881,7 @@
       "status": "excluded",
       "references": [
         {
-          "path": "server/_shared/llm-health.ts"
+          "path": "shared/llm-health-providers.js"
         }
       ]
     },
@@ -873,6 +910,23 @@
       "references": [
         {
           "path": "scripts/seed-iea-oil-stocks.mjs"
+        }
+      ]
+    },
+    {
+      "host": "api.imd.gov.in",
+      "provider": "India Meteorological Department",
+      "kind": "structured",
+      "observed": true,
+      "license": "IMD public API is account- and key-gated. RTI IMETD/R/E/25/00381 states APIs are without charges for non-commercial use only. World Monitor public-display and redistribution rights are validated.",
+      "attribution": "Data source: India Meteorological Department. Link https://api.imd.gov.in/public/api_reference.html and the official product page.",
+      "status": "reviewed",
+      "references": [
+        {
+          "path": "scripts/lib/imd-cyclone-marine.mjs"
+        },
+        {
+          "path": "src/app/data-loader.ts"
         }
       ]
     },
@@ -1325,6 +1379,12 @@
         },
         {
           "path": "server/worldmonitor/economic/v1/list-world-bank-indicators.ts"
+        },
+        {
+          "path": "server/worldmonitor/resilience/v1/_dimension-scorers.ts"
+        },
+        {
+          "path": "server/worldmonitor/resilience/v1/_indicator-source-policy.ts"
         }
       ]
     },
@@ -1678,6 +1738,23 @@
       ]
     },
     {
+      "host": "australtemuco.cl",
+      "provider": "australtemuco.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit australtemuco.cl and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
       "host": "auth.opensky-network.org",
       "provider": "opensky-network.org",
       "kind": "structured",
@@ -1890,6 +1967,9 @@
       "status": "reviewed",
       "references": [
         {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
           "path": "src/config/feeds.ts"
         }
       ]
@@ -2025,6 +2105,23 @@
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit calgaryherald.com and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "camara.cl",
+      "provider": "camara.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit camara.cl and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
         {
@@ -2281,6 +2378,9 @@
       "status": "reviewed",
       "references": [
         {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
           "path": "src/config/feeds.ts"
         }
       ]
@@ -2422,6 +2522,23 @@
       ]
     },
     {
+      "host": "cnnchile.com",
+      "provider": "cnnchile.com",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit cnnchile.com and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
       "host": "co.usembassy.gov",
       "provider": "co.usembassy.gov",
       "kind": "structured",
@@ -2528,6 +2645,9 @@
           "path": "scripts/seed-recovery-reexport-share.mjs"
         },
         {
+          "path": "scripts/seed-supply-vulnerability.mjs"
+        },
+        {
           "path": "scripts/seed-trade-flows.mjs"
         },
         {
@@ -2589,6 +2709,9 @@
       "attribution": "Credit Cooperativa and link to the original item.",
       "status": "reviewed",
       "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
         {
           "path": "src/config/feeds.ts"
         }
@@ -2979,15 +3102,10 @@
       "host": "defense.gov",
       "provider": "defense.gov",
       "kind": "feed",
-      "observed": true,
+      "observed": false,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit defense.gov and link to the original feed publisher.",
-      "status": "terms-review",
-      "references": [
-        {
-          "path": "src/config/feeds.ts"
-        }
-      ]
+      "status": "excluded"
     },
     {
       "host": "dev.events",
@@ -3050,6 +3168,23 @@
       ]
     },
     {
+      "host": "df.cl",
+      "provider": "df.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit df.cl and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
       "host": "dfrlab.org",
       "provider": "dfrlab.org",
       "kind": "feed",
@@ -3098,6 +3233,23 @@
       ]
     },
     {
+      "host": "diarioeldia.cl",
+      "provider": "diarioeldia.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit diarioeldia.cl and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
       "host": "diariooficial.interior.gob.cl",
       "provider": "Diario Oficial de Chile",
       "kind": "feed",
@@ -3106,6 +3258,9 @@
       "attribution": "Credit Diario Oficial and link to the original item.",
       "status": "reviewed",
       "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
         {
           "path": "src/config/feeds.ts"
         }
@@ -3447,6 +3602,40 @@
       ]
     },
     {
+      "host": "eldesconcierto.cl",
+      "provider": "eldesconcierto.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit eldesconcierto.cl and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "ellibero.cl",
+      "provider": "ellibero.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit ellibero.cl and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
       "host": "elmostrador.cl",
       "provider": "El Mostrador",
       "kind": "feed",
@@ -3455,6 +3644,43 @@
       "attribution": "Credit El Mostrador and link to the original item.",
       "status": "reviewed",
       "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "elpinguino.com",
+      "provider": "elpinguino.com",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit elpinguino.com and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "elsur.cl",
+      "provider": "elsur.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit elsur.cl and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
         {
           "path": "src/config/feeds.ts"
         }
@@ -3486,6 +3712,9 @@
       "attribution": "Credit Emol and link to the original item.",
       "status": "reviewed",
       "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
         {
           "path": "src/config/feeds.ts"
         }
@@ -3808,6 +4037,23 @@
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit euromaidanpress.com and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "ex-ante.cl",
+      "provider": "ex-ante.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit ex-ante.cl and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
         {
@@ -5108,15 +5354,10 @@
       "host": "insideclimatenews.org",
       "provider": "insideclimatenews.org",
       "kind": "structured",
-      "observed": true,
+      "observed": false,
       "license": "Provider terms for this upstream API/dataset; verify before redistribution",
       "attribution": "Credit insideclimatenews.org and link to the original upstream API/dataset.",
-      "status": "terms-review",
-      "references": [
-        {
-          "path": "scripts/seed-climate-news.mjs"
-        }
-      ]
+      "status": "excluded"
     },
     {
       "host": "insightcrime.org",
@@ -5143,6 +5384,23 @@
       "license": "Licensed publisher content; redistribution governed by the World Monitor agreement",
       "attribution": "Credit Interfax and link to the original item.",
       "status": "reviewed",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "interferencia.cl",
+      "provider": "interferencia.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit interferencia.cl and link to the original feed publisher.",
+      "status": "terms-review",
       "references": [
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
@@ -5531,6 +5789,40 @@
       ]
     },
     {
+      "host": "laderasur.com",
+      "provider": "laderasur.com",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit laderasur.com and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "lasegunda.com",
+      "provider": "lasegunda.com",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit lasegunda.com and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
       "host": "latercera.com",
       "provider": "La Tercera",
       "kind": "feed",
@@ -5539,6 +5831,9 @@
       "attribution": "Credit La Tercera and link to the original item.",
       "status": "reviewed",
       "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
         {
           "path": "src/config/feeds.ts"
         }
@@ -5853,6 +6148,9 @@
           "path": "src/components/LiveNewsPanel.ts"
         },
         {
+          "path": "src/services/desktop-runtime.ts"
+        },
+        {
           "path": "src/services/wm-session.ts"
         }
       ]
@@ -5968,6 +6266,20 @@
       ]
     },
     {
+      "host": "mausam.imd.gov.in",
+      "provider": "India Meteorological Department",
+      "kind": "structured",
+      "observed": true,
+      "license": "Official IMD visualization pages cited for attribution and source links, not scraped.",
+      "attribution": "Data source: India Meteorological Department. Link the official marine/coastal bulletin page.",
+      "status": "reviewed",
+      "references": [
+        {
+          "path": "scripts/lib/imd-cyclone-marine.mjs"
+        }
+      ]
+    },
+    {
       "host": "mcp.linear.app",
       "provider": "Linear MCP",
       "kind": "structured",
@@ -6037,6 +6349,23 @@
       "references": [
         {
           "path": "scripts/seed-economy.mjs"
+        }
+      ]
+    },
+    {
+      "host": "mercuriovalpo.cl",
+      "provider": "mercuriovalpo.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit mercuriovalpo.cl and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
         }
       ]
     },
@@ -6146,6 +6475,9 @@
       "status": "reviewed",
       "references": [
         {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
           "path": "src/config/feeds.ts"
         }
       ]
@@ -6210,6 +6542,9 @@
       "attribution": "Credit moxie.foxnews.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
         {
           "path": "src/config/feeds.ts"
         }
@@ -6946,6 +7281,12 @@
       "references": [
         {
           "path": "scripts/seed-low-carbon-generation.mjs"
+        },
+        {
+          "path": "server/worldmonitor/resilience/v1/_dimension-scorers.ts"
+        },
+        {
+          "path": "server/worldmonitor/resilience/v1/_indicator-source-policy.ts"
         }
       ]
     },
@@ -6988,6 +7329,23 @@
       "references": [
         {
           "path": "scripts/seed-owid-energy-mix.mjs"
+        }
+      ]
+    },
+    {
+      "host": "paiscircular.cl",
+      "provider": "paiscircular.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit paiscircular.cl and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
         }
       ]
     },
@@ -7410,13 +7768,16 @@
     },
     {
       "host": "query.wikidata.org",
-      "provider": "query.wikidata.org",
+      "provider": "Wikidata",
       "kind": "structured",
       "observed": true,
-      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
-      "attribution": "Credit query.wikidata.org and link to the original upstream API/dataset.",
-      "status": "terms-review",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "attribution": "Wikidata structured data is CC0. Credit Wikidata and link each reused entity identifier as a best practice.",
+      "status": "reviewed",
       "references": [
+        {
+          "path": "scripts/freeze-resilience-ranking.mjs"
+        },
         {
           "path": "server/worldmonitor/intelligence/v1/get-country-facts.ts"
         }
@@ -7479,6 +7840,20 @@
       ]
     },
     {
+      "host": "radar.cloudflare.com",
+      "provider": "radar.cloudflare.com",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit radar.cloudflare.com and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/resilience/v1/_indicator-source-policy.ts"
+        }
+      ]
+    },
+    {
       "host": "radar.mcp.cloudflare.com",
       "provider": "Cloudflare Radar MCP",
       "kind": "structured",
@@ -7489,6 +7864,23 @@
       "references": [
         {
           "path": "src/services/mcp-store.ts"
+        }
+      ]
+    },
+    {
+      "host": "radio.uchile.cl",
+      "provider": "radio.uchile.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit radio.uchile.cl and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
         }
       ]
     },
@@ -7597,6 +7989,20 @@
         },
         {
           "path": "src/services/story-share.ts"
+        }
+      ]
+    },
+    {
+      "host": "registry.modelcontextprotocol.io",
+      "provider": "registry.modelcontextprotocol.io",
+      "kind": "structured",
+      "observed": true,
+      "license": "Excluded: first-party, control-plane, UI, or rendering transport",
+      "attribution": "Excluded from the external-provider count: not an ingested upstream dataset.",
+      "status": "excluded",
+      "references": [
+        {
+          "path": "scripts/publish-mcp-registry.mjs"
         }
       ]
     },
@@ -7749,6 +8155,20 @@
       "references": [
         {
           "path": "scripts/seed-resilience-static.mjs"
+        }
+      ]
+    },
+    {
+      "host": "rsmcnewdelhi.imd.gov.in",
+      "provider": "India Meteorological Department",
+      "kind": "structured",
+      "observed": true,
+      "license": "Official RSMC New Delhi visualization pages cited for attribution and source links, not scraped.",
+      "attribution": "Data source: India Meteorological Department / RSMC New Delhi. Link https://rsmcnewdelhi.imd.gov.in/.",
+      "status": "reviewed",
+      "references": [
+        {
+          "path": "scripts/lib/imd-cyclone-marine.mjs"
         }
       ]
     },
@@ -8161,6 +8581,23 @@
       ]
     },
     {
+      "host": "senado.cl",
+      "provider": "senado.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit senado.cl and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
       "host": "sequoiacap.com",
       "provider": "sequoiacap.com",
       "kind": "feed",
@@ -8368,6 +8805,23 @@
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit slidstvo.info and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "soychile.cl",
+      "provider": "soychile.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit soychile.cl and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
         {
@@ -8743,6 +9197,9 @@
       "status": "excluded",
       "references": [
         {
+          "path": "api/telegram-feed.js"
+        },
+        {
           "path": "scripts/ais-relay.cjs"
         },
         {
@@ -8750,6 +9207,26 @@
         },
         {
           "path": "src/services/story-share.ts"
+        },
+        {
+          "path": "src/services/telegram-intel.ts"
+        }
+      ]
+    },
+    {
+      "host": "t13.cl",
+      "provider": "t13.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit t13.cl and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
         }
       ]
     },
@@ -9054,6 +9531,23 @@
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit thebulletin.org and link to the original feed publisher.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "theclinic.cl",
+      "provider": "theclinic.cl",
+      "kind": "feed",
+      "observed": true,
+      "license": "Provider terms for this feed publisher; verify before redistribution",
+      "attribution": "Credit theclinic.cl and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
         {
@@ -9605,6 +10099,20 @@
       ]
     },
     {
+      "host": "uis.unesco.org",
+      "provider": "uis.unesco.org",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit uis.unesco.org and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/resilience/v1/_indicator-source-policy.ts"
+        }
+      ]
+    },
+    {
       "host": "ukrinform.net",
       "provider": "ukrinform.net",
       "kind": "feed",
@@ -9967,15 +10475,10 @@
       "host": "whitehouse.gov",
       "provider": "whitehouse.gov",
       "kind": "feed",
-      "observed": true,
+      "observed": false,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit whitehouse.gov and link to the original feed publisher.",
-      "status": "terms-review",
-      "references": [
-        {
-          "path": "src/config/feeds.ts"
-        }
-      ]
+      "status": "excluded"
     },
     {
       "host": "wiadomosci.onet.pl",
@@ -10124,7 +10627,13 @@
           "path": "scripts/notification-relay.cjs"
         },
         {
+          "path": "scripts/publish-mcp-registry.mjs"
+        },
+        {
           "path": "scripts/seed-digest-notifications.mjs"
+        },
+        {
+          "path": "scripts/seed-five-factor-scorecard.mjs"
         },
         {
           "path": "scripts/seed-hyperliquid-flow.mjs"
@@ -10207,6 +10716,9 @@
       "references": [
         {
           "path": "api/docs-mcp.ts"
+        },
+        {
+          "path": "src/config/docs-locale-seo.ts"
         }
       ]
     },
@@ -10665,6 +11177,20 @@
       "references": [
         {
           "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "www.bgs.ac.uk",
+      "provider": "British Geological Survey World Mineral Statistics",
+      "kind": "structured",
+      "observed": true,
+      "license": "BGS mineral statistics terms; attribution required; redistribution restricted",
+      "attribution": "British Geological Survey (BGS) World Mineral Production; credit BGS and link to https://www.bgs.ac.uk/mineralsuk/statistics/world-mineral-statistics/.",
+      "status": "reviewed",
+      "references": [
+        {
+          "path": "scripts/seed-supply-vulnerability.mjs"
         }
       ]
     },
@@ -13163,6 +13689,9 @@
       "references": [
         {
           "path": "scripts/seed-mineral-production.mjs"
+        },
+        {
+          "path": "scripts/seed-supply-vulnerability.mjs"
         }
       ]
     },
@@ -13347,6 +13876,20 @@
       "references": [
         {
           "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "www.statcan.gc.ca",
+      "provider": "www.statcan.gc.ca",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit www.statcan.gc.ca and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/resilience/v1/_indicator-source-policy.ts"
         }
       ]
     },
@@ -13986,6 +14529,9 @@
       "references": [
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
+        },
+        {
+          "path": "src/config/feeds.ts"
         }
       ]
     },
@@ -14115,6 +14661,20 @@
       ]
     },
     {
+      "host": "www.worldbank.org",
+      "provider": "www.worldbank.org",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit www.worldbank.org and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "server/worldmonitor/resilience/v1/_indicator-source-policy.ts"
+        }
+      ]
+    },
+    {
       "host": "www.worldmonitor.app",
       "provider": "World Monitor web app",
       "kind": "structured",
@@ -14123,6 +14683,9 @@
       "attribution": "Excluded from the external-provider count: first-party web origin.",
       "status": "excluded",
       "references": [
+        {
+          "path": "api/_cors.js"
+        },
         {
           "path": "api/a2a.ts"
         },
@@ -14139,6 +14702,9 @@
           "path": "scripts/build-crawlable-corpus.mjs"
         },
         {
+          "path": "scripts/build-openapi-json.mjs"
+        },
+        {
           "path": "scripts/build-research-reports.mjs"
         },
         {
@@ -14152,6 +14718,12 @@
         },
         {
           "path": "scripts/discover-content-corpus-pages.mjs"
+        },
+        {
+          "path": "scripts/freeze-crawlable-live-pulse.mjs"
+        },
+        {
+          "path": "scripts/freeze-resilience-ranking.mjs"
         },
         {
           "path": "scripts/generate-sandbox-fixtures.mjs"
@@ -14175,7 +14747,13 @@
           "path": "scripts/verify-sitemaps.mjs"
         },
         {
+          "path": "server/_shared/deprecation-policy.ts"
+        },
+        {
           "path": "src/components/RuntimeConfigPanel.ts"
+        },
+        {
+          "path": "src/config/docs-locale-seo.ts"
         },
         {
           "path": "src/config/variant-meta.ts"
@@ -14344,6 +14922,12 @@
       "references": [
         {
           "path": "scripts/lib/statcan-wds.mjs"
+        },
+        {
+          "path": "server/worldmonitor/resilience/v1/_canada-national-overlay.ts"
+        },
+        {
+          "path": "server/worldmonitor/resilience/v1/_indicator-source-policy.ts"
         }
       ]
     },

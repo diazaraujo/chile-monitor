@@ -59,8 +59,8 @@ const layoutSrc = src('src/app/panel-layout.ts');
 // visits categories in the same order `Object.keys(CANONICAL_FEEDS)` does. No two
 // categories compete for one panel key today, but matching the order costs nothing
 // and removes a way for the replay to diverge from production later.
-const FEED_PRESETS = ['FULL_FEEDS', 'TECH_FEEDS', 'FINANCE_FEEDS', 'COMMODITY_FEEDS', 'ENERGY_FEEDS', 'HAPPY_FEEDS'];
-const PANEL_PRESETS = ['FULL_PANELS', 'TECH_PANELS', 'FINANCE_PANELS', 'HAPPY_PANELS', 'COMMODITY_PANELS', 'ENERGY_PANELS'];
+const FEED_PRESETS = ['FULL_FEEDS', 'TECH_FEEDS', 'FINANCE_FEEDS', 'COMMODITY_FEEDS', 'ENERGY_FEEDS', 'HAPPY_FEEDS', 'CHILE_FEEDS'];
+const PANEL_PRESETS = ['FULL_PANELS', 'TECH_PANELS', 'FINANCE_PANELS', 'HAPPY_PANELS', 'COMMODITY_PANELS', 'ENERGY_PANELS', 'CHILE_PANELS'];
 
 /**
  * Index just past the `{` that opens `const <name> ... = {`, and the index of
@@ -228,7 +228,12 @@ const registrations = panelRegistrations();
  * which is what stops this mirror from quietly diverging.
  */
 const lateRegisteredFeedCategories = [...new Set(
-  registrations.filter(reg => reg.index > loopIndex && feedCategories.has(reg.key)).map(reg => reg.key),
+  registrations
+    .filter(reg => reg.index > loopIndex && (
+      feedCategories.has(reg.key)
+      || (reg.key.endsWith('-news') && feedCategories.has(reg.key.slice(0, -'-news'.length)))
+    ))
+    .map(reg => reg.key),
 )].sort();
 
 /**
@@ -529,6 +534,9 @@ describe('news panel key reachability (#5871)', () => {
     assert.deepEqual(
       collidingWithoutOutlet,
       [
+        // ClimateAnomalyPanel owns `climate`, while the dedicated
+        // ClimateNewsPanel registered later owns `climate-news`.
+        'climate',
         // The dedicated LiveNewsPanel (24/7 video) owns this key on every variant.
         // CANONICAL_FEEDS['live-news'] exists to seed the energy variant's headline
         // sources, not to render a panel — deliberate since #4382.

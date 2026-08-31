@@ -19,13 +19,16 @@ RUN npm ci --ignore-scripts
 # Copy full source
 COPY . .
 
+# The crawlable-corpus step runs the source-attribution drift gate against
+# scripts/, server/, api/, and src/. generate-inventory-facts and
+# build-handlers write untracked .js into those same roots, so the gate must
+# run on the pristine checkout first (#7435). tsc + vite stay later: they
+# need the generated inventory assets and compiled handlers.
+RUN npm run build:crawlable-corpus && npm run build:sitemap
+
 # Generated inventory modules are intentionally untracked. Recreate them in
 # the clean image context before handlers import or bundle them.
 RUN node scripts/generate-inventory-facts.mjs
-
-# Compile TypeScript API handlers → self-contained ESM bundles
-# Output is api/**/*.js alongside the source .ts files
-RUN node docker/build-handlers.mjs
 
 # public/pro/ is a build product, not committed bytes (#6898), so this image has
 # to build it. Skipping it does NOT 404: this image installs docker/nginx.conf,
@@ -36,14 +39,21 @@ RUN node docker/build-handlers.mjs
 # build:pro installs pro-test's own lockfile.
 RUN npm run build:pro
 
-# Build the crawlable static corpus and Vite frontend (outputs to dist/)
+# Build the Vite frontend (outputs to dist/)
 # Skip blog build — blog-site has its own deps not installed here
-RUN npm run build:crawlable-corpus && npm run build:sitemap && npx tsc && npx vite build
+RUN npx tsc && npx vite build
 # Assert the /pro pages survived the public/ -> dist/ copy (#6898). build:pro
 # succeeding proves public/pro/ exists; it does NOT prove Vite copied it, and
 # docker/nginx.conf's SPA fallback would serve the dashboard shell at 200 for a
 # missing /pro rather than failing visibly.
 RUN test -s dist/pro/index.html && test -s dist/pro/welcome.html
+
+# Compile TypeScript API handlers → self-contained ESM bundles only after
+# source attribution and the crawlable corpus have inspected the source tree.
+# The compiler writes api/**/*.js beside api/**/*.ts; doing this earlier makes
+# those generated bundles look like source inputs and invalidates the committed
+# attribution references inside an otherwise clean Docker build context.
+RUN node docker/build-handlers.mjs
 
 # ── Stage 2: Runtime dependencies ───────────────────────────────────────────
 FROM node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS runtime-deps
@@ -73,6 +83,8 @@ WORKDIR /app
 # API server
 COPY --from=builder /app/src-tauri/sidecar/local-api-server.mjs ./local-api-server.mjs
 COPY --from=builder /app/src-tauri/sidecar/package.json ./package.json
+COPY --from=builder /app/shared/llm-health-providers.js ./shared/llm-health-providers.js
+ENV LOCAL_API_RESOURCE_DIR=/app
 
 # Minimal runtime node_modules — required by raw .js handlers that aren't
 # bundled by build-handlers.mjs. Without this the Node sidecar dispatches

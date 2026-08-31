@@ -27,6 +27,7 @@ import {
   shouldDeferFreeTierEnforcement,
   FREE_MAX_PANELS,
   FREE_MAX_SOURCES,
+  countFreePanelCapUsage,
 } from '@/config';
 import {
   sanitizeLayersForVariant,
@@ -60,6 +61,7 @@ import {
   loadFromStorage,
   markStorageQuotaExceeded,
   parseMapUrlState,
+  readDashboardSearchQuery,
   saveToStorage,
   showToast,
 } from '@/utils';
@@ -168,11 +170,22 @@ import {
   type WebMcpExecutionOptions,
 } from '@/services/webmcp';
 import {
+  applyWebMcpMissionPreset,
+  applyWebMcpOpenAlerts,
+  applyWebMcpOpenMissionPicker,
+  applyWebMcpOpenSettings,
+  applyWebMcpSwitchMonitor,
   getWebMcpDashboardContext,
+  getWebMcpMapLayerCatalogSnapshot,
+  listWebMcpDashboardPanels,
+  listWebMcpMissionPresets,
   WEBMCP_UI_READY_TIMEOUT_MS,
   waitForWebMcpUiReady,
 } from '@/app/webmcp-dashboard';
+import type { MapLayerRuntimeAvailability } from '@/services/map-layer-runtime-availability';
+import { getWebMcpAccessContext, openWebMcpSignIn } from '@/app/webmcp-access';
 import { runDashboardActionBinding } from '@/app/dashboard-action-binding';
+import { selectWebMcpPanelTab } from '@/app/webmcp-panel-tab-binding';
 import { refreshDataFreshnessFromHealth } from '@/services/health-freshness';
 import { scheduleAfterFirstPaint } from '@/utils/after-paint';
 import type { SearchManager } from '@/app/search-manager';
@@ -180,6 +193,7 @@ import { RefreshScheduler } from '@/app/refresh-scheduler';
 import { PanelLayoutManager } from '@/app/panel-layout';
 import { DataLoaderManager } from '@/app/data-loader';
 import { EventHandlerManager } from '@/app/event-handlers';
+import { isCatalogPanelLive, waitUntilPanelLive } from '@/app/panel-enablement';
 import {
   FreeTierGate,
   panelGateStateChanged,
@@ -276,6 +290,7 @@ export class App {
   private pendingDeepLinkExpanded = false;
   private pendingDeepLinkStoryCode: string | null = null;
   private pendingDeepLinkChokepoint: string | null = null;
+  private pendingDeepLinkSearchQuery: string | null = null;
   private chokepointDeepLinkTimer: number | null = null;
   private stockDeepLinkTimer: number | null = null;
 
@@ -314,6 +329,10 @@ export class App {
   // triggers it so test harnesses / same-document re-inits don't accumulate
   // duplicate registrations.
   private webMcpController: AbortController | null = null;
+  // Cancels App-owned waits that have already entered a callback. Distinct from
+  // the tool-invocation caller signal, and from webMcpController which only
+  // unregisters tools — aborting registration does not stop an in-flight waiter.
+  private readonly lifecycleController = new AbortController();
   private visiblePanelPrimed = new Set<string>();
   /**
    * Per-pass viewport results, or null outside a pass. See
@@ -326,6 +345,7 @@ export class App {
   private visiblePanelPrimeRetryAt = new Map<string, number>();
   private visiblePanelPrimeRaf: number | null = null;
   private viewportHydrationReady = false;
+  private viewportHydrationReadyAt = 0;
   private followedCountriesCapDropToastTimer: number | null = null;
   private bootstrapHydrationState: BootstrapHydrationState = getBootstrapHydrationState();
   private cachedModeBannerEl: HTMLElement | null = null;
@@ -347,6 +367,13 @@ export class App {
   };
   private readonly handleViewportPrime = (event?: Event): void => {
     if (!this.viewportHydrationReady || this.state.isDestroyed) return;
+    if (
+      event &&
+      this.viewportHydrationReadyAt > 0 &&
+      event.timeStamp < this.viewportHydrationReadyAt
+    ) {
+      return;
+    }
     if (
       event?.type === 'scroll' &&
       event.target instanceof Element &&
@@ -389,6 +416,11 @@ export class App {
     const detail = (ev as CustomEvent<CloudPrefsAppliedDetail>).detail;
     this.applyCloudSyncedPrefsToRuntime(detail?.keys ?? [], detail?.syncVersion);
   };
+  private readonly getMapLayerRuntimeAvailability = (): MapLayerRuntimeAvailability => ({
+    cyberLayerEnabled: CYBER_LAYER_ENABLED,
+    aisConfigured: isAisConfigured(),
+    outagesAvailable: isOutagesConfigured() !== false,
+  });
   private readonly handleCloudPrefsSignInTerminal = (ev: Event): void => {
     const detail = (ev as CustomEvent<CloudPrefsSignInTerminalDetail>).detail;
     const pendingGeneration = this.pendingPreferenceHandoffGeneration;
@@ -485,8 +517,8 @@ export class App {
 
     if (keySet.has(STORAGE_KEYS.mapMode)) {
       const mode = getStoredMapModePreference();
-      if (mode === 'globe') this.state.map?.switchToGlobe();
-      else this.state.map?.switchToFlat();
+      if (mode === 'globe') void this.state.map?.switchToGlobe();
+      else void this.state.map?.switchToFlat();
     }
 
     if (
@@ -914,6 +946,8 @@ export class App {
 
     const PANEL_ORDER_KEY = 'panel-order';
     const PANEL_SPANS_KEY = 'worldmonitor-panel-spans';
+    const PANEL_ORDER_MIGRATION_KEY = 'worldmonitor-panel-order-v1.9';
+    const LAYOUT_RESET_MIGRATION_KEY = 'worldmonitor-layout-reset-v2.5';
 
     const isMobile = isMobileDevice();
     const isDesktopApp = isDesktopRuntime();
@@ -973,6 +1007,8 @@ export class App {
       );
       // Load existing panel prefs (if any), disable panels not belonging to the new variant
       const newVariantKeys = new Set(VARIANT_DEFAULTS[currentVariant] ?? []);
+      const hadLegacyPanelLayoutState = localStorage.getItem(PANEL_ORDER_KEY) !== null
+        || localStorage.getItem(PANEL_SPANS_KEY) !== null;
       panelSettings = applyVariantPanelLayoutTransition({
         currentVariant,
         panelSettings: loadFromStorage<Record<string, PanelConfig>>(STORAGE_KEYS.panels, {}),
@@ -997,6 +1033,17 @@ export class App {
           localStorage.setItem(STORAGE_KEYS.panelLayoutVariant, variant);
         },
       });
+      if (
+        !hadLegacyPanelLayoutState
+        && localStorage.getItem(STORAGE_KEYS.panelLayoutVariant) === currentVariant
+      ) {
+        try {
+          localStorage.setItem(PANEL_ORDER_MIGRATION_KEY, 'done');
+          localStorage.setItem(LAYOUT_RESET_MIGRATION_KEY, 'done');
+        } catch {
+          // Blocked storage leaves the legacy migrations eligible for a later retry.
+        }
+      }
     } else {
       mapLayers = normalizeExclusiveChoropleths(
         sanitizeLayersForVariant(
@@ -1109,7 +1156,6 @@ export class App {
       console.log('[App] Loaded panel settings from storage:', Object.entries(panelSettings).filter(([_, v]) => !v.enabled).map(([k]) => k));
 
       // One-time migration: reorder panels for existing users (v1.9 panel layout)
-      const PANEL_ORDER_MIGRATION_KEY = 'worldmonitor-panel-order-v1.9';
       if (!localStorage.getItem(PANEL_ORDER_MIGRATION_KEY)) {
         const savedOrder = localStorage.getItem(PANEL_ORDER_KEY);
         if (savedOrder) {
@@ -1181,7 +1227,6 @@ export class App {
       }
 
       // One-time migration: clear stale panel ordering and sizing state
-      const LAYOUT_RESET_MIGRATION_KEY = 'worldmonitor-layout-reset-v2.5';
       if (!localStorage.getItem(LAYOUT_RESET_MIGRATION_KEY)) {
         const hadSavedOrder = !!localStorage.getItem(PANEL_ORDER_KEY);
         const hadSavedSpans = !!localStorage.getItem(PANEL_SPANS_KEY);
@@ -1710,6 +1755,7 @@ export class App {
     replaceOverlayId?: OverlayId;
     historyPending?: boolean;
     signal?: AbortSignal;
+    initialQuery?: string;
   } = {}): Promise<boolean> {
     // Concurrency model: each press registers its intent, then claims a
     // monotonic epoch. After the lazy load resolves, only the latest epoch acts
@@ -1761,6 +1807,7 @@ export class App {
       if (!modal) throw new Error('Search modal is not initialised');
       throwIfWebMcpAborted(options.signal);
       modal.open(pendingGate ? pendingId : options.replaceOverlayId);
+      if (options.initialQuery) modal.applyQuery(options.initialQuery);
       return modal.isOpen();
     } catch (error) {
       const actionWasCancelled = pendingGate !== null && !pendingGate.isCurrent();
@@ -1890,6 +1937,49 @@ export class App {
         throwIfWebMcpAborted(execution?.signal);
         return getWebMcpDashboardContext(this.state, SITE_VARIANT);
       },
+      listMapLayerCatalog: async (execution) => {
+        await this.waitForDashboardReady(true, execution?.signal);
+        throwIfWebMcpAborted(execution?.signal);
+        return getWebMcpMapLayerCatalogSnapshot(
+          this.state,
+          SITE_VARIANT,
+          hasPremiumAccess(getAuthState()),
+          t,
+          this.getMapLayerRuntimeAvailability(),
+        );
+      },
+      listDashboardPanels: async (query, execution) => {
+        await this.waitForDashboardReady(false, execution?.signal);
+        throwIfWebMcpAborted(execution?.signal);
+        if (this.state.isDestroyed) {
+          throw new DashboardBindingError('app_destroyed', 'Dashboard is no longer available.');
+        }
+        return listWebMcpDashboardPanels(this.state, SITE_VARIANT, query, {
+          isPanelAllowed: (panelId, config) => (
+            isPanelEntitled(panelId, config, hasPremiumAccess(getAuthState()))
+          ),
+        });
+      },
+      switchMonitor: async (monitor, execution) => {
+        await this.waitForDashboardReady(false, execution?.signal);
+        throwIfWebMcpAborted(execution?.signal);
+        return applyWebMcpSwitchMonitor(
+          this.state,
+          SITE_VARIANT,
+          monitor,
+          (variant) => this.eventHandlers.navigateToVisibleVariant(variant),
+        );
+      },
+      openSettings: async (execution) => {
+        await this.waitForDashboardReady(false, execution?.signal);
+        throwIfWebMcpAborted(execution?.signal);
+        return applyWebMcpOpenSettings(this.state, SITE_VARIANT);
+      },
+      openAlerts: async (execution) => {
+        await this.waitForDashboardReady(false, execution?.signal);
+        throwIfWebMcpAborted(execution?.signal);
+        return applyWebMcpOpenAlerts(this.state, SITE_VARIANT);
+      },
       applyDashboardAction: async (action, execution) => {
         return runDashboardActionBinding(this.state, action, {
           waitForUiReady: () => this.waitForDashboardReady(false, execution?.signal),
@@ -1905,11 +1995,24 @@ export class App {
             applyViewChange: (viewAction) => {
               if (viewAction.view) trackMapViewChange(viewAction.view);
             },
+            getMapLayerRuntimeAvailability: this.getMapLayerRuntimeAvailability,
             applyLayerChange: (layer, enabled, source) => (
               this.eventHandlers.applyMapLayerChange(layer, enabled, source)
             ),
+            requireMapModePersistence: true,
           },
           syncUrlStateNow: () => this.eventHandlers.syncUrlStateNow(),
+        });
+      },
+      selectPanelTab: async (panelId, tab, execution) => {
+        return selectWebMcpPanelTab(this.state.panels, panelId, tab, {
+          waitForUiReady: () => this.waitForDashboardReady(false, execution?.signal),
+          prepareTab: (_selectedPanelId, selectedTab, signal) => (
+            selectedTab === 'physical'
+              ? this.dataLoader.loadPhysicalPremiumComparison(signal)
+              : undefined
+          ),
+          signal: execution?.signal,
         });
       },
       searchDashboard: async (query, scope, limit, execution) => {
@@ -1958,6 +2061,139 @@ export class App {
           () => this.waitForDashboardReady(true, execution?.signal),
           execution?.signal,
         );
+      },
+      applyDashboardTabAction: async (action, execution) => {
+        await this.waitForDashboardReady(false, execution?.signal);
+        throwIfWebMcpAborted(execution?.signal);
+        if (this.state.isDestroyed) {
+          throw new DashboardBindingError('app_destroyed', 'Dashboard is no longer available.');
+        }
+        return this.panelLayout.applyWebMcpTabAction(action);
+      },
+      setPanelEnabled: async (panelId, enabled, execution) => {
+        await this.waitForDashboardReady(false, execution?.signal);
+        throwIfWebMcpAborted(execution?.signal);
+        if (this.state.isDestroyed) {
+          throw new DashboardBindingError('app_destroyed', 'Dashboard is no longer available.');
+        }
+        const result = this.eventHandlers.setPanelEnabledById(panelId, enabled);
+        // Map uses #mapSection, not ctx.panels / [data-panel]. After persist,
+        // do not abort on the caller signal: cancellation-required only gates a
+        // missing signal. The App lifecycle signal still cancels this waiter
+        // when destroy() runs, so a same-document re-init cannot wake the
+        // MutationObserver on replacement DOM.
+        if (
+          result.ok
+          && result.changed
+          && result.effectiveEnabled
+          && typeof panelId === 'string'
+          && panelId !== 'map'
+        ) {
+          try {
+            await waitUntilPanelLive({
+              isLive: () => isCatalogPanelLive(panelId, this.state.panels),
+              signal: this.lifecycleController.signal,
+            });
+          } catch (error) {
+            if (this.state.isDestroyed || this.lifecycleController.signal.aborted) {
+              throw new DashboardBindingError('app_destroyed', 'Dashboard is no longer available.');
+            }
+            throw error;
+          }
+        }
+        return result;
+      },
+      listMissionPresets: async (query, execution) => {
+        await this.waitForDashboardReady(false, execution?.signal);
+        throwIfWebMcpAborted(execution?.signal);
+        if (this.state.isDestroyed) {
+          throw new DashboardBindingError('app_destroyed', 'Dashboard is no longer available.');
+        }
+        return listWebMcpMissionPresets(this.state, SITE_VARIANT, query, {
+          hasPremium: hasPremiumAccess(getAuthState()),
+          isPanelEntitled: (panelId) => {
+            const config = this.state.panelSettings[panelId]
+              ?? getEffectivePanelConfig(panelId, SITE_VARIANT);
+            if (!config) return true;
+            return isPanelEntitled(panelId, config, hasPremiumAccess(getAuthState()));
+          },
+        });
+      },
+      applyMissionPreset: async (presetId, execution) => {
+        await this.waitForDashboardReady(true, execution?.signal);
+        throwIfWebMcpAborted(execution?.signal);
+        if (this.state.isDestroyed) {
+          throw new DashboardBindingError('app_destroyed', 'Dashboard is no longer available.');
+        }
+        return applyWebMcpMissionPreset(this.state, SITE_VARIANT, presetId, {
+          hasPremium: hasPremiumAccess(getAuthState()),
+          isPanelEntitled: (panelId) => {
+            const config = this.state.panelSettings[panelId]
+              ?? getEffectivePanelConfig(panelId, SITE_VARIANT);
+            if (!config) return true;
+            return isPanelEntitled(panelId, config, hasPremiumAccess(getAuthState()));
+          },
+          apply: (id) => this.eventHandlers.applyMissionPresetForWebMcp(id),
+        });
+      },
+      openMissionPicker: async (execution) => {
+        await this.waitForDashboardReady(false, execution?.signal);
+        throwIfWebMcpAborted(execution?.signal);
+        return applyWebMcpOpenMissionPicker(
+          this.state,
+          SITE_VARIANT,
+          () => this.eventHandlers.openMissionPresetPickerForWebMcp(),
+        );
+      },
+      getPanelLayout: async (execution) => {
+        await this.waitForDashboardReady(false, execution?.signal);
+        throwIfWebMcpAborted(execution?.signal);
+        if (this.state.isDestroyed) {
+          throw new DashboardBindingError('app_destroyed', 'Dashboard is no longer available.');
+        }
+        return this.panelLayout.getPanelLayoutSnapshot();
+      },
+      setPanelCollapsed: async (panelId, collapsed, execution) => {
+        await this.waitForDashboardReady(false, execution?.signal);
+        throwIfWebMcpAborted(execution?.signal);
+        if (this.state.isDestroyed) {
+          throw new DashboardBindingError('app_destroyed', 'Dashboard is no longer available.');
+        }
+        return this.panelLayout.applyWebMcpSetPanelCollapsed(panelId, collapsed);
+      },
+      movePanel: async (panelId, region, index, execution) => {
+        await this.waitForDashboardReady(false, execution?.signal);
+        throwIfWebMcpAborted(execution?.signal);
+        if (this.state.isDestroyed) {
+          throw new DashboardBindingError('app_destroyed', 'Dashboard is no longer available.');
+        }
+        return this.panelLayout.applyWebMcpMovePanel(panelId, region, index);
+      },
+      setPanelFullscreen: async (panelId, fullscreen, execution) => {
+        await this.waitForDashboardReady(false, execution?.signal);
+        throwIfWebMcpAborted(execution?.signal);
+        if (this.state.isDestroyed) {
+          throw new DashboardBindingError('app_destroyed', 'Dashboard is no longer available.');
+        }
+        return this.panelLayout.applyWebMcpSetPanelFullscreen(panelId, fullscreen);
+      },
+      getAccessContext: async (execution) => {
+        throwIfWebMcpAborted(execution?.signal);
+        if (this.state.isDestroyed) {
+          throw new DashboardBindingError('app_destroyed', 'Dashboard is no longer available.');
+        }
+        return getWebMcpAccessContext({
+          enabledPanelUsed: countFreePanelCapUsage(this.state.panelSettings),
+          dashboardTabCount: this.panelLayout.getDashboardTabCount(),
+          freeTierFallbackActive: this.freeTierGate.authSettleDeadlineExceeded,
+        });
+      },
+      openSignIn: async (execution) => {
+        throwIfWebMcpAborted(execution?.signal);
+        if (this.state.isDestroyed) {
+          throw new DashboardBindingError('app_destroyed', 'Dashboard is no longer available.');
+        }
+        return openWebMcpSignIn(execution?.signal);
       },
     });
 
@@ -2150,8 +2386,10 @@ export class App {
         // market-brief / market-implications because their schedulers are
         // gated to SITE_VARIANT === 'finance'). The audit-locking regression
         // test in tests/premium-loaders-fan-out-coverage.test.mts asserts
-        // every `hasPremiumAccess() && shouldLoad('X')` gate in data-loader.ts
+        // every premium gate in data-loader.ts
         // has a matching call here.
+        void this.dataLoader.loadPhysicalPremiumComparison();
+        void this.dataLoader.loadMineralProduction();
         void this.dataLoader.loadTradePolicy();
         void this.dataLoader.loadStockAnalysis();
         void this.dataLoader.loadStockBacktest();
@@ -2163,6 +2401,8 @@ export class App {
       } else if (!nowPremium && hadPremium) {
         // Pro data must not remain visible or available from the client cache
         // after sign-out, expiry, or downgrade.
+        this.dataLoader.clearPhysicalPremiumComparison();
+        this.dataLoader.clearMineralProduction();
         void this.dataLoader.clearGlobalTenders();
       }
       _prevHadPremium = nowPremium;
@@ -2441,6 +2681,7 @@ export class App {
     this.pendingDeepLinkChokepoint = initState.chokepoint ?? null;
     const earlyParams = new URLSearchParams(window.location.search);
     this.pendingDeepLinkStoryCode = earlyParams.get('c') ?? null;
+    this.pendingDeepLinkSearchQuery = readDashboardSearchQuery(window.location.search);
     this.eventHandlers.setupUrlStateSync();
     if (import.meta.env.VITE_E2E === '1') {
       document.documentElement.dataset.wmEventHandlersReady = 'true';
@@ -2474,6 +2715,10 @@ export class App {
     // (3.5 s browser / 8.5 s desktop). (#4512)
     await slowTierReady;
     if (this.state.isDestroyed) return;
+    this.viewportHydrationReadyAt = typeof performance !== 'undefined' &&
+      typeof performance.now === 'function'
+      ? performance.now()
+      : Date.now();
     this.viewportHydrationReady = true;
     // Register viewport triggers only after the slow bootstrap tier settles.
     // Scrolls before this point are covered by the initial fan-out below, which
@@ -3008,6 +3253,9 @@ export class App {
     this.latestSearchMilitary = [];
     this.latestSearchAdsbUpdatedAt = 0;
     this.resolveAppDestroyed();
+    // Cancel in-flight App-owned waits before DOM teardown can mutate the
+    // document and wake a waiter that still closes over this instance.
+    this.lifecycleController.abort();
     // Unregister agent entry points before the rest of teardown. In particular,
     // init-failure cleanup may run on a partially initialised App; even if a
     // later module cleanup throws, no WebMCP tool may retain this dead instance.
@@ -3016,6 +3264,7 @@ export class App {
     this.tierPreferenceHandoff.clear();
     this.pendingPreferenceHandoffGeneration = undefined;
     this.viewportHydrationReady = false;
+    this.viewportHydrationReadyAt = 0;
     cancelBootstrapSlowTier();
     window.removeEventListener('scroll', this.handleViewportPrime, { capture: true });
     window.removeEventListener('resize', this.handleViewportPrime);
@@ -3220,6 +3469,19 @@ export class App {
   private handleDeepLinks(): void {
     const url = new URL(window.location.href);
     const DEEP_LINK_INITIAL_DELAY_MS = 1500;
+
+    // SearchAction lands on /dashboard?q=… after URL sync has already rewritten
+    // the address bar. Consume the captured term through the same lazy path as
+    // Cmd+K so the modal is created only when a query is actually present.
+    const searchQuery = this.pendingDeepLinkSearchQuery;
+    this.pendingDeepLinkSearchQuery = null;
+    if (
+      searchQuery
+      && (url.pathname === '/dashboard' || url.pathname === '/dashboard/')
+    ) {
+      void this.openSearch({ initialQuery: searchQuery });
+      return;
+    }
 
     // Check for country brief deep link: ?c=IR (captured early before URL sync)
     const storyCode = this.pendingDeepLinkStoryCode ?? url.searchParams.get('c');

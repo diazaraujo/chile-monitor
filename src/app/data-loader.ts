@@ -124,6 +124,7 @@ import type { CorrelationSignal } from '@/services/correlation';
 import { fetchConflictEvents, fetchUcdpEvents, deduplicateAgainstAcled, deduplicateUcdpProjectionAggregates, fetchIranEvents } from '@/services/conflict';
 import { fetchUnhcrPopulation } from '@/services/displacement';
 import { fetchClimateAnomalies } from '@/services/climate';
+import { fetchImdCycloneMarine } from '@/services/imd-cyclone-marine';
 import { fetchSecurityAdvisories } from '@/services/security-advisories';
 import { fetchThermalEscalations } from '@/services/thermal-escalation';
 import { fetchCrossSourceSignals } from '@/services/cross-source-signals';
@@ -167,6 +168,7 @@ import type { PredictionPanel } from '@/components/PredictionPanel';
 import type { InsightsPanel } from '@/components/InsightsPanel';
 import type { InternetDisruptionsPanel } from '@/components/InternetDisruptionsPanel';
 import type { StrategicPosturePanel } from '@/components/StrategicPosturePanel';
+
 import type { EconomicPanel } from '@/components/EconomicPanel';
 import type { GlobalProcurementPanel } from '@/components/GlobalProcurementPanel';
 import type { GlobalTenderFilters } from '@/services/global-tenders';
@@ -225,6 +227,43 @@ import { EconomicServiceClient, MarketServiceClient, ResearchServiceClient } fro
 // The proto-level -> label map lives in shared/news-clustering-core.js so the
 // client digest loader and the server-side MCP tools cannot drift (#5697).
 import { protoThreatLevelToLabel } from '../../shared/news-clustering-core.js';
+
+type PhysicalPremiumFetcher = typeof import('@/services/market')['fetchPhysicalPremiums'];
+type PhysicalDivergenceFetcher = typeof import('@/services/market')['fetchPhysicalDivergence'];
+
+export async function loadPhysicalPremiumComparison(
+  panel: Pick<CommoditiesPanel, 'updatePhysicalPremiums' | 'updatePhysicalDivergence' | 'showPhysicalDivergenceUnavailable'>,
+  isCurrent: () => boolean,
+  fetchPremiums: PhysicalPremiumFetcher,
+  fetchDivergence: PhysicalDivergenceFetcher,
+): Promise<void> {
+  const [premiumsResult, divergenceResult] = await Promise.allSettled([
+    fetchPremiums(),
+    fetchDivergence(),
+  ]);
+  if (!isCurrent()) return;
+  if (premiumsResult.status === 'fulfilled') panel.updatePhysicalPremiums(premiumsResult.value);
+  if (divergenceResult.status === 'fulfilled') {
+    panel.updatePhysicalDivergence(divergenceResult.value);
+  } else {
+    panel.showPhysicalDivergenceUnavailable();
+  }
+}
+
+export async function loadPhysicalPremiumComparisonIfNeeded(
+  panel: Pick<CommoditiesPanel,
+    | 'shouldRefreshPhysicalComparison'
+    | 'updatePhysicalPremiums'
+    | 'updatePhysicalDivergence'
+    | 'showPhysicalDivergenceUnavailable'>,
+  isCurrent: () => boolean,
+  fetchPremiums: PhysicalPremiumFetcher,
+  fetchDivergence: PhysicalDivergenceFetcher,
+): Promise<boolean> {
+  if (!panel.shouldRefreshPhysicalComparison()) return false;
+  await loadPhysicalPremiumComparison(panel, isCurrent, fetchPremiums, fetchDivergence);
+  return true;
+}
 
 const PROTO_TO_CLIENT_PHASE: Record<string, import('@/types').StoryPhase> = {
   STORY_PHASE_BREAKING:   'breaking',
@@ -435,6 +474,8 @@ export class DataLoaderManager implements AppModule {
   private dailyBriefGeneration = 0;
   private _stockAnalysisGeneration = 0;
   private readonly marketLoadGuard = new LatestRequestGuard();
+  private readonly physicalComparisonLoadGuard = new LatestRequestGuard();
+  private readonly mineralProductionLoadGuard = new LatestRequestGuard();
   private globalTenderGeneration = 0;
   private globalTenderFilters: GlobalTenderFilters = {};
   private activeGlobalTenderScopedGeneration: number | null = null;
@@ -922,7 +963,17 @@ export class DataLoaderManager implements AppModule {
         const forceAll = this.loadAllDataQueuedForceAll;
         this.loadAllDataRerunRequested = false;
         this.loadAllDataQueuedForceAll = false;
-        await this.runLoadAllData(forceAll);
+        // Opt-in only (no-op unless __wmLcpDebug is installed), so this costs
+        // one property read on the ordinary path. The start/end pair is the
+        // only direct witness that a fan-out actually ran and drained: request
+        // counters cannot distinguish a repeat pass from a service retry
+        // (#7045 U5 review, #7212).
+        markLcpDebug('wm:data:load-all-start', { forceAll });
+        try {
+          await this.runLoadAllData(forceAll);
+        } finally {
+          markLcpDebug('wm:data:load-all-end', { forceAll });
+        }
       }
     } finally {
       this.loadAllDataPromise = null;
@@ -932,13 +983,6 @@ export class DataLoaderManager implements AppModule {
   }
 
   private async runLoadAllData(forceAll: boolean): Promise<void> {
-    // Opt-in only (no-op unless __wmLcpDebug is installed), so this costs one
-    // property read on the ordinary path. It is the only direct witness that a
-    // fan-out actually RAN: e2e/bootstrap-hydration-request-budget.spec.ts's
-    // zero-refetch assertions all presuppose a second pass, and a request
-    // counter cannot distinguish that second pass from a service retry (#7045
-    // U5 review).
-    markLcpDebug('wm:data:load-all-start', { forceAll });
     const runGuarded = async (name: string, fn: () => Promise<void>): Promise<void> => {
       if (this.ctx.isDestroyed || this.ctx.inFlight.has(name)) return;
       this.ctx.inFlight.add(name);
@@ -2358,7 +2402,7 @@ export class DataLoaderManager implements AppModule {
       return;
     }
     const {
-      fetchMultipleStocks, fetchCommodityQuotes, fetchPhysicalPremiums, fetchSectors, warmCommodityCache, warmSectorCache,
+      fetchMultipleStocks, fetchCommodityQuotes, fetchPhysicalDivergence, fetchPhysicalPremiums, fetchSectors, warmCommodityCache, warmSectorCache,
       fetchCrypto, fetchCryptoSectors, fetchDefiTokens, fetchAiTokens, fetchOtherTokens,
     } = marketMod;
     try {
@@ -2564,10 +2608,24 @@ export class DataLoaderManager implements AppModule {
         if (!energyLoaded) energyPanel?.updateTape([]);
       }
 
-      if (commoditiesPanel) {
+      // Physical premiums + divergence index are Pro (#6436/#6448). Skipping
+      // the fetch leaves _physicalPremiums empty, which is exactly what
+      // _buildTabBar reads to decide whether the Physical tab exists — so a
+      // free viewer sees the commodity tape unchanged rather than a tab that
+      // opens onto a 401.
+      if (commoditiesPanel && hasPremiumAccess()) {
         try {
-          const physicalPremiums = await fetchPhysicalPremiums();
-          if (isCurrent()) commoditiesPanel.updatePhysicalPremiums(physicalPremiums);
+          const physicalGeneration = this.physicalComparisonLoadGuard.begin();
+          await loadPhysicalPremiumComparisonIfNeeded(
+            commoditiesPanel,
+            () => (
+              isCurrent()
+              && this.physicalComparisonLoadGuard.isCurrent(physicalGeneration)
+              && hasPremiumAccess()
+            ),
+            fetchPhysicalPremiums,
+            fetchPhysicalDivergence,
+          );
         } catch {
           // The physical comparison is an optional tab; a failure must not
           // downgrade the existing commodity tape or its provider status.
@@ -2628,6 +2686,37 @@ export class DataLoaderManager implements AppModule {
         otherPanel?.showRetrying(t('common.failedCryptoData'));
       }
     }
+  }
+
+  async loadPhysicalPremiumComparison(signal?: AbortSignal): Promise<void> {
+    signal?.throwIfAborted();
+    // Pro (#6436/#6448) — mirrors the guard on the bulk market pass above.
+    // This is the tab-activation entry point, so without it clicking Physical
+    // would re-fire the two gated RPCs for a free user on every open.
+    // Free→Pro / Pro→free transitions are handled in App.firePremiumLoaders().
+    if (!hasPremiumAccess()) return;
+    const panel = this.ctx.panels['commodities'] as CommoditiesPanel | undefined;
+    if (!panel) return;
+    const generation = this.physicalComparisonLoadGuard.begin();
+    const { fetchPhysicalDivergence, fetchPhysicalPremiums } = await import('@/services/market');
+    signal?.throwIfAborted();
+    await loadPhysicalPremiumComparison(
+      panel,
+      () => (
+        !signal?.aborted
+        && this.physicalComparisonLoadGuard.isCurrent(generation)
+        && hasPremiumAccess()
+      ),
+      () => fetchPhysicalPremiums(signal),
+      () => fetchPhysicalDivergence(signal),
+    );
+    signal?.throwIfAborted();
+  }
+
+  clearPhysicalPremiumComparison(): void {
+    this.physicalComparisonLoadGuard.begin();
+    const panel = this.ctx.panels['commodities'] as CommoditiesPanel | undefined;
+    panel?.clearPhysicalPremiums();
   }
 
   async loadDailyMarketBrief(force = false): Promise<void> {
@@ -2950,10 +3039,26 @@ export class DataLoaderManager implements AppModule {
     } catch { /* silent fail — simulation data is supplementary */ }
   }
 
+  async loadImdCycloneMarine(): Promise<import('@/services/imd-cyclone-marine').ImdMappedProducts> {
+    try {
+      return await fetchImdCycloneMarine();
+    } catch {
+      return {
+        coverageState: 'unavailable',
+        cycloneEvents: [],
+        portAlerts: [],
+        marineBulletins: [],
+        sourceName: 'India Meteorological Department',
+        sourceUrl: 'https://api.imd.gov.in/public/api_reference.html',
+      };
+    }
+  }
+
   async loadNatural(): Promise<void> {
-    const [earthquakeResult, eonetResult] = await Promise.allSettled([
+    const [earthquakeResult, eonetResult, imdResult] = await Promise.allSettled([
       fetchEarthquakes(),
       fetchNaturalEvents(30),
+      this.loadImdCycloneMarine(),
     ]);
 
     if (earthquakeResult.status === 'fulfilled') {
@@ -2969,22 +3074,30 @@ export class DataLoaderManager implements AppModule {
       dataFreshness.recordError('usgs', String(earthquakeResult.reason));
     }
 
+    const imdEvents = imdResult.status === 'fulfilled' ? imdResult.value.cycloneEvents : [];
     if (eonetResult.status === 'fulfilled') {
-      this.ctx.map?.setNaturalEvents(eonetResult.value);
+      this.ctx.map?.setNaturalEvents([...eonetResult.value, ...imdEvents]);
       this.ctx.statusPanel?.updateFeed('EONET', {
         status: 'ok',
         itemCount: eonetResult.value.length,
       });
       this.ctx.statusPanel?.updateApi('NASA EONET', { status: 'ok' });
     } else {
-      this.ctx.map?.setNaturalEvents([]);
+      this.ctx.map?.setNaturalEvents(imdEvents);
       this.ctx.statusPanel?.updateFeed('EONET', { status: 'error', errorMessage: String(eonetResult.reason) });
       this.ctx.statusPanel?.updateApi('NASA EONET', { status: 'error' });
+    }
+    if (imdResult.status === 'fulfilled' && imdResult.value.coverageState !== 'disabled') {
+      const coverage = imdResult.value.coverageState;
+      this.ctx.statusPanel?.updateFeed('IMD', {
+        status: coverage === 'ok' ? 'ok' : 'error',
+        itemCount: imdEvents.length,
+      });
     }
 
     const hasEarthquakes = earthquakeResult.status === 'fulfilled' && earthquakeResult.value.length > 0;
     const hasEonet = eonetResult.status === 'fulfilled' && eonetResult.value.length > 0;
-    this.ctx.map?.setLayerReady('natural', hasEarthquakes || hasEonet);
+    this.ctx.map?.setLayerReady('natural', hasEarthquakes || hasEonet || imdEvents.length > 0);
   }
 
   async loadTechEvents(): Promise<void> {
@@ -3112,17 +3225,24 @@ export class DataLoaderManager implements AppModule {
   }
 
   async loadWeatherAlerts(): Promise<void> {
-    try {
-      const alerts = await fetchWeatherAlerts();
-      this.ctx.map?.setWeatherAlerts(alerts);
-      this.ctx.map?.setLayerReady('weather', alerts.length > 0);
-      this.ctx.statusPanel?.updateFeed('Weather', { status: 'ok', itemCount: alerts.length });
-      dataFreshness.recordUpdate('weather', alerts.length);
-    } catch (error) {
+    const [alertsResult, imdResult] = await Promise.allSettled([
+      fetchWeatherAlerts(),
+      this.loadImdCycloneMarine(),
+    ]);
+    const nws = alertsResult.status === 'fulfilled' ? alertsResult.value : [];
+    const imd = imdResult.status === 'fulfilled' ? imdResult.value : null;
+    const imdMarine = imd ? [...imd.portAlerts, ...imd.marineBulletins] : [];
+    const merged = [...nws, ...imdMarine];
+    if (alertsResult.status === 'rejected' && imdMarine.length === 0) {
       this.ctx.map?.setLayerReady('weather', false);
       this.ctx.statusPanel?.updateFeed('Weather', { status: 'error' });
-      dataFreshness.recordError('weather', String(error));
+      dataFreshness.recordError('weather', String(alertsResult.reason));
+      return;
     }
+    this.ctx.map?.setWeatherAlerts(merged);
+    this.ctx.map?.setLayerReady('weather', merged.length > 0);
+    this.ctx.statusPanel?.updateFeed('Weather', { status: 'ok', itemCount: merged.length });
+    dataFreshness.recordUpdate('weather', merged.length);
   }
 
   async loadCanadaAlerts(): Promise<void> {
@@ -4179,27 +4299,27 @@ export class DataLoaderManager implements AppModule {
 
     try {
       const {
-        fetchShippingRates, fetchChokepointStatus, fetchCriticalMinerals, fetchMineralProduction, fetchShippingStress,
+        fetchShippingRates, fetchChokepointStatus, fetchCriticalMinerals, fetchShippingStress,
       } = await import('@/services/supply-chain');
-      const [shipping, chokepoints, minerals, mineralProduction, stress] = await Promise.allSettled([
+      // The Pro leg has its own entitlement-transition loader.
+      const mineralProductionLoad = this.loadMineralProduction();
+      const [shipping, chokepoints, minerals, stress] = await Promise.allSettled([
         fetchShippingRates(),
         fetchChokepointStatus(),
         fetchCriticalMinerals(),
-        fetchMineralProduction(),
         fetchShippingStress(),
       ]);
+      await mineralProductionLoad.catch(() => undefined);
 
       const shippingData = shipping.status === 'fulfilled' ? shipping.value : null;
       const chokepointData = chokepoints.status === 'fulfilled' ? chokepoints.value : null;
       const mineralsData = minerals.status === 'fulfilled' ? minerals.value : null;
-      const mineralProductionData = mineralProduction.status === 'fulfilled' ? mineralProduction.value : null;
       const stressData = stress.status === 'fulfilled' ? stress.value : null;
 
       if (shippingData) scPanel.updateShippingRates(shippingData);
       if (chokepointData) scPanel.updateChokepointStatus(chokepointData);
       if (chokepointData) this.ctx.map?.setChokepointData(chokepointData);
       if (mineralsData) scPanel.updateCriticalMinerals(mineralsData);
-      if (mineralProductionData) scPanel.updateMineralProduction(mineralProductionData);
       if (stressData) scPanel.updateShippingStress(stressData);
 
       const totalItems = (shippingData?.indices.length || 0) + (chokepointData?.chokepoints.length || 0) + (mineralsData?.minerals.length || 0);
@@ -4218,6 +4338,23 @@ export class DataLoaderManager implements AppModule {
       this.ctx.statusPanel?.updateApi('SupplyChain', { status: 'error' });
       dataFreshness.recordError('supply_chain', String(e));
     }
+  }
+
+  async loadMineralProduction(): Promise<void> {
+    if (!hasPremiumAccess()) return;
+    const panel = this.ctx.panels['supply-chain'] as SupplyChainPanel | undefined;
+    if (!panel) return;
+    const generation = this.mineralProductionLoadGuard.begin();
+    const { fetchMineralProduction } = await import('@/services/supply-chain');
+    const data = await fetchMineralProduction();
+    if (!hasPremiumAccess() || !this.mineralProductionLoadGuard.isCurrent(generation)) return;
+    panel.updateMineralProduction(data);
+  }
+
+  clearMineralProduction(): void {
+    this.mineralProductionLoadGuard.begin();
+    const panel = this.ctx.panels['supply-chain'] as SupplyChainPanel | undefined;
+    panel?.clearMineralProduction();
   }
 
   async loadChinaCorridors(options?: { skipIfPopulated?: boolean }): Promise<void> {

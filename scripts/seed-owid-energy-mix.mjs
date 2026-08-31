@@ -25,6 +25,7 @@ export const OWID_COUNTRY_LIST_KEY = 'energy:mix:v1:_countries';
 export const OWID_ALL_KEY = 'energy:mix:v1:_all';
 export const OWID_META_KEY = 'seed-meta:economic:owid-energy-mix';
 export const OWID_TTL_SECONDS = 35 * 24 * 3600;
+export const OWID_SOURCE_VERSION = 'owid-energy-mix-v2';
 const OWID_CSV_URL = 'https://owid-public.owid.io/data/energy/owid-energy-data.csv';
 const LOCK_DOMAIN = 'economic:owid-energy-mix';
 const LOCK_TTL_MS = 30 * 60 * 1000;
@@ -41,6 +42,7 @@ const COLS = {
   solar:      'solar_share_elec',
   hydro:      'hydro_share_elec',
   imports:    'net_energy_imports',
+  primaryEnergyConsumption: 'primary_energy_consumption',
 };
 
 function parseDelimitedRow(line, delimiter) {
@@ -95,8 +97,9 @@ function safeFloat(value) {
   return Number.isFinite(n) ? n : null;
 }
 
-function hasAnyShareField(row) {
-  return Object.values(COLS).some((col) => {
+function hasAnyElectricityShare(row) {
+  return Object.entries(COLS).some(([field, col]) => {
+    if (field === 'primaryEnergyConsumption' || field === 'imports') return false;
     const v = parseFloat(row[col]);
     return Number.isFinite(v);
   });
@@ -107,7 +110,7 @@ export function parseOwidCsv(csvText) {
   if (rows.length === 0) throw new Error('OWID CSV: no data rows');
 
   const headers = Object.keys(rows[0] || {});
-  if (!headers.includes(COLS.coal)) {
+  if (!headers.includes(COLS.coal) || !headers.includes(COLS.primaryEnergyConsumption)) {
     throw new Error('OWID column schema changed — update COLS mapping');
   }
 
@@ -119,29 +122,57 @@ export function parseOwidCsv(csvText) {
 
     const year = parseInt(row.year, 10);
     if (!Number.isFinite(year)) continue;
-    if (!hasAnyShareField(row)) continue;
+    const hasElectricityShare = hasAnyElectricityShare(row);
+    const importShare = safeFloat(row[COLS.imports]);
+    const primaryEnergyConsumptionTwh = safeFloat(row[COLS.primaryEnergyConsumption]);
+    if (!hasElectricityShare && importShare == null && primaryEnergyConsumptionTwh == null) continue;
 
     const iso2 = resolveIso2({ iso3 });
     if (!iso2) continue;
 
-    const prev = byCountry.get(iso2);
-    if (prev && prev.year >= year) continue;
-
-    byCountry.set(iso2, {
+    const prev = byCountry.get(iso2) ?? {
       iso2,
       country: row.country || iso2,
-      year,
-      coalShare: safeFloat(row[COLS.coal]),
-      gasShare: safeFloat(row[COLS.gas]),
-      oilShare: safeFloat(row[COLS.oil]),
-      nuclearShare: safeFloat(row[COLS.nuclear]),
-      renewShare: safeFloat(row[COLS.renewables]),
-      windShare: safeFloat(row[COLS.wind]),
-      solarShare: safeFloat(row[COLS.solar]),
-      hydroShare: safeFloat(row[COLS.hydro]),
-      importShare: safeFloat(row[COLS.imports]),
+      year: null,
+      coalShare: null,
+      gasShare: null,
+      oilShare: null,
+      nuclearShare: null,
+      renewShare: null,
+      windShare: null,
+      solarShare: null,
+      hydroShare: null,
+      importYear: null,
+      importShare: null,
+      primaryEnergyConsumptionYear: null,
+      primaryEnergyConsumptionTwh: null,
       seededAt: new Date().toISOString(),
-    });
+    };
+    if (hasElectricityShare && (prev.year == null || year > prev.year)) {
+      Object.assign(prev, {
+        country: row.country || iso2,
+        year,
+        coalShare: safeFloat(row[COLS.coal]),
+        gasShare: safeFloat(row[COLS.gas]),
+        oilShare: safeFloat(row[COLS.oil]),
+        nuclearShare: safeFloat(row[COLS.nuclear]),
+        renewShare: safeFloat(row[COLS.renewables]),
+        windShare: safeFloat(row[COLS.wind]),
+        solarShare: safeFloat(row[COLS.solar]),
+        hydroShare: safeFloat(row[COLS.hydro]),
+      });
+    }
+    if (importShare != null && (prev.importYear == null || year > prev.importYear)) {
+      Object.assign(prev, { importYear: year, importShare });
+    }
+    if (primaryEnergyConsumptionTwh != null
+      && (prev.primaryEnergyConsumptionYear == null || year > prev.primaryEnergyConsumptionYear)) {
+      Object.assign(prev, {
+        primaryEnergyConsumptionYear: year,
+        primaryEnergyConsumptionTwh,
+      });
+    }
+    byCountry.set(iso2, prev);
   }
 
   return byCountry;
@@ -176,13 +207,16 @@ export function buildExposureIndex(countries) {
  * Build a compact bulk map of all countries keyed by ISO2.
  * Omits `iso2`, `country`, and `seededAt` to reduce payload size (~30% savings).
  * @param {Map<string, object>} countries
- * @returns {Record<string, {year: number, coalShare: number|null, gasShare: number|null, oilShare: number|null, nuclearShare: number|null, renewShare: number|null, windShare: number|null, solarShare: number|null, hydroShare: number|null, importShare: number|null}>}
+ * @returns {Record<string, {year: number|null, importYear: number|null, coalShare: number|null, gasShare: number|null, oilShare: number|null, nuclearShare: number|null, renewShare: number|null, windShare: number|null, solarShare: number|null, hydroShare: number|null, importShare: number|null, primaryEnergyConsumptionYear: number|null, primaryEnergyConsumptionTwh: number|null}>}
  */
 export function buildAllCountriesMap(countries) {
   const result = {};
   for (const [iso2, entry] of countries) {
     result[iso2] = {
+      // `year` stays honestly null for a country with no electricity mix.
+      // Consumers must render "unknown", never 0 — see CountryDeepDivePanel.
       year: entry.year,
+      importYear: entry.importYear ?? entry.year,
       coalShare: entry.coalShare,
       gasShare: entry.gasShare,
       oilShare: entry.oilShare,
@@ -192,6 +226,8 @@ export function buildAllCountriesMap(countries) {
       solarShare: entry.solarShare,
       hydroShare: entry.hydroShare,
       importShare: entry.importShare,
+      primaryEnergyConsumptionYear: entry.primaryEnergyConsumptionYear,
+      primaryEnergyConsumptionTwh: entry.primaryEnergyConsumptionTwh,
     };
   }
   return result;
@@ -244,7 +280,7 @@ async function preservePreviousSnapshot(errorMsg) {
   const metaPayload = {
     fetchedAt: Date.now(),
     recordCount: 0,
-    sourceVersion: 'owid-energy-mix-v1',
+    sourceVersion: OWID_SOURCE_VERSION,
     status: 'error',
     error: errorMsg,
   };
@@ -308,7 +344,7 @@ export async function main() {
     const metaPayload = {
       fetchedAt: Date.now(),
       recordCount: countries.size,
-      sourceVersion: 'owid-energy-mix-v1',
+      sourceVersion: OWID_SOURCE_VERSION,
     };
 
     const commands = [];

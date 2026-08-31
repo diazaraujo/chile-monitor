@@ -11,7 +11,8 @@ import { openExternalUrl } from '@/services/external-navigation';
 import { lockSvg, upgradeSvg } from '@/components/gate-icons';
 import { createCheckoutConsentElement } from '@/utils/legal-links';
 import { WEB_APP_ORIGIN } from '@/config/web-origin';
-import { SITE_VARIANT, VARIANT_PANEL_OVERRIDES } from '@/config';
+import { getVariantPanelTitle } from '@/config/panel-title-overrides';
+import { SITE_VARIANT } from '@/config/variant';
 import { dataFreshness, type PanelFreshnessSummary } from '@/services/data-freshness';
 import { formatPanelFreshnessDisplay } from '@/services/panel-freshness-display';
 import {
@@ -209,7 +210,7 @@ export class Panel {
     title.className = 'panel-title';
     // chile: los títulos i18n del upstream (WORLD NEWS, GOVERNMENT…) pisan los names de la
     // variante; acá gana el override de config si existe.
-    title.textContent = (SITE_VARIANT === 'chile' && VARIANT_PANEL_OVERRIDES.chile?.[options.id]?.name) || options.title;
+    title.textContent = getVariantPanelTitle(SITE_VARIANT, options.id) || options.title;
     // Panels are the dashboard's sections, but a real <h2> would drag along
     // element styles; role/aria-level gives the outline with zero visual change.
     title.setAttribute('role', 'heading');
@@ -799,6 +800,43 @@ export class Panel {
     btn.title = label;
   }
 
+  /** True when this panel exposes the same collapse control a person uses. */
+  public supportsCollapse(): boolean {
+    return this._collapseBtn !== null;
+  }
+
+  public isCollapsed(): boolean {
+    return this._collapsed;
+  }
+
+  /**
+   * Apply collapse/expand through the visible control path and persist it.
+   * Persist first so a quota/private-mode failure leaves the live DOM unchanged.
+   */
+  public setCollapsed(collapsed: boolean): { ok: boolean; persisted: boolean } {
+    if (!this._collapseBtn) return { ok: false, persisted: true };
+    if (this._collapsed === collapsed) return { ok: true, persisted: true };
+    if (!savePanelCollapsed(this.panelId, collapsed)) {
+      return { ok: false, persisted: false };
+    }
+    this._applyCollapsed(this._collapseBtn, collapsed);
+    return { ok: true, persisted: true };
+  }
+
+  /** Override in panels that expose a fullscreen control. */
+  public supportsFullscreen(): boolean {
+    return false;
+  }
+
+  public isFullscreenActive(): boolean {
+    return false;
+  }
+
+  /** Apply fullscreen through the visible control path. Default: unsupported. */
+  public setFullscreen(_fullscreen: boolean): boolean {
+    return false;
+  }
+
   protected appendCollapseButton(): void {
     const btn = h('button', {
       className: 'icon-btn panel-collapse-btn',
@@ -808,8 +846,7 @@ export class Panel {
     }, '▾') as HTMLButtonElement;
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      this._applyCollapsed(btn, !this._collapsed);
-      savePanelCollapsed(this.panelId, this._collapsed);
+      this.setCollapsed(!this._collapsed);
     });
     this._collapseBtn = btn;
     this.header.appendChild(btn);

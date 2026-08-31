@@ -10,7 +10,9 @@ import {
   validateProMcpAuthorization,
   wwwAuthHeader,
 } from './auth';
+import { readBoundedRequestBody, RequestBodyTooLargeError } from './bounded-body';
 import {
+  MAX_JSON_RPC_BODY_BYTES,
   MCP_LOG_LEVELS,
   negotiateProtocolVersion,
   SERVER_INSTRUCTIONS,
@@ -295,6 +297,28 @@ function replayEventsAfter(sessionId: string, lastEventId: string): StoredSseEve
   const stream = mcpSseStreamsBySession.get(sessionId)?.get(cursor.streamId);
   if (!stream) return null;
   return stream.events.slice(cursor.sequence + 1);
+}
+
+// Mid-call billing denials (dispatch's BillingDenialError re-emit) must
+// classify like the pre-check sites: 'billing' -> billing_verification_503
+// / tier_403, not rate_limit_degraded (503) or an ordinary precheck (403).
+// Shared by tools/call and template resources/read so the two surfaces
+// cannot drift (#7269).
+function classifyDispatchedUsage(usage: McpUsage, response: Response): void {
+  if (response.headers.get('X-Billing-Verification')) {
+    usage.phase = 'billing';
+  } else if (response.status === 429 || response.status === 503) {
+    usage.phase = 'dispatch';
+  } else if (response.status === 401 || response.status === 403) {
+    // #6716 F4: dispatch can now emit a tier denial of its own (the
+    // free-tier fail-closed guard at 401, and the gateway-backed
+    // upgrade-required at 403). Without this arm both fall past every
+    // branch, keep usage.phase's 'ok' default, and get recorded as
+    // SERVED — deleting from the dataset exactly the denial events this
+    // funnel exists to measure. 'precheck' maps a non-503 status to
+    // tier_403, matching how the pre-check sites classify the same verdict.
+    usage.phase = 'precheck';
+  }
 }
 
 function sseHeadersFrom(headers: Headers): Headers {
@@ -692,17 +716,34 @@ async function mcpHandlerInner(
   // Parse body BEFORE auth: the method decides whether credentials are required
   // (public discovery methods are servable anonymously). Malformed/missing-method
   // POSTs are a client error regardless of auth, so returning -32600 here (rather
-  // than 401-then-32600) leaks nothing.
+  // than 401-then-32600) leaks nothing. The byte cap (#7406) sits ahead of
+  // JSON.parse so an oversized body never reaches method dispatch — matching
+  // api/docs-mcp.ts (HTTP 413 + JSON-RPC -32600).
   let body: JsonRpcRequest;
   try {
-    const parsed: unknown = await req.json();
+    const bodyBytes = await readBoundedRequestBody(req, MAX_JSON_RPC_BODY_BYTES);
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bodyBytes));
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       usage.phase = 'malformed';
       return rpcError(null, -32600, 'Invalid request: expected object', corsHeaders);
     }
     body = parsed as JsonRpcRequest;
-  } catch {
+  } catch (err) {
     usage.phase = 'malformed';
+    if (err instanceof RequestBodyTooLargeError) {
+      // Structured `data` so an agent can self-correct without parsing the
+      // message string — same contract as the -32001/-32002 denials and the
+      // _jmespath_error envelope. `id` is null because the body was rejected
+      // before parsing, so the caller's id was never read.
+      return rpcError(
+        null,
+        -32600,
+        err.message,
+        corsHeaders,
+        { reason: 'body-too-large', maxBytes: err.maxBytes, nextStep: 'Shrink the request body below maxBytes and retry.' },
+        413,
+      );
+    }
     return rpcError(null, -32600, 'Invalid request: malformed JSON', corsHeaders);
   }
 
@@ -917,23 +958,7 @@ async function mcpHandlerInner(
         freeAccountAllowance,
         resourceMetadataUrl,
       );
-      // Mid-call billing denials (dispatch's BillingDenialError re-emit) must
-      // classify like the pre-check sites: 'billing' -> billing_verification_503
-      // / tier_403, not rate_limit_degraded (503) or 'ok' (403).
-      if (dispatched.headers.get('X-Billing-Verification')) {
-        usage.phase = 'billing';
-      } else if (dispatched.status === 429 || dispatched.status === 503) {
-        usage.phase = 'dispatch';
-      } else if (dispatched.status === 401 || dispatched.status === 403) {
-        // #6716 F4: dispatch can now emit a tier denial of its own (the
-        // free-tier fail-closed guard at 401, and the gateway-backed
-        // upgrade-required at 403). Without this arm both fall past every
-        // branch, keep usage.phase's 'ok' default, and get recorded as
-        // SERVED — deleting from the dataset exactly the denial events this
-        // funnel exists to measure. 'precheck' maps a non-503 status to
-        // tier_403, matching how the pre-check sites classify the same verdict.
-        usage.phase = 'precheck';
-      }
+      classifyDispatchedUsage(usage, dispatched);
       return maybeStreamJsonRpcResponse(req, dispatched);
     }
     // Prompts are metadata-class — they ship a workflow template, not data.
@@ -1050,14 +1075,7 @@ async function mcpHandlerInner(
           freeAccountAllowance,
           resourceMetadataUrl,
         );
-        if (resourceRes.status === 429 || resourceRes.status === 503) {
-          usage.phase = 'dispatch';
-        } else if (resourceRes.status === 401 || resourceRes.status === 403) {
-          // Mirror of the tools/call classification above (#6716 F4) — a
-          // resources/read routes through the same dispatcher and can emit the
-          // same tier denials.
-          usage.phase = 'precheck';
-        }
+        classifyDispatchedUsage(usage, resourceRes);
         return maybeStreamJsonRpcResponse(req, resourceRes);
       }
     case 'logging/setLevel': {
