@@ -15,6 +15,7 @@ import {
   OPENROUTER_FREE_BACKUP_MODEL,
   OPENROUTER_FREE_PRIMARY_MODEL,
 } from '../scripts/_llm-model-timeouts.mjs';
+import { extractDelimitedBlock } from '../scripts/lib/js-source-structure.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..');
@@ -222,19 +223,9 @@ function extractArrayLiteralValues(src, constName) {
 }
 
 function extractFunctionBody(src, functionName) {
-  const re = new RegExp(`function\\s+${functionName}\\s*\\([^)]*\\)\\s*(?::[^\\{]+)?\\{`);
-  const match = src.match(re);
-  assert.ok(match?.index !== undefined, `failed to locate function ${functionName}`);
-
-  let depth = 1;
-  const bodyStart = match.index + match[0].length;
-  for (let i = bodyStart; i < src.length; i++) {
-    const ch = src[i];
-    if (ch === '{') depth++;
-    if (ch === '}') depth--;
-    if (depth === 0) return src.slice(bodyStart, i);
-  }
-  assert.fail(`failed to parse function body for ${functionName}`);
+  const body = extractDelimitedBlock(src, `function ${functionName}`);
+  assert.notEqual(body, null, `failed to locate function ${functionName}`);
+  return body;
 }
 
 function extractInterfaceBody(src, interfaceName) {
@@ -495,7 +486,7 @@ describe('news digest methodology parity', () => {
     const rows = extractFeedInventoryRows(feedsSrc);
     assert.equal(
       rows.length,
-      66,
+      71,
       'server news feed inventory row count changed; update _feeds.ts, docs/data-sources.mdx, and this assertion together',
     );
     for (const row of rows) {
@@ -573,7 +564,7 @@ describe('news digest methodology parity', () => {
 
   it('documents the accepted feed digest variants from VALID_VARIANTS', () => {
     const variants = extractSetLiteralValues(digestSrc, 'VALID_VARIANTS');
-    assert.deepEqual(variants, ['full', 'tech', 'finance', 'happy', 'commodity']);
+    assert.deepEqual(variants, ['full', 'tech', 'finance', 'happy', 'commodity', 'chile']);
     for (const variant of variants) assertDocIncludes(`\`${variant}\``, `variant ${variant}`);
     for (const variant of variants) {
       assert.ok(
@@ -902,13 +893,13 @@ describe('news digest methodology parity', () => {
     assert.deepEqual(providerModels, [
       'deepseek/deepseek-v4-flash',
       'google/gemma-4-26b-a4b-it:free',
-      'openai/gpt-oss-20b:free',
+      'minimax/minimax-m3:free',
       'openai/gpt-oss-20b',
     ]);
     assert.equal(weeklyTemperature, 0.3);
 
     assertDocMatches(
-      /Regional weekly briefs[\s\S]*tr(?:y|ies) OpenRouter first[\s\S]*`deepseek\/deepseek-v4-flash`[\s\S]*`google\/gemma-4-26b-a4b-it:free`[\s\S]*`openai\/gpt-oss-20b:free`[\s\S]*Groq `openai\/gpt-oss-20b`[\s\S]*temperature\s+`0\.3`/,
+      /Regional weekly briefs[\s\S]*tr(?:y|ies) OpenRouter first[\s\S]*`deepseek\/deepseek-v4-flash`[\s\S]*`google\/gemma-4-26b-a4b-it:free`[\s\S]*`minimax\/minimax-m3:free`[\s\S]*Groq `openai\/gpt-oss-20b`[\s\S]*temperature\s+`0\.3`/, // pragma: allowlist secret
       'regional weekly brief provider order, models, and temperature',
     );
     assertDocMatches(

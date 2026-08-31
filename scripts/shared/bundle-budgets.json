@@ -7,11 +7,11 @@
   "totalTolerancePct": 0.25,
   "totalToleranceBytes": 16384,
   "total": {
-    "raw": 1609493
+    "raw": 1725040
   },
   "chunks": {
     "analytics": {
-      "raw": 118874,
+      "raw": 123167,
       "files": 1
     },
     "cached-risk-scores": {
@@ -19,7 +19,7 @@
       "files": 1
     },
     "clerk": {
-      "raw": 16727,
+      "raw": 18223,
       "files": 1
     },
     "continuous": {
@@ -31,7 +31,7 @@
       "files": 1
     },
     "data-freshness": {
-      "raw": 85732,
+      "raw": 88000,
       "files": 1
     },
     "dom-utils": {
@@ -39,7 +39,7 @@
       "files": 1
     },
     "embed-url": {
-      "raw": 60550,
+      "raw": 63403,
       "files": 1
     },
     "font-settings": {
@@ -47,7 +47,7 @@
       "files": 1
     },
     "gdelt-intel": {
-      "raw": 132635,
+      "raw": 133788,
       "files": 1
     },
     "i18n": {
@@ -59,15 +59,15 @@
       "files": 1
     },
     "main": {
-      "raw": 854251,
+      "raw": 956668,
       "files": 1
     },
     "panel-gating": {
-      "raw": 2849,
+      "raw": 3142,
       "files": 1
     },
     "panels": {
-      "raw": 155183,
+      "raw": 155311,
       "files": 1
     },
     "persistent-cache": {
@@ -86,12 +86,16 @@
       "raw": 1474,
       "files": 1
     },
+    "timeout-signal": {
+      "raw": 776,
+      "files": 1
+    },
     "user-location": {
       "raw": 11105,
       "files": 1
     },
     "widget-store": {
-      "raw": 26312,
+      "raw": 26182,
       "files": 1
     }
   }

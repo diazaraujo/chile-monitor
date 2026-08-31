@@ -67,6 +67,7 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
       { name: 'Politico', url: 'https://rss.politico.com/politics-news.xml' },
       { name: 'The Hill', url: 'https://thehill.com/news/feed' },
       { name: 'Axios', url: 'https://api.axios.com/feed/' },
+    { name: 'Fox News', url: 'https://moxie.foxnews.com/google-publisher/us.xml' },
       // Canada + North America key-country pack (#5960)
       { name: 'CBC News', url: 'https://www.cbc.ca/webfeed/rss/rss-world' },
       { name: 'Globe and Mail', url: 'https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/canada/?outputType=xml' },
@@ -738,7 +739,6 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
       { name: 'La Segunda', url: 'https://news.google.com/rss/search?q=site:lasegunda.com+when:1d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
       { name: 'The Clinic', url: 'https://news.google.com/rss/search?q=site:theclinic.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
       { name: 'El Desconcierto', url: 'https://news.google.com/rss/search?q=site:eldesconcierto.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
-      { name: 'CIPER', url: 'https://news.google.com/rss/search?q=site:ciperchile.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },
     ],
     us: [
       { name: 'Prensa Chile', url: 'https://news.google.com/rss/search?q=Chile+(gobierno+OR+congreso+OR+municipal)+when:1d&hl=es-CL&gl=CL&ceid=CL:es', lang: 'es' },

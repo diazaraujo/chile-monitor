@@ -56,6 +56,10 @@ describe('scripts/shared/ stays in sync with shared/', () => {
     'brief-llm-core.js',
     'brief-llm-core.d.ts',
     'correlation-runtime-mode.js',
+    'physical-divergence-contract.js',
+    'physical-divergence-contract.d.ts',
+    'physical-divergence-staleness.js',
+    'physical-divergence-staleness.d.ts',
     // #6428: publisher-family resolution for corroboration counting, consumed
     // by scripts/_clustering.mjs (Railway rootDirectory=scripts) and by the
     // edge digest. Must stay byte-identical.

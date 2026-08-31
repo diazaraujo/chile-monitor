@@ -28,7 +28,10 @@ export {
   hasReviewedSourceType,
   isStateAffiliatedSource,
 } from '../../shared/source-provenance';
-export { resolveTelegramSourceName } from '../../shared/telegram-channel-trust';
+export {
+  resolveRegisteredTelegramSourceName,
+  resolveTelegramSourceName,
+} from '../../shared/telegram-channel-trust';
 export { computeCredibilityScore } from '../../shared/news-credibility.js';
 export type {
   PropagandaRisk,
@@ -368,10 +371,10 @@ export const FULL_FEEDS: Record<string, Feed[]> = {
     { name: 'Jin10', url: rss('https://news.google.com/rss/search?q=site%3Ajin10.com%20when%3A1d&hl=zh-CN&gl=CN&ceid=CN:zh-Hans'), lang: 'zh' },
   ],
   gov: [
-    { name: 'White House', url: rss('https://news.google.com/rss/search?q=site:whitehouse.gov&hl=en-US&gl=US&ceid=US:en') },
+    { name: 'White House', url: rss('https://www.whitehouse.gov/briefings-statements/feed/') },
     { name: 'White House Actions', url: rss('https://www.whitehouse.gov/presidential-actions/feed/') },
     { name: 'State Dept', url: rss('https://news.google.com/rss/search?q=site:state.gov+OR+"State+Department"&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'Pentagon', url: rss('https://news.google.com/rss/search?q=site:defense.gov+OR+Pentagon&hl=en-US&gl=US&ceid=US:en') },
+    { name: 'Pentagon', url: rss('https://www.war.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945') },
     { name: 'Treasury', url: rss('https://news.google.com/rss/search?q=site:treasury.gov+OR+"Treasury+Department"&hl=en-US&gl=US&ceid=US:en') },
     { name: 'DOJ', url: rss('https://news.google.com/rss/search?q=site:justice.gov+OR+"Justice+Department"+DOJ&hl=en-US&gl=US&ceid=US:en') },
     { name: 'Federal Reserve', url: rss('https://www.federalreserve.gov/feeds/press_all.xml') },
@@ -1108,7 +1111,6 @@ const CHILE_FEEDS: Record<string, Feed[]> = {
     { name: 'La Segunda', url: rss('https://news.google.com/rss/search?q=site:lasegunda.com+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'The Clinic', url: rss('https://news.google.com/rss/search?q=site:theclinic.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
     { name: 'El Desconcierto', url: rss('https://news.google.com/rss/search?q=site:eldesconcierto.cl+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
-    { name: 'CIPER', url: rss('https://news.google.com/rss/search?q=site:ciperchile.cl+when:7d&hl=es-CL&gl=CL&ceid=CL:es') },
   ],
   us: [
     { name: 'Prensa Chile', url: rss('https://news.google.com/rss/search?q=Chile+(gobierno+OR+congreso+OR+municipal)+when:1d&hl=es-CL&gl=CL&ceid=CL:es') },
