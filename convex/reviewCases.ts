@@ -3,6 +3,7 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "./_generated/server";
 
 const ACTION = "OpenLicenseReview";
+const ASSIGN_ACTION = "AssignReviewer";
 const PACKET_NATURE = "historical_non_executable";
 const PACKET_SCHEMA_VERSION = "0.1.0";
 const BASE_CLASSIFICATION = ["ACTIVE_REVIEW", "MUNICIPAL_INTERNAL"] as const;
@@ -69,6 +70,57 @@ const authorityGrantValidator = v.object({
   validFrom: v.string(),
   validTo: v.union(v.string(), v.null()),
   revokedAt: v.union(v.string(), v.null()),
+});
+
+const assignmentAuthorityGrantValidator = v.object({
+  authorityId: v.string(),
+  authorityVersion: v.number(),
+  actorId: v.string(),
+  municipalityCut: v.string(),
+  roles: v.array(v.literal("coordinator")),
+  permittedActions: v.array(v.literal("AssignReviewer")),
+  validFrom: v.string(),
+  validTo: v.union(v.string(), v.null()),
+  revokedAt: v.union(v.string(), v.null()),
+});
+
+const reviewerEligibilityGrantValidator = v.object({
+  reviewerId: v.string(),
+  reviewerVersion: v.number(),
+  municipalityCut: v.string(),
+  eligible: v.boolean(),
+  validFrom: v.string(),
+  validTo: v.union(v.string(), v.null()),
+  revokedAt: v.union(v.string(), v.null()),
+});
+
+const assignmentLookupValidator = v.object({
+  operationKeySha256: v.string(),
+  commandSha256: v.string(),
+  actorId: v.string(),
+  municipalityCut: v.string(),
+});
+
+const assignmentSnapshotLookupValidator = v.object({
+  caseId: v.string(),
+  caseVersion: v.number(),
+  municipalityCut: v.string(),
+});
+
+const assignmentCommitValidator = v.object({
+  operationKeySha256: v.string(),
+  commandSha256: v.string(),
+  expectedCaseVersion: v.number(),
+  previousCaseSnapshot: v.any(),
+  resultingCaseSnapshot: v.any(),
+  action: v.any(),
+  authorityFence: v.object({
+    authorityId: v.string(), authorityVersion: v.number(), actorId: v.string(),
+    municipalityCut: v.string(), action: v.literal("AssignReviewer"), evaluatedAt: v.string(),
+  }),
+  reviewerFence: v.object({
+    reviewerId: v.string(), municipalityCut: v.string(), evaluatedAt: v.string(),
+  }),
 });
 
 type JsonRecord = Record<string, unknown>;
@@ -592,6 +644,322 @@ export const commitOpenLicenseReview = internalMutation({
       caseId: validated.caseId,
       actionId: validated.actionId,
       createdAt: validated.occurredAt,
+    });
+    return { kind: "committed" as const };
+  },
+});
+
+function validateAssignmentGrant(args: {
+  authorityId: string; authorityVersion: number; actorId: string; municipalityCut: string;
+  roles: string[]; permittedActions: string[]; validFrom: string;
+  validTo: string | null; revokedAt: string | null;
+}): void {
+  if (
+    !IDENTIFIER.test(args.authorityId)
+    || !Number.isSafeInteger(args.authorityVersion) || args.authorityVersion < 1
+    || !IDENTIFIER.test(args.actorId) || !CUT.test(args.municipalityCut)
+    || !sameSet(args.roles, ["coordinator"])
+    || !sameSet(args.permittedActions, [ASSIGN_ACTION])
+    || !validInstant(args.validFrom)
+    || (args.validTo !== null && (!validInstant(args.validTo)
+      || Date.parse(args.validTo) <= Date.parse(args.validFrom)))
+    || (args.revokedAt !== null && !validInstant(args.revokedAt))
+  ) throw new ConvexError("INVALID_ASSIGNMENT_AUTHORITY_GRANT");
+}
+
+function validateReviewerGrant(args: {
+  reviewerId: string; reviewerVersion: number; municipalityCut: string; eligible: boolean;
+  validFrom: string; validTo: string | null; revokedAt: string | null;
+}): void {
+  if (
+    !IDENTIFIER.test(args.reviewerId)
+    || !Number.isSafeInteger(args.reviewerVersion) || args.reviewerVersion < 1
+    || !CUT.test(args.municipalityCut) || typeof args.eligible !== "boolean"
+    || !validInstant(args.validFrom)
+    || (args.validTo !== null && (!validInstant(args.validTo)
+      || Date.parse(args.validTo) <= Date.parse(args.validFrom)))
+    || (args.revokedAt !== null && !validInstant(args.revokedAt))
+  ) throw new ConvexError("INVALID_REVIEWER_ELIGIBILITY_GRANT");
+}
+
+async function touchWriteLock(ctx: MutationCtx, now: number): Promise<void> {
+  const rows = await ctx.db.query("reviewWriteLocks")
+    .withIndex("by_lockKey", (q) => q.eq("lockKey", "review-write")).collect();
+  const lock = await uniqueByIndex(rows);
+  if (!lock) throw new ConvexError("REVIEW_WRITE_LOCK_NOT_SEEDED");
+  await ctx.db.patch(lock._id, { lastTouchedAt: now });
+}
+
+export const upsertAssignmentAuthorityGrant = internalMutation({
+  args: assignmentAuthorityGrantValidator,
+  handler: async (ctx, args) => {
+    validateAssignmentGrant(args);
+    const rows = await ctx.db.query("reviewAssignmentAuthorityGrants")
+      .withIndex("by_authorityId", (q) => q.eq("authorityId", args.authorityId)).collect();
+    const existing = await uniqueByIndex(rows);
+    if (existing && (
+      existing.actorId !== args.actorId || existing.municipalityCut !== args.municipalityCut
+      || args.authorityVersion <= existing.authorityVersion
+    )) throw new ConvexError("INVALID_ASSIGNMENT_AUTHORITY_ADVANCE");
+    const now = Date.now();
+    const value = {
+      ...args,
+      validTo: args.validTo ?? undefined,
+      revokedAt: args.revokedAt ?? undefined,
+      updatedAt: now,
+    };
+    if (existing) await ctx.db.replace(existing._id, value);
+    else await ctx.db.insert("reviewAssignmentAuthorityGrants", value);
+    await touchWriteLock(ctx, now);
+    return { authorityId: args.authorityId, authorityVersion: args.authorityVersion };
+  },
+});
+
+export const upsertReviewerEligibilityGrant = internalMutation({
+  args: reviewerEligibilityGrantValidator,
+  handler: async (ctx, args) => {
+    validateReviewerGrant(args);
+    const rows = await ctx.db.query("reviewReviewerEligibilityGrants")
+      .withIndex("by_reviewer_municipality", (q) => q
+        .eq("reviewerId", args.reviewerId).eq("municipalityCut", args.municipalityCut))
+      .collect();
+    const existing = await uniqueByIndex(rows);
+    if (existing && args.reviewerVersion <= existing.reviewerVersion) {
+      throw new ConvexError("INVALID_REVIEWER_ELIGIBILITY_ADVANCE");
+    }
+    const now = Date.now();
+    const value = {
+      ...args,
+      validTo: args.validTo ?? undefined,
+      revokedAt: args.revokedAt ?? undefined,
+      updatedAt: now,
+    };
+    if (existing) await ctx.db.replace(existing._id, value);
+    else await ctx.db.insert("reviewReviewerEligibilityGrants", value);
+    await touchWriteLock(ctx, now);
+    return { reviewerId: args.reviewerId, reviewerVersion: args.reviewerVersion };
+  },
+});
+
+async function findAssignmentOperation(
+  ctx: QueryCtx | MutationCtx,
+  actorId: string,
+  operationKeySha256: string,
+) {
+  const rows = await ctx.db.query("reviewOperations")
+    .withIndex("by_actor_action_key", (q) => q.eq("actorId", actorId)
+      .eq("actionType", ASSIGN_ACTION).eq("operationKeySha256", operationKeySha256))
+    .collect();
+  return await uniqueByIndex(rows);
+}
+
+async function loadAssignmentReceipt(
+  ctx: QueryCtx | MutationCtx,
+  binding: { caseId: string; actionId: string },
+): Promise<JsonRecord> {
+  const actionRows = await ctx.db.query("reviewActions")
+    .withIndex("by_actionId", (q) => q.eq("actionId", binding.actionId)).collect();
+  const actionRow = await uniqueByIndex(actionRows);
+  if (!actionRow || actionRow.caseId !== binding.caseId || actionRow.actionType !== ASSIGN_ACTION) {
+    return failIntegrity();
+  }
+  const caseRows = await ctx.db.query("reviewCases")
+    .withIndex("by_case_version", (q) => q.eq("caseId", binding.caseId)
+      .eq("caseVersion", actionRow.resultingCaseVersion)).collect();
+  const caseRow = await uniqueByIndex(caseRows);
+  if (!caseRow) return failIntegrity();
+  try {
+    return {
+      schema_version: PACKET_SCHEMA_VERSION,
+      case: JSON.parse(caseRow.snapshotJson),
+      action: JSON.parse(actionRow.actionJson),
+      replayed: false,
+    };
+  } catch {
+    return failIntegrity();
+  }
+}
+
+export const readAssignReviewerOperation = internalQuery({
+  args: { lookup: assignmentLookupValidator },
+  handler: async (ctx, args) => {
+    validateLookup(args.lookup);
+    const binding = await findAssignmentOperation(
+      ctx, args.lookup.actorId, args.lookup.operationKeySha256,
+    );
+    if (!binding) return { kind: "miss" as const };
+    if (binding.commandSha256 !== args.lookup.commandSha256
+      || binding.municipalityCut !== args.lookup.municipalityCut) {
+      return { kind: "operation_conflict" as const };
+    }
+    return { kind: "replayed" as const, receipt: await loadAssignmentReceipt(ctx, binding) };
+  },
+});
+
+export const readReviewCaseSnapshotForAssignment = internalQuery({
+  args: { lookup: assignmentSnapshotLookupValidator },
+  handler: async (ctx, args) => {
+    if (!IDENTIFIER.test(args.lookup.caseId) || !Number.isSafeInteger(args.lookup.caseVersion)
+      || args.lookup.caseVersion < 1 || !CUT.test(args.lookup.municipalityCut)) failIntegrity();
+    const rows = await ctx.db.query("reviewCases")
+      .withIndex("by_case_version", (q) => q.eq("caseId", args.lookup.caseId)
+        .eq("caseVersion", args.lookup.caseVersion)).collect();
+    const row = await uniqueByIndex(rows);
+    if (!row || row.municipalityCut !== args.lookup.municipalityCut) return null;
+    try {
+      return JSON.parse(row.snapshotJson);
+    } catch {
+      return failIntegrity();
+    }
+  },
+});
+
+function sameJson(left: unknown, right: unknown): boolean {
+  try { return JSON.stringify(left) === JSON.stringify(right); } catch { return false; }
+}
+
+function validateAssignmentCommit(request: {
+  operationKeySha256: string; commandSha256: string; expectedCaseVersion: number;
+  previousCaseSnapshot: unknown; resultingCaseSnapshot: unknown; action: unknown;
+  authorityFence: { authorityId: string; authorityVersion: number; actorId: string;
+    municipalityCut: string; action: string; evaluatedAt: string };
+  reviewerFence: { reviewerId: string; municipalityCut: string; evaluatedAt: string };
+}) {
+  validateLookup({
+    operationKeySha256: request.operationKeySha256,
+    commandSha256: request.commandSha256,
+    actorId: request.authorityFence.actorId,
+    municipalityCut: request.authorityFence.municipalityCut,
+  });
+  const previous = record(request.previousCaseSnapshot);
+  const resulting = record(request.resultingCaseSnapshot);
+  const action = record(request.action);
+  const previousRef = record(previous?.packet_ref);
+  const resultingRef = record(resulting?.packet_ref);
+  const actionRef = record(action?.packet_ref);
+  const assignment = record(resulting?.assignment);
+  const actorRoles = stringArray(action?.actor_roles);
+  if (!previous || !resulting || !action || !previousRef || !resultingRef || !actionRef
+    || !assignment || !actorRoles
+    || request.authorityFence.action !== ASSIGN_ACTION
+    || request.expectedCaseVersion !== previous.case_version
+    || !Number.isSafeInteger(previous.case_version)
+    || resulting.case_version !== Number(previous.case_version) + 1
+    || previous.status !== "open" || resulting.status !== "in_review"
+    || previous.case_id !== resulting.case_id || previous.case_id !== action.case_id
+    || previous.municipality_cut !== resulting.municipality_cut
+    || previous.municipality_cut !== action.municipality_cut
+    || previous.municipality_cut !== request.authorityFence.municipalityCut
+    || previous.municipality_cut !== request.reviewerFence.municipalityCut
+    || previous.license_id !== resulting.license_id || previous.license_id !== action.license_id
+    || resulting.created_at !== previous.created_at || resulting.updated_at !== action.occurred_at
+    || request.authorityFence.evaluatedAt !== action.occurred_at
+    || request.reviewerFence.evaluatedAt !== action.occurred_at
+    || action.action_type !== ASSIGN_ACTION || action.previous_case_version !== previous.case_version
+    || action.resulting_case_version !== resulting.case_version || action.legal_effect !== "none"
+    || action.command_sha256 !== request.commandSha256
+    || action.actor_id !== request.authorityFence.actorId
+    || action.authority_id !== request.authorityFence.authorityId
+    || action.authority_version !== request.authorityFence.authorityVersion
+    || assignment.reviewer_id !== request.reviewerFence.reviewerId
+    || assignment.reviewer_id !== action.reviewer_id
+    || assignment.assigned_by !== request.authorityFence.actorId
+    || assignment.assigned_at !== action.occurred_at
+    || !sameSet(actorRoles, ["coordinator"])
+    || !sameJson(previousRef, resultingRef) || !sameJson(previousRef, actionRef)
+    || !validInstant(action.occurred_at) || !SHA256.test(request.commandSha256)
+  ) failIntegrity();
+  const caseId = String(previous.case_id);
+  const licenseId = String(previous.license_id);
+  const actionId = String(action.action_id);
+  if (!IDENTIFIER.test(caseId) || !IDENTIFIER.test(licenseId) || !IDENTIFIER.test(actionId)) {
+    failIntegrity();
+  }
+  return { previous, resulting, action, caseId, licenseId, actionId,
+    occurredAt: Date.parse(String(action.occurred_at)) };
+}
+
+export const commitAssignReviewer = internalMutation({
+  args: { request: assignmentCommitValidator },
+  handler: async (ctx, args) => {
+    const request = args.request;
+    const validated = validateAssignmentCommit(request);
+    const authorityRows = await ctx.db.query("reviewAssignmentAuthorityGrants")
+      .withIndex("by_authorityId", (q) => q.eq("authorityId", request.authorityFence.authorityId))
+      .collect();
+    const authority = await uniqueByIndex(authorityRows);
+    const reviewerRows = await ctx.db.query("reviewReviewerEligibilityGrants")
+      .withIndex("by_reviewer_municipality", (q) => q
+        .eq("reviewerId", request.reviewerFence.reviewerId)
+        .eq("municipalityCut", request.reviewerFence.municipalityCut)).collect();
+    const reviewer = await uniqueByIndex(reviewerRows);
+    const now = Date.now();
+    if (!authority || !reviewer
+      || authority.authorityVersion !== request.authorityFence.authorityVersion
+      || authority.actorId !== request.authorityFence.actorId
+      || authority.municipalityCut !== request.authorityFence.municipalityCut
+      || !sameSet(authority.roles, ["coordinator"])
+      || !sameSet(authority.permittedActions, [ASSIGN_ACTION])
+      || Date.parse(authority.validFrom) > now
+      || (authority.validTo !== undefined && Date.parse(authority.validTo) < now)
+      || authority.revokedAt !== undefined
+      || !reviewer.eligible || Date.parse(reviewer.validFrom) > now
+      || (reviewer.validTo !== undefined && Date.parse(reviewer.validTo) < now)
+      || reviewer.revokedAt !== undefined) return { kind: "cas_conflict" as const };
+
+    const lockRows = await ctx.db.query("reviewWriteLocks")
+      .withIndex("by_lockKey", (q) => q.eq("lockKey", "review-write")).collect();
+    const lock = await uniqueByIndex(lockRows);
+    if (!lock) return { kind: "cas_conflict" as const };
+    const existingOperation = await findAssignmentOperation(
+      ctx, authority.actorId, request.operationKeySha256,
+    );
+    if (existingOperation) {
+      if (existingOperation.commandSha256 !== request.commandSha256
+        || existingOperation.municipalityCut !== authority.municipalityCut) {
+        return { kind: "operation_conflict" as const };
+      }
+      return { kind: "replayed" as const,
+        receipt: await loadAssignmentReceipt(ctx, existingOperation) };
+    }
+    const priorRows = await ctx.db.query("reviewCases")
+      .withIndex("by_case_version", (q) => q.eq("caseId", validated.caseId)
+        .eq("caseVersion", request.expectedCaseVersion)).collect();
+    const prior = await uniqueByIndex(priorRows);
+    const activeRows = await ctx.db.query("reviewActiveCases")
+      .withIndex("by_case_version", (q) => q.eq("caseId", validated.caseId)
+        .eq("caseVersion", request.expectedCaseVersion)).collect();
+    const active = await uniqueByIndex(activeRows);
+    if (!prior || !active || prior.municipalityCut !== authority.municipalityCut
+      || active.municipalityCut !== authority.municipalityCut
+      || prior.snapshotJson !== JSON.stringify(validated.previous)
+      || active.licenseId !== validated.licenseId) return { kind: "cas_conflict" as const };
+    const nextVersion = request.expectedCaseVersion + 1;
+    const duplicateCases = await ctx.db.query("reviewCases")
+      .withIndex("by_case_version", (q) => q.eq("caseId", validated.caseId)
+        .eq("caseVersion", nextVersion)).collect();
+    const duplicateActions = await ctx.db.query("reviewActions")
+      .withIndex("by_actionId", (q) => q.eq("actionId", validated.actionId)).collect();
+    if (duplicateCases.length || duplicateActions.length) return { kind: "cas_conflict" as const };
+
+    await ctx.db.patch(lock._id, { lastTouchedAt: now });
+    await ctx.db.insert("reviewCases", {
+      caseId: validated.caseId, caseVersion: nextVersion,
+      municipalityCut: authority.municipalityCut, licenseId: validated.licenseId,
+      status: "in_review", snapshotJson: JSON.stringify(validated.resulting),
+      packetId: prior.packetId, createdAt: prior.createdAt, updatedAt: validated.occurredAt,
+    });
+    await ctx.db.patch(active._id, { caseVersion: nextVersion });
+    await ctx.db.insert("reviewActions", {
+      actionId: validated.actionId, caseId: validated.caseId, actionType: ASSIGN_ACTION,
+      resultingCaseVersion: nextVersion, actorId: authority.actorId, legalEffect: "none",
+      actionJson: JSON.stringify(validated.action), occurredAt: validated.occurredAt,
+    });
+    await ctx.db.insert("reviewOperations", {
+      actorId: authority.actorId, actionType: ASSIGN_ACTION,
+      operationKeySha256: request.operationKeySha256, commandSha256: request.commandSha256,
+      municipalityCut: authority.municipalityCut, caseId: validated.caseId,
+      actionId: validated.actionId, createdAt: validated.occurredAt,
     });
     return { kind: "committed" as const };
   },

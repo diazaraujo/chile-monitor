@@ -119,6 +119,71 @@ function commitRequest(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function assignmentAuthority(overrides: Record<string, unknown> = {}) {
+  return {
+    authorityId: "assignment-authority-001", authorityVersion: 1,
+    actorId: "coordinator-001", municipalityCut: "13101",
+    roles: ["coordinator"], permittedActions: ["AssignReviewer"],
+    validFrom: "2026-01-01T00:00:00.000Z", validTo: null, revokedAt: null,
+    ...overrides,
+  };
+}
+
+function reviewerGrant(overrides: Record<string, unknown> = {}) {
+  return {
+    reviewerId: "reviewer-001", reviewerVersion: 1, municipalityCut: "13101",
+    eligible: true, validFrom: "2026-01-01T00:00:00.000Z",
+    validTo: null, revokedAt: null, ...overrides,
+  };
+}
+
+function assignmentRequest() {
+  const previous = commitRequest().caseSnapshot;
+  const resulting = {
+    ...previous,
+    case_version: 2,
+    status: "in_review",
+    updated_at: "2026-08-29T12:00:00.000Z",
+    packet_ref: {
+      ...previous.packet_ref,
+      required_markings: [...previous.packet_ref.required_markings],
+    },
+    assignment: {
+      reviewer_id: "reviewer-001", assigned_by: "coordinator-001",
+      assigned_at: "2026-08-29T12:00:00.000Z",
+    },
+  };
+  return {
+    operationKeySha256: "d".repeat(64), commandSha256: "e".repeat(64),
+    expectedCaseVersion: 1, previousCaseSnapshot: previous,
+    resultingCaseSnapshot: resulting,
+    action: {
+      schema_version: "0.1.0", action_id: "assignment-action-001",
+      action_type: "AssignReviewer", case_id: "case-001", municipality_cut: "13101",
+      license_id: "license-001", previous_case_version: 1, resulting_case_version: 2,
+      reviewer_id: "reviewer-001", actor_id: "coordinator-001",
+      actor_roles: ["coordinator"], authority_id: "assignment-authority-001",
+      authority_version: 1, occurred_at: "2026-08-29T12:00:00.000Z",
+      legal_effect: "none", packet_ref: previous.packet_ref, command_sha256: "e".repeat(64),
+    },
+    authorityFence: {
+      authorityId: "assignment-authority-001", authorityVersion: 1,
+      actorId: "coordinator-001", municipalityCut: "13101",
+      action: "AssignReviewer", evaluatedAt: "2026-08-29T12:00:00.000Z",
+    },
+    reviewerFence: {
+      reviewerId: "reviewer-001", municipalityCut: "13101",
+      evaluatedAt: "2026-08-29T12:00:00.000Z",
+    },
+  };
+}
+
+async function seedAssignment(t: Awaited<ReturnType<typeof harness>>) {
+  await t.mutation(reviewApi.commitOpenLicenseReview as any, { request: commitRequest() });
+  await t.mutation(reviewApi.upsertAssignmentAuthorityGrant as any, assignmentAuthority());
+  await t.mutation(reviewApi.upsertReviewerEligibilityGrant as any, reviewerGrant());
+}
+
 async function harness() {
   const t = convexTest(schema, modules);
   await t.mutation(reviewApi._seedReviewWriteLock as any, {});
@@ -253,5 +318,108 @@ describe("commercial-license review storage", () => {
     await expect(t.mutation(reviewApi.commitOpenLicenseReview as any, { request })).rejects.toThrow();
     const rows = await t.run(async (ctx) => await ctx.db.query("reviewCases").collect());
     expect(rows).toHaveLength(0);
+  });
+
+  test("assigns a reviewer atomically while preserving the opening snapshot", async () => {
+    const t = await harness();
+    await seedAssignment(t);
+
+    expect(await t.mutation(reviewApi.commitAssignReviewer as any, {
+      request: assignmentRequest(),
+    })).toEqual({ kind: "committed" });
+
+    const state = await t.run(async (ctx) => ({
+      cases: await ctx.db.query("reviewCases").collect(),
+      active: await ctx.db.query("reviewActiveCases").collect(),
+      actions: await ctx.db.query("reviewActions").collect(),
+      operations: await ctx.db.query("reviewOperations").collect(),
+    }));
+    expect(state.cases).toHaveLength(2);
+    expect(state.actions).toHaveLength(2);
+    expect(state.operations).toHaveLength(2);
+    expect(state.active[0]?.caseVersion).toBe(2);
+    expect(JSON.parse(state.cases.find((row) => row.caseVersion === 1)!.snapshotJson).status)
+      .toBe("open");
+    const assigned = JSON.parse(state.cases.find((row) => row.caseVersion === 2)!.snapshotJson);
+    expect(assigned).toMatchObject({
+      status: "in_review", assignment: { reviewer_id: "reviewer-001" },
+    });
+    expect(assigned.packet_ref).toEqual(commitRequest().caseSnapshot.packet_ref);
+  });
+
+  test("replays reviewer assignment without duplicate rows", async () => {
+    const t = await harness();
+    await seedAssignment(t);
+    const request = assignmentRequest();
+    await t.mutation(reviewApi.commitAssignReviewer as any, { request });
+    const replay = await t.mutation(reviewApi.commitAssignReviewer as any, { request });
+    expect(replay.kind).toBe("replayed");
+    expect(replay.receipt.case.case_version).toBe(2);
+    const rows = await t.run(async (ctx) => await ctx.db.query("reviewCases").collect());
+    expect(rows).toHaveLength(2);
+  });
+
+  test("binds assignment idempotency and rolls back malformed transitions", async () => {
+    const t = await harness();
+    await seedAssignment(t);
+    const request = assignmentRequest();
+    await t.mutation(reviewApi.commitAssignReviewer as any, { request });
+    const conflicting = assignmentRequest();
+    conflicting.commandSha256 = "f".repeat(64);
+    conflicting.action.command_sha256 = "f".repeat(64);
+    expect(await t.mutation(reviewApi.commitAssignReviewer as any, { request: conflicting }))
+      .toEqual({ kind: "operation_conflict" });
+
+    const fresh = await harness();
+    await seedAssignment(fresh);
+    const malformed = assignmentRequest();
+    malformed.resultingCaseSnapshot.packet_ref.packet_id = "packet-other";
+    await expect(fresh.mutation(reviewApi.commitAssignReviewer as any, { request: malformed }))
+      .rejects.toThrow();
+    const counts = await fresh.run(async (ctx) => ({
+      cases: (await ctx.db.query("reviewCases").collect()).length,
+      actions: (await ctx.db.query("reviewActions").collect()).length,
+      operations: (await ctx.db.query("reviewOperations").collect()).length,
+    }));
+    expect(counts).toEqual({ cases: 1, actions: 1, operations: 1 });
+  });
+
+  test("rejects stale versions and revoked reviewer eligibility", async () => {
+    const stale = await harness();
+    await seedAssignment(stale);
+    const staleRequest = assignmentRequest();
+    staleRequest.expectedCaseVersion = 2;
+    staleRequest.previousCaseSnapshot.case_version = 2;
+    staleRequest.resultingCaseSnapshot.case_version = 3;
+    staleRequest.action.previous_case_version = 2;
+    staleRequest.action.resulting_case_version = 3;
+    expect(await stale.mutation(reviewApi.commitAssignReviewer as any, { request: staleRequest }))
+      .toEqual({ kind: "cas_conflict" });
+
+    const revoked = await harness();
+    await revoked.mutation(reviewApi.commitOpenLicenseReview as any, { request: commitRequest() });
+    await revoked.mutation(reviewApi.upsertAssignmentAuthorityGrant as any, assignmentAuthority());
+    await revoked.mutation(reviewApi.upsertReviewerEligibilityGrant as any,
+      reviewerGrant({ revokedAt: "2026-08-29T11:00:00.000Z" }));
+    expect(await revoked.mutation(reviewApi.commitAssignReviewer as any,
+      { request: assignmentRequest() })).toEqual({ kind: "cas_conflict" });
+  });
+
+  test("keeps assignment storage routes secret-authenticated and no-store", async () => {
+    const t = await harness();
+    await seedAssignment(t);
+    const response = await t.fetch("/api/internal-review-case-assignment-snapshot", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-review-case-storage-secret": "review-storage-test-secret",
+      },
+      body: JSON.stringify({ lookup: {
+        caseId: "case-001", caseVersion: 1, municipalityCut: "13101",
+      } }),
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect((await response.json()).case_version).toBe(1);
   });
 });
