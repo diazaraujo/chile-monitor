@@ -15,6 +15,9 @@ concurrency:
 
 jobs:
   refresh:
+    # The snapshot is sourced from api.worldmonitor.app and published by the
+    # upstream project. Forks do not own that credential or publication branch.
+    if: ${{ github.repository == 'koala73/worldmonitor' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

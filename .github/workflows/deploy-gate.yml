@@ -40,6 +40,9 @@ permissions:
 
 jobs:
   gate:
+    # This gate aggregates the upstream project's complete CI and posts a
+    # deployment status. Forks may intentionally disable parts of that matrix.
+    if: ${{ github.repository == 'koala73/worldmonitor' }}
     runs-on: ubuntu-latest
     steps:
       - name: Check required PR gates passed for this SHA

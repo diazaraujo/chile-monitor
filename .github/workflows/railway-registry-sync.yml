@@ -52,6 +52,9 @@ permissions:
 jobs:
   audit:
     name: Registry-to-live configuration sync
+    # The registry describes WorldMonitor's production Railway fleet. Forks
+    # neither own that project nor carry its read-only production credentials.
+    if: ${{ github.repository == 'koala73/worldmonitor' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:

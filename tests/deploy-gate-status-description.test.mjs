@@ -389,6 +389,10 @@ function runGate(conclusions, {
 const conclusionsFor = (value) => Object.fromEntries(REQUIRED.map((name) => [name, value]));
 
 describe('deploy gate commit-status description', () => {
+  it('only evaluates the canonical WorldMonitor repository', () => {
+    assert.match(workflow.jobs.gate.if, /github\.repository == 'koala73\/worldmonitor'/);
+  });
+
   it('gates on enough checks for the cap to be reachable', () => {
     // Anti-vacuity: with three required names the untruncated description fits
     // and every assertion below would pass against the broken step too.
