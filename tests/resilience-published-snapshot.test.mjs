@@ -110,6 +110,7 @@ describe('published resilience snapshot freshness', () => {
     assert.doesNotMatch(workflow, /push --force/);
 
     const parsed = YAML.parse(workflow);
+    assert.match(parsed.jobs.refresh.if, /github\.repository == 'koala73\/worldmonitor'/);
     const checkout = parsed.jobs.refresh.steps.find((step) => step.uses?.startsWith('actions/checkout@'));
     assert.equal(
       checkout?.with?.ref,

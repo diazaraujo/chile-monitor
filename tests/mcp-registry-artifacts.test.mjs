@@ -254,6 +254,7 @@ describe('mcp registry publication artifacts', () => {
     assert.deepEqual(workflow.permissions, { contents: 'read' });
     assert.equal(workflow.jobs.publish.environment, 'mcp-registry-publish');
     assert.equal(workflow.jobs.publish['timeout-minutes'], 10);
+    assert.match(workflow.jobs.publish.if, /github\.repository == 'koala73\/worldmonitor'/);
     assert.match(workflow.jobs.publish.if, /github\.event_name == 'release'/);
     assert.match(workflow.jobs.publish.if, /github\.ref == 'refs\/heads\/main'/);
     const install = stepNamed('Install mcp-publisher');

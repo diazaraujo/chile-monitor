@@ -220,6 +220,7 @@ describe('Railway Registry Sync workflow', () => {
   it('publishes one fail-closed conclusion from one job', () => {
     assert.deepEqual(Object.keys(workflow.jobs), ['audit']);
     const job = workflow.jobs.audit;
+    assert.match(job.if, /github\.repository == 'koala73\/worldmonitor'/);
     assert.equal(job.needs, undefined);
     assert.equal(job['continue-on-error'], undefined);
     assert.deepEqual(job.environment, {
