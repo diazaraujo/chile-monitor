@@ -8,7 +8,7 @@ fail=0
 ok()   { printf '  OK    %s\n' "$1"; }
 bad()  { printf '  FALLA %s\n' "$1"; fail=1; }
 pend() { printf '  PEND  %s\n' "$1"; }
-kv_age_h() { curl -sf -H "$TOK" "$KV/get/seed-meta:$1" | python3 -c 'import sys,json,time; r=json.load(sys.stdin)["result"]; print(round((time.time()-json.loads(r)["fetchedAt"]/1000)/3600,1) if r else "")' 2>/dev/null; }
+kv_age_h() { curl -sf -H "Authorization: $TOK" "$KV/get/seed-meta:$1" | python3 -c 'import sys,json,time; r=json.load(sys.stdin)["result"]; print(round((time.time()-json.loads(r)["fetchedAt"]/1000)/3600,1) if r else "")' 2>/dev/null; }
 age_check() { local h; h=$(kv_age_h "$2"); [ -n "$h" ] && python3 -c "import sys; sys.exit(0 if $h < $3 else 1)" && ok "$1 (${h}h)" || bad "$1 (edad: ${h:-sin seed})"; }
 
 echo "1. Incendios (capa fires)"
@@ -44,6 +44,7 @@ age_check "seed climate:ocean-ice" climate:ocean-ice 48
 pend "climate:anomalies (zone-normals >240 s) y climate:disasters (appname ReliefWeb) fuera"
 
 echo "Regresión"
-python3 scripts/csp_check.py dist/dashboard.html docker/nginx.conf >/dev/null 2>&1 && ok "CSP: inline scripts del build cubiertos" || pend "CSP: falta dist/ (corre tras el build) o hay hash faltante"
+T=$(mktemp -d); docker run --rm chile-monitor:prod cat /usr/share/nginx/html/dashboard.html > "$T/d.html" 2>/dev/null; docker run --rm chile-monitor:prod cat /etc/nginx/nginx.conf.template > "$T/n.conf" 2>/dev/null
+python3 scripts/csp_check.py "$T/d.html" "$T/n.conf" >/dev/null 2>&1 && ok "CSP: inline scripts de la imagen prod cubiertos" || bad "CSP: hash faltante en la imagen prod (python3 scripts/csp_check.py)"; rm -rf "$T"
 [ $fail -eq 0 ] && echo "TODO OK" || echo "HAY FALLAS"
 exit $fail
