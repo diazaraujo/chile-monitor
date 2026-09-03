@@ -55,5 +55,6 @@ export const SITE_VARIANT: string = (() => {
     return buildVariant;
   }
 
+  if (isSiteVariant(buildVariant)) return buildVariant;
   return 'full';
 })();

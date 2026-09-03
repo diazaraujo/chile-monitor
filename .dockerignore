@@ -29,3 +29,9 @@ secrets/
 docs/internal
 docs/Docs_To_Review
 tests
+
+# Chile Monitor: datos locales pesados fuera del contexto (se montan en runtime)
+data/kmz-inbox/
+data/derechos_full.geojson
+data/derechos_agua.csv
+.venv-gis/

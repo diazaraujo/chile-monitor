@@ -3025,6 +3025,9 @@ export class PanelLayoutManager implements AppModule {
     }
 
     this.lazyDefaultPanel('insights', () => import('@/components/InsightsPanel'), 'InsightsPanel');
+    if (isPanelInVariantDefaults('camaras')) {
+      this.lazyDefaultPanel('camaras', () => import('@/components/ChileCamarasPanel'), 'ChileCamarasPanel');
+    }
     if (isPanelInVariantDefaults('territorial')) {
       this.lazyDefaultPanel('territorial', () => import('@/components/ChileTerritorialPanel'), 'ChileTerritorialPanel');
     }

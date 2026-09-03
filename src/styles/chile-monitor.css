@@ -30,3 +30,10 @@ html[data-variant="chile"].wm-pro-banner-reserved #app::before,
 [data-variant="chile"] #footerDownloadMount { display: none !important; }
 
 .chile-health-alerta { background: rgba(215,58,73,.18); border: 1px solid rgba(215,58,73,.5); color: inherit; padding: 6px 8px; border-radius: 4px; font-size: 11px; margin-bottom: 8px; }
+
+.chile-cams { font-size: 12px; }
+.chile-cam-buscar { width: 100%; padding: 5px 8px; margin-bottom: 6px; background: transparent; border: 1px solid rgba(128,128,128,.4); border-radius: 4px; color: inherit; font: inherit; }
+.chile-cam-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.chile-cam-play { font: inherit; font-size: 10px; padding: 1px 6px; border: 1px solid rgba(128,128,128,.5); border-radius: 3px; background: transparent; color: inherit; cursor: pointer; }
+.chile-cam-meta { opacity: .7; font-size: 11px; margin-top: 2px; }
+.chile-cam-iframe { width: 100%; aspect-ratio: 16/9; border: 0; margin-top: 6px; border-radius: 4px; }

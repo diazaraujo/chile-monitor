@@ -1,4 +1,5 @@
 import './styles/base-layer.css';
+import '@/styles/chile-monitor.css';
 import './bootstrap/zod-csp';
 import { SITE_VARIANT } from '@/config/variant';
 import { installLcpAttributionDebug } from '@/bootstrap/lcp-attribution';
@@ -553,6 +554,14 @@ loadDesktopSecrets().catch(() => {});
 
 // Apply stored theme preference before app initialization (safety net for inline script)
 applyStoredTheme();
+// chile-dark-guard: identidad oscura de Chile Monitor. El prepaint ya la fija; esto la
+// reafirma frente a módulos cacheados viejos. La elección explícita del usuario gana.
+try {
+  const _chileRaw = localStorage.getItem('worldmonitor-theme');
+  if (document.documentElement.dataset.variant === 'chile' && _chileRaw !== 'light' && _chileRaw !== 'auto') {
+    document.documentElement.dataset.theme = 'dark';
+  }
+} catch { /* storage no disponible */ }
 applyFont();
 applyFontScale();
 window.addEventListener('storage', (event) => {

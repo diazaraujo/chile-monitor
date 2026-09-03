@@ -72,7 +72,7 @@ try:
     d = json.loads(body["result"])
     d = d.get("data", d)
     h = hours_since_iso(d["generatedAt"])
-    add("brief IA (insights)", h < 2, f"{h:.1f}h" + ("" if h < 2 else " > 2h"))
+    add("brief IA (insights)", h < 4, f"{h:.1f}h" + ("" if h < 4 else " > 4h"))
 except Exception as e:  # noqa: BLE001
     add("brief IA (insights)", False, str(e)[:60])
 

@@ -9,7 +9,9 @@ const CHILE_PANEL_TITLES: Readonly<Record<string, string>> = Object.freeze({
   latam: 'Cono Sur',
   monitors: 'Mis monitores',
   'threat-timeline': 'Línea de amenazas',
-  'live-webcams': 'Webcams en vivo',
+  'live-webcams': 'Cámaras en vivo',
+  'live-news': 'TV en vivo',
+  camaras: 'Cámaras por comuna',
 });
 
 export function getVariantPanelTitle(variant: string, panelId: string): string | undefined {

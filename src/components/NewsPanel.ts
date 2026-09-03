@@ -38,6 +38,33 @@ interface PreparedCluster {
   showNewTag: boolean;
 }
 
+
+// Google News entrega description = título (+ entidades como &nbsp;). Un snippet que
+// solo repite el titular es ruido: se omite. Se decodifican entidades básicas.
+function decodeBasicEntities(text: string): string {
+  return text
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function snippetUtil(title: string, snippet: string | undefined): string {
+  if (!snippet) return '';
+  const clean = decodeBasicEntities(snippet);
+  // Comparación sin puntuación ni espacios: 'titulo - Fuente' y 'titulo\u00a0\u00a0Fuente'
+  // son el mismo texto con otro separador.
+  const strip = (x: string) => x.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+  const t = strip(title);
+  const c = strip(clean);
+  if (!c || c === t || c.startsWith(t) || t.startsWith(c)) return '';
+  return clean;
+}
+
 export class NewsPanel extends Panel {
   private clusteredMode = true;
   private deviationEl: HTMLElement | null = null;
@@ -555,13 +582,13 @@ export class NewsPanel extends Panel {
           ${escapeHtml(item.source)}
           ${renderCredibilityBadge(item.source, item)}
           ${item.lang && item.lang !== getCurrentLanguage() ? `<span class="lang-badge">${item.lang.toUpperCase()}</span>` : ''}
-          ${item.storyMeta?.phase === 'breaking' ? '<span class="phase-badge breaking">BREAKING</span>' : ''}
-          ${item.storyMeta?.phase === 'developing' ? `<span class="phase-badge developing">DEVELOPING${item.storyMeta.mentionCount > 1 ? ` ×${item.storyMeta.mentionCount}` : ''}</span>` : ''}
-          ${item.storyMeta?.phase === 'sustained' ? '<span class="phase-badge sustained">ONGOING</span>' : ''}
-          ${item.isAlert ? '<span class="alert-tag">ALERT</span>' : ''}
+          ${item.storyMeta?.phase === 'breaking' ? `<span class="phase-badge breaking">${getCurrentLanguage().startsWith('es') ? 'ÚLTIMA HORA' : 'BREAKING'}</span>` : ''}
+          ${item.storyMeta?.phase === 'developing' ? `<span class="phase-badge developing">${getCurrentLanguage().startsWith('es') ? 'EN DESARROLLO' : 'DEVELOPING'}${item.storyMeta.mentionCount > 1 ? ` ×${item.storyMeta.mentionCount}` : ''}</span>` : ''}
+          ${item.storyMeta?.phase === 'sustained' ? `<span class="phase-badge sustained">${getCurrentLanguage().startsWith('es') ? 'EN CURSO' : 'ONGOING'}</span>` : ''}
+          ${item.isAlert ? `<span class="alert-tag">${getCurrentLanguage().startsWith('es') ? 'ALERTA' : 'ALERT'}</span>` : ''}
         </div>
         <a class="item-title" href="${sanitizeUrl(item.link)}" target="_blank" rel="noopener">${escapeHtml(item.title)}</a>
-        ${item.snippet ? `<div class="item-snippet">${escapeHtml(item.snippet.length > 200 ? item.snippet.slice(0, 200).replace(/\s+\S*$/, '') + '…' : item.snippet)}</div>` : ''}
+        ${(() => { const sn = snippetUtil(item.title, item.snippet); return sn ? `<div class="item-snippet">${escapeHtml(sn.length > 200 ? sn.slice(0, 200).replace(/\s+\S*$/, '') + '…' : sn)}</div>` : ''; })()}
         <div class="item-time">
           ${formatTime(item.pubDate)}
           ${getCurrentLanguage() !== 'en' ? `<button class="item-translate-btn" title="Translate" data-text="${escapeHtml(item.title)}">文</button>` : ''}

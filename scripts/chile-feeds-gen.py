@@ -5,14 +5,14 @@ sin churn en el manifiesto de proveedores). Idempotente: reemplaza los bloques c
 import os, pathlib, re
 os.chdir("/mnt/data/chile-monitor")
 
-G = "https://news.google.com/rss/search?q={q}&hl=es-CL&gl=CL&ceid=CL:es"
+G = "https://news.google.com/rss/search?q={q}&hl=es-419&gl=CL&ceid=CL:es-419"
 def site(dom, when="1d", extra=""): return G.format(q=f"site:{dom}{('+' + extra) if extra else ''}+when:{when}")
 def q(query, when="1d"): return G.format(q=f"{query}+when:{when}")
 
 FEEDS = {
     # Titulares Chile — medios nacionales generalistas
     "politics": [
-        ("Google News Chile", "https://news.google.com/rss?hl=es-CL&gl=CL&ceid=CL:es"),
+        ("Google News Chile", "https://news.google.com/rss?hl=es-419&gl=CL&ceid=CL:es-419"),
         ("BioBio", site("biobiochile.cl")),
         ("Emol", site("emol.com")),
         ("La Tercera", site("latercera.com")),
@@ -79,7 +79,7 @@ FEEDS = {
 
 # ---- cliente: src/config/feeds.ts
 p = pathlib.Path("src/config/feeds.ts"); s = p.read_text()
-a = s.index("// Chile variant feeds — Chile Monitor\nconst CHILE_FEEDS")
+a = s.index("// Chile variant feeds — Chile Monitor")
 b = s.index("};", a) + 2
 lines = ["// Chile variant feeds — Chile Monitor (generado por scripts/chile-feeds-gen.py; espejo en server/worldmonitor/news/v1/_feeds.ts)",
          "const CHILE_FEEDS: Record<string, Feed[]> = {"]

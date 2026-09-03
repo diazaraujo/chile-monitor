@@ -18,6 +18,8 @@ RUN npm ci --ignore-scripts
 
 # Copy full source
 COPY . .
+ARG VITE_VARIANT=full
+ENV VITE_VARIANT=${VITE_VARIANT}
 
 # The crawlable-corpus step runs the source-attribution drift gate against
 # scripts/, server/, api/, and src/. generate-inventory-facts and

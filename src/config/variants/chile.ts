@@ -8,6 +8,7 @@ export * from './base';
 
 export const DEFAULT_PANELS: Record<string, PanelConfig> = {
   map: { name: 'Mapa Chile', enabled: true, priority: 1 },
+  'live-news': { name: 'TV en vivo', enabled: true, priority: 1 },
   insights: { name: 'Brief Chile', enabled: true, priority: 1 },
   territorial: { name: 'Brief territorial', enabled: true, priority: 1 },
   politics: { name: 'Titulares Chile', enabled: true, priority: 1 },
@@ -18,6 +19,7 @@ export const DEFAULT_PANELS: Record<string, PanelConfig> = {
   monitors: { name: 'Mis monitores', enabled: true, priority: 2 },
   'threat-timeline': { name: 'Línea de amenazas', enabled: true, priority: 2 },
   'live-webcams': { name: 'Webcams en vivo', enabled: true, priority: 2 },
+  camaras: { name: 'Cámaras por comuna', enabled: true, priority: 2 },
 };
 
 export const DEFAULT_MAP_LAYERS: MapLayers = {

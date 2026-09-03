@@ -42,6 +42,7 @@ export * from './InternetDisruptionsPanel';
 export * from './RuntimeConfigPanel';
 export * from './InsightsPanel';
 export * from './ChileTerritorialPanel';
+export * from './ChileCamarasPanel';
 export * from './ThreatTimelinePanel';
 export * from './TechReadinessPanel';
 export * from './SatelliteFiresPanel';

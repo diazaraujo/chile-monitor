@@ -9,7 +9,7 @@ import { GeoJsonLayer, ScatterplotLayer, PathLayer, IconLayer, TextLayer, Polygo
 import maplibregl from 'maplibre-gl';
 import type { StyleSpecification } from 'maplibre-gl';
 import { FALLBACK_DARK_STYLE, FALLBACK_LIGHT_STYLE, getMapProvider, getMapTheme, isLightMapTheme } from '@/config/basemap';
-import { getStyleForProvider, registerPMTilesProtocol } from '@/config/basemap-styles';
+import { getStyleForProvider, registerPMTilesProtocol, mapboxTransformRequest } from '@/config/basemap-styles';
 import Supercluster from 'supercluster';
 import type {
   MapLayers,
@@ -1099,6 +1099,7 @@ export class DeckGLMap {
     if (!basemapEl) return;
 
     this.maplibreMap = new maplibregl.Map({
+        transformRequest: mapboxTransformRequest,
       container: basemapEl,
       style: primaryStyle,
       center: [preset.longitude, preset.latitude],
@@ -1133,6 +1134,7 @@ export class DeckGLMap {
       const fallbackEl = document.getElementById('deckgl-basemap');
       if (!fallbackEl) return;
       this.maplibreMap = new maplibregl.Map({
+        transformRequest: mapboxTransformRequest,
         container: fallbackEl,
         style: fallback,
         center: [preset.longitude, preset.latitude],
@@ -4089,14 +4091,24 @@ export class DeckGLMap {
         };
       })
       .filter((d): d is { lon: number; lat: number; nombre: string; titular: string; estado: string; comunas: string; n_especie: number; n_especie_distinta: number } => d !== null);
+    // Color por estado del expediente: verde aprobado, ámbar en calificación,
+    // rojo rechazado, gris desistido/no admitido, azul otros.
+    const colorEstado = (estado: string): [number, number, number, number] => {
+      const e = (estado || '').toLowerCase();
+      if (e.includes('aprobado')) return [46, 160, 67, 150];
+      if (e.includes('calificaci')) return [227, 160, 8, 170];
+      if (e.includes('rechazado')) return [215, 58, 73, 180];
+      if (e.includes('desistido') || e.includes('no admitido')) return [130, 130, 130, 120];
+      return [70, 130, 220, 150];
+    };
     return new ScatterplotLayer({
       id: 'chile-seia-puntos-layer',
       data,
       getPosition: (d: { lon: number; lat: number }) => [d.lon, d.lat],
-      getRadius: 2000,
-      getFillColor: [220, 50, 47, 160],
-      radiusMinPixels: 2,
-      radiusMaxPixels: 7,
+      getRadius: 1600,
+      getFillColor: (d: { estado: string }) => colorEstado(d.estado),
+      radiusMinPixels: 1.5,
+      radiusMaxPixels: 6,
       pickable: true,
     });
   }
@@ -4185,17 +4197,22 @@ export class DeckGLMap {
 
   private createChileTrazadosLayer(): GeoJsonLayer | null {
     if (!this.chileTrazados) return null;
+    // Color por geometría: líneas (transmisión/ductos) celeste, polígonos (áreas de
+    // influencia/layouts) violeta translúcido, puntos (obras) naranjo.
+    type TrazadoFeature = { geometry?: { type?: string } };
+    const esLinea = (f: TrazadoFeature) => (f.geometry?.type || '').includes('LineString');
     return new GeoJsonLayer({
       id: 'chile-trazados-layer',
       data: this.chileTrazados,
       filled: true,
       stroked: true,
-      getFillColor: [215, 50, 50, 70],
-      getLineColor: [215, 40, 40, 230],
-      getLineWidth: 3,
-      lineWidthMinPixels: 1.5,
-      getPointRadius: 80,
-      pointRadiusMinPixels: 4,
+      getFillColor: (f: TrazadoFeature) => ((f.geometry?.type || '').includes('Polygon') ? [167, 139, 250, 28] : [251, 146, 60, 120]),
+      getLineColor: (f: TrazadoFeature) => (esLinea(f) ? [56, 189, 248, 220] : [139, 92, 246, 170]),
+      getLineWidth: (f: TrazadoFeature) => (esLinea(f) ? 2.5 : 1),
+      lineWidthMinPixels: 1,
+      getPointRadius: 60,
+      pointRadiusMinPixels: 2,
+      pointRadiusMaxPixels: 5,
       pickable: true,
       autoHighlight: true,
     });
@@ -6465,7 +6482,22 @@ export class DeckGLMap {
       { shape: shapes.square('rgb(132, 204, 22)'), label: 'Resilience: High', layerKey: 'resilienceScore' },
       { shape: shapes.square('rgb(34, 197, 94)'), label: 'Resilience: Very High', layerKey: 'resilienceScore' },
     ];
-    const legendItems: { shape: string; label: string; layerKey: keyof MapLayers }[] = SITE_VARIANT === 'tech'
+    const legendItems: { shape: string; label: string; layerKey: keyof MapLayers }[] = SITE_VARIANT === 'chile'
+      ? [
+        { shape: shapes.circle('rgb(46, 160, 67)'), label: 'SEIA: aprobado', layerKey: 'chileSeia' },
+        { shape: shapes.circle('rgb(227, 160, 8)'), label: 'SEIA: en calificación', layerKey: 'chileSeia' },
+        { shape: shapes.circle('rgb(215, 58, 73)'), label: 'SEIA: rechazado', layerKey: 'chileSeia' },
+        { shape: shapes.circle('rgb(130, 130, 130)'), label: 'SEIA: desistido / no admitido', layerKey: 'chileSeia' },
+        { shape: shapes.triangle('rgb(56, 189, 248)'), label: 'Trazado lineal (transmisión, ductos)', layerKey: 'chileSeia' },
+        { shape: shapes.square('rgb(167, 139, 250)'), label: 'Área de influencia / layout', layerKey: 'chileSeia' },
+        { shape: shapes.circle('rgb(50, 140, 220)'), label: 'Derecho de agua (DGA)', layerKey: 'chileAgua' },
+        { shape: shapes.square('rgb(80, 170, 255)'), label: 'Cuenca / subcuenca', layerKey: 'chileAgua' },
+        { shape: shapes.square('rgb(140, 70, 180)'), label: 'Merced de agua', layerKey: 'chileTierras' },
+        { shape: shapes.square('rgb(40, 140, 90)'), label: 'Compra CONADI (20a/20b)', layerKey: 'chileTierras' },
+        { shape: shapes.circle('rgb(232, 140, 48)'), label: 'Comunidad / ADI', layerKey: 'chilePueblos' },
+        { shape: shapes.circle('rgb(255, 100, 50)'), label: 'Foco de incendio', layerKey: 'fires' },
+      ]
+      : SITE_VARIANT === 'tech'
       ? [
         { shape: shapes.circle(isLight ? 'rgb(22, 163, 74)' : 'rgb(0, 255, 150)'), label: t('components.deckgl.legend.startupHub'), layerKey: 'startupHubs' },
         { shape: shapes.circle('rgb(100, 200, 255)'), label: t('components.deckgl.legend.techHQ'), layerKey: 'techHQs' },
