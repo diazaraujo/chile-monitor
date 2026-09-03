@@ -155,3 +155,4 @@ data/derechos_*
 public/chile/
 data/seia-estado-snapshot.json
 public/chile/health.json
+node_modules

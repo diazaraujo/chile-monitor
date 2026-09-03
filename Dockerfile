@@ -50,6 +50,10 @@ RUN npx tsc && npx vite build
 # missing /pro rather than failing visibly.
 RUN test -s dist/pro/index.html && test -s dist/pro/welcome.html
 
+# Chile Monitor: SHA desplegado visible en /version.json (chile-health.py lo compara con main)
+ARG GIT_SHA=unknown
+RUN printf '{"sha":"%s","variant":"%s","builtAt":"%s"}' "$GIT_SHA" "$VITE_VARIANT" "$(date -u +%FT%TZ)" > dist/version.json
+
 # Compile TypeScript API handlers → self-contained ESM bundles only after
 # source attribution and the crawlable corpus have inspected the source tree.
 # The compiler writes api/**/*.js beside api/**/*.ts; doing this earlier makes

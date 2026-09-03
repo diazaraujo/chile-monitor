@@ -9245,23 +9245,6 @@
       ]
     },
     {
-      "host": "t13.cl",
-      "provider": "t13.cl",
-      "kind": "feed",
-      "observed": true,
-      "license": "Provider terms for this feed publisher; verify before redistribution",
-      "attribution": "Credit t13.cl and link to the original feed publisher.",
-      "status": "terms-review",
-      "references": [
-        {
-          "path": "server/worldmonitor/news/v1/_feeds.ts"
-        },
-        {
-          "path": "src/config/feeds.ts"
-        }
-      ]
-    },
-    {
       "host": "tagesschau.akamaized.net",
       "provider": "tagesschau.akamaized.net",
       "kind": "feed",
