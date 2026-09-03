@@ -7,7 +7,7 @@ El README original del upstream quedó en [docs/README.upstream.md](docs/README.
 ## Qué agrega la variante
 
 - **Mapa Chile**: expedientes SEIA con color por estado, trazados (transmisión, ductos, áreas de influencia) reconstruidos desde KMZ locales, derechos de agua DGA, tierras y pueblos indígenas CONADI, incendios por comuna. Basemap Mapbox si hay `VITE_MAPBOX_TOKEN`, OpenFreeMap si no.
-- **Titulares Chile / Política / Estado / Clima y territorio / Cono Sur**: 50 feeds chilenos generados desde una lista única (`scripts/chile-feeds-gen.py`) vía Google News RSS (`hl=es-419`, porque el proxy de producción no sigue el 302 de `es-CL`).
+- **Titulares Chile / Política / Estado / Clima y territorio / Cono Sur**: feeds chilenos generados desde una lista única (`scripts/chile-feeds-gen.py`) vía Google News RSS (`hl=es-419`, porque el proxy de producción no sigue el 302 de `es-CL`).
 - **Brief Chile**: brief IA cada 30 min sobre el digest chileno, con Ollama en el Mac vía túnel (`qwen2.5-14b-8k`) y validación de citas y nombres propios en español.
 - **Brief territorial**: ingresos SEIA de la semana, cambios de estado (RCA), incendios FIRMS por comuna.
 - **Cámaras**: pestaña Chile en cámaras en vivo (6 señales YouTube verificadas) y panel de cámaras por comuna (`public/chile/camaras.json`).
