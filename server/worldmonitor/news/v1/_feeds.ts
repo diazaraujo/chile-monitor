@@ -751,7 +751,6 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
       { name: 'Senado', url: 'https://news.google.com/rss/search?q=site:senado.cl+when:3d&hl=es-419&gl=CL&ceid=CL:es-419', lang: 'es' },
       { name: 'Cámara de Diputados', url: 'https://news.google.com/rss/search?q=site:camara.cl+when:3d&hl=es-419&gl=CL&ceid=CL:es-419', lang: 'es' },
       { name: 'La Moneda', url: 'https://news.google.com/rss/search?q=("La+Moneda"+OR+"Presidente+de+la+República")+Chile+when:1d&hl=es-419&gl=CL&ceid=CL:es-419', lang: 'es' },
-      { name: 'CIPER', url: 'https://news.google.com/rss/search?q=site:ciperchile.cl+when:7d&hl=es-419&gl=CL&ceid=CL:es-419', lang: 'es' },
     ],
     gov: [
       { name: 'SEA / SEIA', url: 'https://news.google.com/rss/search?q=(SEIA+OR+"Servicio+de+Evaluación+Ambiental"+OR+RCA)+Chile+when:7d&hl=es-419&gl=CL&ceid=CL:es-419', lang: 'es' },

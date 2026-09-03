@@ -1,6 +1,6 @@
 import * as d3 from 'd3';
 import { Panel } from './Panel';
-import { getCurrentLanguage } from '@/services/i18n';
+import { isSpanishUi } from '@/utils/ui-lang';
 import { fetchServerInsights, getServerInsights, type ServerInsights } from '@/services/insights-loader';
 import { escapeHtml, sanitizeUrl, unsafeRawHtml } from '@/utils/sanitize';
 import type { ClusteredEvent } from '@/types';
@@ -111,11 +111,11 @@ export class ThreatTimelinePanel extends Panel {
         <div class="threat-timeline-summary">
           <div class="threat-timeline-stat">
             <span class="threat-timeline-stat-value">${highSeverityCount}</span>
-            <span class="threat-timeline-stat-label">${getCurrentLanguage().startsWith('es') ? 'Críticos/altos' : 'Critical/high'}</span>
+            <span class="threat-timeline-stat-label">${isSpanishUi() ? 'Críticos/altos' : 'Critical/high'}</span>
           </div>
           <div class="threat-timeline-stat">
             <span class="threat-timeline-stat-value">${highSeverityDays}</span>
-            <span class="threat-timeline-stat-label">${getCurrentLanguage().startsWith('es') ? 'Días activos' : 'Active days'}</span>
+            <span class="threat-timeline-stat-label">${isSpanishUi() ? 'Días activos' : 'Active days'}</span>
           </div>
           <div class="threat-timeline-trend ${trend.className}">
             <span class="threat-timeline-trend-label">${escapeHtml(trend.label)}</span>

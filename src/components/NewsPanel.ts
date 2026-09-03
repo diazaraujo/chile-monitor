@@ -8,6 +8,7 @@ import { computeNewSinceVisit } from '@/utils/new-since-visit';
 import { analysisWorker, enrichWithVelocityML, getClusterAssetContext, MAX_DISTANCE_KM, activityTracker, generateSummary, translateText, preloadRelatedAssetTables } from '@/services';
 import { SITE_VARIANT } from '@/config';
 import { t, getCurrentLanguage, getCurrentLanguageTag } from '@/services/i18n';
+import { isSpanishUi } from '@/utils/ui-lang';
 import { track } from '@/services/analytics';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 import {
@@ -582,10 +583,10 @@ export class NewsPanel extends Panel {
           ${escapeHtml(item.source)}
           ${renderCredibilityBadge(item.source, item)}
           ${item.lang && item.lang !== getCurrentLanguage() ? `<span class="lang-badge">${item.lang.toUpperCase()}</span>` : ''}
-          ${item.storyMeta?.phase === 'breaking' ? `<span class="phase-badge breaking">${getCurrentLanguage().startsWith('es') ? 'ÚLTIMA HORA' : 'BREAKING'}</span>` : ''}
-          ${item.storyMeta?.phase === 'developing' ? `<span class="phase-badge developing">${getCurrentLanguage().startsWith('es') ? 'EN DESARROLLO' : 'DEVELOPING'}${item.storyMeta.mentionCount > 1 ? ` ×${item.storyMeta.mentionCount}` : ''}</span>` : ''}
-          ${item.storyMeta?.phase === 'sustained' ? `<span class="phase-badge sustained">${getCurrentLanguage().startsWith('es') ? 'EN CURSO' : 'ONGOING'}</span>` : ''}
-          ${item.isAlert ? `<span class="alert-tag">${getCurrentLanguage().startsWith('es') ? 'ALERTA' : 'ALERT'}</span>` : ''}
+          ${item.storyMeta?.phase === 'breaking' ? `<span class="phase-badge breaking">${isSpanishUi() ? 'ÚLTIMA HORA' : 'BREAKING'}</span>` : ''}
+          ${item.storyMeta?.phase === 'developing' ? `<span class="phase-badge developing">${isSpanishUi() ? 'EN DESARROLLO' : 'DEVELOPING'}${item.storyMeta.mentionCount > 1 ? ` ×${item.storyMeta.mentionCount}` : ''}</span>` : ''}
+          ${item.storyMeta?.phase === 'sustained' ? `<span class="phase-badge sustained">${isSpanishUi() ? 'EN CURSO' : 'ONGOING'}</span>` : ''}
+          ${item.isAlert ? `<span class="alert-tag">${isSpanishUi() ? 'ALERTA' : 'ALERT'}</span>` : ''}
         </div>
         <a class="item-title" href="${sanitizeUrl(item.link)}" target="_blank" rel="noopener">${escapeHtml(item.title)}</a>
         ${(() => { const sn = snippetUtil(item.title, item.snippet); return sn ? `<div class="item-snippet">${escapeHtml(sn.length > 200 ? sn.slice(0, 200).replace(/\s+\S*$/, '') + '…' : sn)}</div>` : ''; })()}

@@ -1123,7 +1123,6 @@ const CHILE_FEEDS: Record<string, Feed[]> = {
     { name: 'Senado', url: rss('https://news.google.com/rss/search?q=site:senado.cl+when:3d&hl=es-419&gl=CL&ceid=CL:es-419') },
     { name: 'Cámara de Diputados', url: rss('https://news.google.com/rss/search?q=site:camara.cl+when:3d&hl=es-419&gl=CL&ceid=CL:es-419') },
     { name: 'La Moneda', url: rss('https://news.google.com/rss/search?q=("La+Moneda"+OR+"Presidente+de+la+República")+Chile+when:1d&hl=es-419&gl=CL&ceid=CL:es-419') },
-    { name: 'CIPER', url: rss('https://news.google.com/rss/search?q=site:ciperchile.cl+when:7d&hl=es-419&gl=CL&ceid=CL:es-419') },
   ],
   gov: [
     { name: 'SEA / SEIA', url: rss('https://news.google.com/rss/search?q=(SEIA+OR+"Servicio+de+Evaluación+Ambiental"+OR+RCA)+Chile+when:7d&hl=es-419&gl=CL&ceid=CL:es-419') },

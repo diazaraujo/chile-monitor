@@ -39,7 +39,6 @@ FEEDS = {
         ("Senado", site("senado.cl", "3d")),
         ("Cámara de Diputados", site("camara.cl", "3d")),
         ("La Moneda", q("(\"La+Moneda\"+OR+\"Presidente+de+la+República\")+Chile")),
-        ("CIPER", site("ciperchile.cl", "7d")),
     ],
     # Estado — organismos y regulación
     "gov": [

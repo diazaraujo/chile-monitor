@@ -109,6 +109,9 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Nginx + supervisord configs
 COPY docker/nginx.conf /etc/nginx/nginx.conf.template
+# Variantes ≠ full: vite.config inyecta la variante en el prepaint y cambia su hash; la CSP del repo es la del HTML commiteado (gate deploy-config). Completar con los hashes del HTML emitido.
+COPY docker/csp-from-html.mjs /app/csp-from-html.mjs
+RUN node /app/csp-from-html.mjs /usr/share/nginx/html/dashboard.html /etc/nginx/nginx.conf.template
 COPY docker/supervisord.conf /etc/supervisor/conf.d/worldmonitor.conf
 COPY docker/entrypoint.sh /app/entrypoint.sh
 COPY docker/render-nginx-realip.mjs /app/render-nginx-realip.mjs

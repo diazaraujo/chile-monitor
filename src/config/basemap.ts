@@ -4,7 +4,7 @@
 // maplibre-using helpers live in `./basemap-styles.ts` and are loaded
 // lazily alongside MapContainer/DeckGLMap when the map panel mounts.
 
-export const MAPBOX_TOKEN: string = (import.meta.env?.VITE_MAPBOX_TOKEN as string | undefined) ?? '';
+export const MAPBOX_TOKEN: string = (import.meta.env.VITE_MAPBOX_TOKEN as string | undefined) ?? '';
 export const hasMapboxToken = MAPBOX_TOKEN.length > 0;
 const R2_PROXY = import.meta.env.VITE_PMTILES_URL ?? '';
 const R2_PUBLIC = import.meta.env.VITE_PMTILES_URL_PUBLIC ?? '';

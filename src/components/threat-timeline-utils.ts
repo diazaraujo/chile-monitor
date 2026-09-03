@@ -4,8 +4,8 @@ import type { ClusteredEvent } from '@/types';
 export const THREAT_LEVELS = ['critical', 'high', 'medium', 'low', 'info'] as const;
 export type TimelineThreatLevel = typeof THREAT_LEVELS[number];
 
-import { getCurrentLanguage } from '@/services/i18n';
-const ES = () => getCurrentLanguage().startsWith('es');
+import { isSpanishUi } from '@/utils/ui-lang';
+const ES = () => isSpanishUi();
 
 const THREAT_LEVEL_LABELS_EN: Record<TimelineThreatLevel, string> = {
   critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low', info: 'Info',

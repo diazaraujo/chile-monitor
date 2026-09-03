@@ -561,7 +561,9 @@ try {
   if (document.documentElement.dataset.variant === 'chile' && _chileRaw !== 'light' && _chileRaw !== 'auto') {
     document.documentElement.dataset.theme = 'dark';
   }
-} catch { /* storage no disponible */ }
+} catch {
+  // storage no disponible
+}
 applyFont();
 applyFontScale();
 window.addEventListener('storage', (event) => {
