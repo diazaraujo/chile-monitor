@@ -1,5 +1,4 @@
 import './styles/base-layer.css';
-import '@/styles/chile-monitor.css';
 import './bootstrap/zod-csp';
 import { SITE_VARIANT } from '@/config/variant';
 import { installLcpAttributionDebug } from '@/bootstrap/lcp-attribution';
@@ -22,6 +21,10 @@ if (SITE_VARIANT === 'happy') {
   // injected <link> errors, and a bare `void import(...)` let that escape to
   // onunhandledrejection (WORLDMONITOR-XT). See bootstrap/variant-theme.ts.
   void loadVariantThemeStylesheet('happy', () => import('./styles/happy-theme.css'));
+}
+if (SITE_VARIANT === 'chile') {
+  // chile: misma regla que happy — la hoja de la variante no entra al grafo CSS eager (guard dashboard-critical-css).
+  void loadVariantThemeStylesheet('chile', () => import('./styles/chile-monitor.css'));
 }
 
 // Activate the deferred dashboard app stylesheet. The build
