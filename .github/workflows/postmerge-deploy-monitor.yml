@@ -29,6 +29,12 @@ concurrency:
 
 jobs:
   monitor:
+    # Variante Chile: los tres deploys que este monitor vigila (Convex, Railway
+    # Reconcile Control, Worker api-cors-preflight) están deshabilitados a
+    # propósito en este fork — producción es el contenedor `chile-monitor-prod`
+    # y su salud vive en `public/chile/health.json` (prod = main). Sin este
+    # guard el monitor alarmaba cada 10 minutos por deploys que no existen acá.
+    if: github.repository == 'koala73/worldmonitor'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
