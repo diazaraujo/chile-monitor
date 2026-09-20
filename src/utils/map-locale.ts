@@ -47,7 +47,10 @@ const LANG_TO_TILE_FIELDS: Record<string, readonly string[]> = {
   // this row is addable; left alone here as it is not part of the zh-TW fix.
 };
 
-type Expression = [string, ...unknown[]];
+// Forma exacta que produce getLocalizedNameExpression(): con maplibre-gl 6 el tipo de
+// `setLayoutProperty` exige una ExpressionSpecification concreta, y `[string, ...unknown[]]`
+// ya no calza (mismo ajuste que el upstream).
+type Expression = ['coalesce', ...Array<['get', string]>];
 
 interface MapStyleLayer {
   id: string;
@@ -85,7 +88,7 @@ export function getLocalizedNameExpression(lang?: string): Expression {
     return ['coalesce', ['get', 'name:en'], ['get', 'name']];
   }
 
-  return ['coalesce', ...fields.map((field) => ['get', field]), ['get', 'name:en'], ['get', 'name']];
+  return ['coalesce', ...fields.map((field): ['get', string] => ['get', field]), ['get', 'name:en'], ['get', 'name']];
 }
 
 export function isLocalizableTextField(textField: unknown): boolean {
