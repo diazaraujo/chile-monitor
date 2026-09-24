@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
-  testDir: "./e2e",
+  testDir: "./tests/independencia-e2e",
   testMatch: "independencia.spec.ts",
   timeout: 45_000,
   workers: 1,
