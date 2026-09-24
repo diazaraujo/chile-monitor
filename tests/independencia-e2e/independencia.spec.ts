@@ -1,5 +1,23 @@
 import { test, expect } from "@playwright/test";
 
+test("remote titles remain text and executable URLs are rejected", async ({ page }) => {
+  const stamp = new Date().toISOString();
+  const unavailable = { status: "error", fetchedAt: null, url: "", data: null };
+  const title = '<img src=x onerror="document.body.dataset.injected=1">';
+  await page.route("**/chile/independencia.json", route => route.fulfill({ json: {
+    schemaVersion: 1, commune: { cut: "13108", name: "Independencia" }, generatedAt: stamp,
+    sources: { weather: unavailable, territory: unavailable, municipal: {
+      status: "ok", fetchedAt: stamp, url: "https://www.independencia.cl/feed/",
+      data: [{ title, url: "javascript:alert(1)", publishedAt: stamp }],
+    } },
+  } }));
+  await page.goto("/independencia.html");
+  await expect(page.locator(".news-item h3")).toHaveText(title);
+  await expect(page.locator(".news-item")).toHaveAttribute("href", "#");
+  await expect(page.locator(".news-item img")).toHaveCount(0);
+  expect(await page.locator("body").getAttribute("data-injected")).toBeNull();
+});
+
 test("public-source screen renders, switches to dispatch and opens traceability", async ({
   page,
 }, testInfo) => {

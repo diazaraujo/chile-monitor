@@ -1,3 +1,4 @@
+import { setTrustedHtml, trustedHtml } from "@/utils/dom-utils";
 import * as maplibregl from "maplibre-gl";
 import mapWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -71,7 +72,10 @@ const icon = (name: string): string => {
 
 const root = document.querySelector<HTMLDivElement>("#independencia-app")!;
 // All remote text passes through e(); remote links pass through safeSourceUrl().
-root.innerHTML = `
+setTrustedHtml(
+  root,
+  trustedHtml(
+    `
   <aside class="rail" aria-label="Navegación">
     <a class="brand-mark" href="/dashboard" aria-label="Chile Monitor">CM<span></span></a>
     <button class="rail-button selected" data-mode="morning" aria-label="Esta mañana" title="Esta mañana">${icon("grid")}</button>
@@ -115,7 +119,10 @@ root.innerHTML = `
     </main>
   </div>
   <dialog id="sources-dialog" aria-labelledby="sources-title"><div class="dialog-heading"><div><span class="eyebrow">TRAZABILIDAD</span><h2 id="sources-title">Qué estamos viendo</h2></div><button class="icon-button" data-action="close-sources" aria-label="Cerrar fuentes">${icon("close")}</button></div><div id="source-details"></div><div class="integration-note"><h3>Para conectar el despacho municipal</h3><p>Hace falta una integración autorizada con el 1469, la flota, las cámaras y los servicios. Cada evento debe incluir fecha de origen, estado, ubicación y responsable. Esta pantalla no envía instrucciones a equipos ni confirma emergencias.</p><p>Los datos ausentes se muestran como «por conectar»; nunca como cero incidentes.</p></div></dialog>
-`;
+`,
+    "Static municipal markup; source text is escaped with e(), URLs are protocol-validated, and numeric values pass the snapshot contract.",
+  ),
+);
 
 let snapshot: CommuneSnapshot | undefined;
 let refreshing = false;
@@ -152,55 +159,89 @@ function render(): void {
     "warning",
     requestFailed || fresh < 3,
   );
-  q("#connection-banner").innerHTML =
-    `${icon(requestFailed || fresh < 3 ? "signal" : "check")}<span>${requestFailed ? "No se pudo actualizar. Se conserva la última información recibida." : snapshot ? `${fresh} de 3 fuentes públicas al día. La información operativa municipal aún no está conectada.` : "Esperando datos públicos. No hay información operativa municipal conectada."}</span><button data-action="sources">Ver cobertura ${icon("arrow")}</button>`;
-  q("#metrics").innerHTML = `
+  setTrustedHtml(
+    q("#connection-banner"),
+    trustedHtml(
+      `${icon(requestFailed || fresh < 3 ? "signal" : "check")}<span>${requestFailed ? "No se pudo actualizar. Se conserva la última información recibida." : snapshot ? `${fresh} de 3 fuentes públicas al día. La información operativa municipal aún no está conectada.` : "Esperando datos públicos. No hay información operativa municipal conectada."}</span><button data-action="sources">Ver cobertura ${icon("arrow")}</button>`,
+      "Static municipal markup; source text is escaped with e(), URLs are protocol-validated, and numeric values pass the snapshot contract.",
+    ),
+  );
+  setTrustedHtml(
+    q("#metrics"),
+    trustedHtml(
+      `
     <article class="metric"><div class="metric-label">CLIMA LOCAL ${icon("sun")}</div><div class="metric-value">${w ? n(w.temperature) : "—"}<span>${w ? "°C" : ""}</span></div><div class="metric-foot"><span>${w ? e(weatherLabel(w.code)) : "Esperando pronóstico"}</span>${badge(ws)}</div></article>
     <article class="metric"><div class="metric-label">PUBLICACIONES · 24 H ${icon("news")}</div><div class="metric-value">${sources?.municipal.data ? recent.length : "—"}<span>municipales</span></div><div class="metric-foot"><span>Ventana móvil de 24 horas</span>${badge(ns)}</div></article>
     <article class="metric"><div class="metric-label">EXPEDIENTES SEIA ${icon("pin")}</div><div class="metric-value">${t ? n(t.expedientes) : "—"}<span>en el corpus</span></div><div class="metric-foot"><span>Acumulado · no obras activas</span>${badge(ts)}</div></article>
-    <article class="metric metric-coverage"><div class="metric-label">COBERTURA OPERATIVA ${icon("signal")}</div><div class="metric-value">4<span>conexiones pendientes</span></div><div class="metric-foot"><span>1469 · móviles · cámaras · servicios</span><span class="coverage-dot"></span></div></article>`;
+    <article class="metric metric-coverage"><div class="metric-label">COBERTURA OPERATIVA ${icon("signal")}</div><div class="metric-value">4<span>conexiones pendientes</span></div><div class="metric-foot"><span>1469 · móviles · cámaras · servicios</span><span class="coverage-dot"></span></div></article>`,
+      "Static municipal markup; source text is escaped with e(), URLs are protocol-validated, and numeric values pass the snapshot contract.",
+    ),
+  );
   const weatherBrief =
     ws !== "fresh" || !w
       ? "Actualizar el pronóstico antes de planificar actividades en terreno."
       : w.rainProbability >= 60
         ? `Lluvia prevista: ${n(w.rainProbability)}% de probabilidad. Revisar actividades al aire libre con el equipo.`
         : `Entre ${n(w.min)}° y ${n(w.max)}° hoy; ${n(w.rainProbability)}% de probabilidad de lluvia.`;
-  q("#briefing").innerHTML =
-    `<div class="briefing-label"><span class="eyebrow">LECTURA DE 30 SEGUNDOS</span><h2>Antes de empezar<br>el día.</h2><span class="briefing-stamp">${snapshot ? `Corte de datos · ${clock(snapshot.generatedAt)}` : "Esperando actualización"}</span></div><div class="briefing-item"><span class="brief-number">01</span><div><h3>Preparar el terreno</h3><p>${e(weatherBrief)}</p></div></div><div class="briefing-item"><span class="brief-number">02</span><div><h3>Tomar el pulso local</h3><p>${ns === "fresh" ? `${recent.length} publicaciones municipales en las últimas 24 horas. ${recent.length ? "Revisar su alcance con el equipo." : "El historial reciente está disponible abajo."}` : "La fuente municipal requiere actualización; revisar el sitio de origen."}</p></div></div><div class="briefing-item"><span class="brief-number">03</span><div><h3>Confirmar con despacho</h3><p>Solicitar el parte de turno: incidentes abiertos, equipos disponibles y cortes. Aún no llegan a esta pantalla.</p></div></div>`;
-  q("#news-list").innerHTML = news.length
-    ? news
-        .slice(0, 5)
-        .map(
-          (item, i) =>
-            `<a class="news-item" href="${e(safeSourceUrl(item.url))}" target="_blank" rel="noopener noreferrer"><div class="news-meta"><span>${i === 0 ? "ÚLTIMA PUBLICACIÓN" : "MUNICIPALIDAD"}</span><time datetime="${e(item.publishedAt)}">${e(date(item.publishedAt, { day: "numeric", month: "short" }))}</time></div><h3>${e(item.title)}</h3><span class="news-link">Leer en la fuente ${icon("arrow")}</span></a>`,
-        )
-        .join("")
-    : '<div class="empty-state">Todavía no hay publicaciones disponibles.<span>La conexión se vuelve a intentar automáticamente.</span></div>';
+  setTrustedHtml(
+    q("#briefing"),
+    trustedHtml(
+      `<div class="briefing-label"><span class="eyebrow">LECTURA DE 30 SEGUNDOS</span><h2>Antes de empezar<br>el día.</h2><span class="briefing-stamp">${snapshot ? `Corte de datos · ${clock(snapshot.generatedAt)}` : "Esperando actualización"}</span></div><div class="briefing-item"><span class="brief-number">01</span><div><h3>Preparar el terreno</h3><p>${e(weatherBrief)}</p></div></div><div class="briefing-item"><span class="brief-number">02</span><div><h3>Tomar el pulso local</h3><p>${ns === "fresh" ? `${recent.length} publicaciones municipales en las últimas 24 horas. ${recent.length ? "Revisar su alcance con el equipo." : "El historial reciente está disponible abajo."}` : "La fuente municipal requiere actualización; revisar el sitio de origen."}</p></div></div><div class="briefing-item"><span class="brief-number">03</span><div><h3>Confirmar con despacho</h3><p>Solicitar el parte de turno: incidentes abiertos, equipos disponibles y cortes. Aún no llegan a esta pantalla.</p></div></div>`,
+      "Static municipal markup; source text is escaped with e(), URLs are protocol-validated, and numeric values pass the snapshot contract.",
+    ),
+  );
+  setTrustedHtml(
+    q("#news-list"),
+    trustedHtml(
+      news.length
+        ? news
+            .slice(0, 5)
+            .map(
+              (item, i) =>
+                `<a class="news-item" href="${e(safeSourceUrl(item.url))}" target="_blank" rel="noopener noreferrer"><div class="news-meta"><span>${i === 0 ? "ÚLTIMA PUBLICACIÓN" : "MUNICIPALIDAD"}</span><time datetime="${e(item.publishedAt)}">${e(date(item.publishedAt, { day: "numeric", month: "short" }))}</time></div><h3>${e(item.title)}</h3><span class="news-link">Leer en la fuente ${icon("arrow")}</span></a>`,
+            )
+            .join("")
+        : '<div class="empty-state">Todavía no hay publicaciones disponibles.<span>La conexión se vuelve a intentar automáticamente.</span></div>',
+      "Static municipal markup; source text is escaped with e(), URLs are protocol-validated, and numeric values pass the snapshot contract.",
+    ),
+  );
   q("#news-updated").textContent = age(sources?.municipal.fetchedAt);
-  q("#weather-detail").innerHTML = w
-    ? `<div class="weather-today"><strong>${n(w.temperature)}°</strong><div><span>${e(weatherLabel(w.code))}</span><small>Sensación de ${n(w.apparentTemperature)}° · mín ${n(w.min)}° / máx ${n(w.max)}°</small></div></div><div class="hour-strip">${w.hourly
-        .slice(0, 6)
-        .map(
-          (h) =>
-            `<div><span>${clock(h.time)}</span>${icon(h.rainProbability >= 50 ? "drop" : "sun")}<strong>${n(h.temperature)}°</strong><small>${n(h.rainProbability)}%</small></div>`,
-        )
-        .join(
-          "",
-        )}</div><div class="weather-stats"><span>Viento <b>${n(w.wind)} km/h</b></span><span>Lluvia <b>${n(w.precipitation)} mm</b></span><span>UV máx. <b>${n(w.uv)}</b></span></div><p class="source-note">Modelo Open-Meteo · ${e(age(sources?.weather.observedAt))} · ${badge(ws)}<br>Pronóstico, no alerta oficial. Porcentajes: probabilidad de lluvia.</p>`
-    : '<div class="empty-state">Pronóstico no disponible.<span>Se conservará la última lectura cuando exista.</span></div>';
-  q("#territory-detail").innerHTML = t
-    ? `<div class="territory-stats"><div><strong>${n(t.expedientes)}</strong><span>expedientes</span></div><div><strong>${n(t.observations)}</strong><span>observaciones</span></div><div><strong>${n(t.participation)}</strong><span>con observaciones</span></div></div><p class="territory-description">Registros de Independencia en el corpus de Inteligencia Ambiental. Cobertura parcial; no es el total oficial de obras ni su estado en terreno.</p>${
-        t.facts.length
-          ? `<div class="territory-facts">${t.facts
-              .slice(0, 2)
-              .map(
-                (f) =>
-                  `<a href="${e(safeSourceUrl(f.url))}" target="_blank" rel="noopener noreferrer">${e(f.title)} ${icon("arrow")}</a>`,
-              )
-              .join("")}</div>`
-          : '<div class="territory-empty">Sin hechos comunales en el último brief territorial. Esto no confirma ausencia de actividad.</div>'
-      }<p class="source-note">SEIA · ${e(age(sources?.territory.observedAt))} · ${badge(ts)}</p>`
-    : '<div class="empty-state">Ficha comunal no disponible.<span>Se conecta al corpus territorial de Chile Monitor.</span></div>';
+  setTrustedHtml(
+    q("#weather-detail"),
+    trustedHtml(
+      w
+        ? `<div class="weather-today"><strong>${n(w.temperature)}°</strong><div><span>${e(weatherLabel(w.code))}</span><small>Sensación de ${n(w.apparentTemperature)}° · mín ${n(w.min)}° / máx ${n(w.max)}°</small></div></div><div class="hour-strip">${w.hourly
+            .slice(0, 6)
+            .map(
+              (h) =>
+                `<div><span>${clock(h.time)}</span>${icon(h.rainProbability >= 50 ? "drop" : "sun")}<strong>${n(h.temperature)}°</strong><small>${n(h.rainProbability)}%</small></div>`,
+            )
+            .join(
+              "",
+            )}</div><div class="weather-stats"><span>Viento <b>${n(w.wind)} km/h</b></span><span>Lluvia <b>${n(w.precipitation)} mm</b></span><span>UV máx. <b>${n(w.uv)}</b></span></div><p class="source-note">Modelo Open-Meteo · ${e(age(sources?.weather.observedAt))} · ${badge(ws)}<br>Pronóstico, no alerta oficial. Porcentajes: probabilidad de lluvia.</p>`
+        : '<div class="empty-state">Pronóstico no disponible.<span>Se conservará la última lectura cuando exista.</span></div>',
+      "Static municipal markup; source text is escaped with e(), URLs are protocol-validated, and numeric values pass the snapshot contract.",
+    ),
+  );
+  setTrustedHtml(
+    q("#territory-detail"),
+    trustedHtml(
+      t
+        ? `<div class="territory-stats"><div><strong>${n(t.expedientes)}</strong><span>expedientes</span></div><div><strong>${n(t.observations)}</strong><span>observaciones</span></div><div><strong>${n(t.participation)}</strong><span>con observaciones</span></div></div><p class="territory-description">Registros de Independencia en el corpus de Inteligencia Ambiental. Cobertura parcial; no es el total oficial de obras ni su estado en terreno.</p>${
+            t.facts.length
+              ? `<div class="territory-facts">${t.facts
+                  .slice(0, 2)
+                  .map(
+                    (f) =>
+                      `<a href="${e(safeSourceUrl(f.url))}" target="_blank" rel="noopener noreferrer">${e(f.title)} ${icon("arrow")}</a>`,
+                  )
+                  .join("")}</div>`
+              : '<div class="territory-empty">Sin hechos comunales en el último brief territorial. Esto no confirma ausencia de actividad.</div>'
+          }<p class="source-note">SEIA · ${e(age(sources?.territory.observedAt))} · ${badge(ts)}</p>`
+        : '<div class="empty-state">Ficha comunal no disponible.<span>Se conecta al corpus territorial de Chile Monitor.</span></div>',
+      "Static municipal markup; source text is escaped with e(), URLs are protocol-validated, and numeric values pass the snapshot contract.",
+    ),
+  );
   q("#project-count").textContent = String(t?.projects.length ?? "—");
   q("#project-date").textContent = t?.projectsObservedAt
     ? `Puntos SEIA · ${age(t.projectsObservedAt)}`
@@ -228,12 +269,18 @@ function render(): void {
         "Corpus acumulado filtrado por CUT 13108. Actualización territorial cada 4 horas. Cobertura parcial.",
     },
   ];
-  q("#source-details").innerHTML = descriptions
-    .map(
-      (d) =>
-        `<article class="source-card"><div><h3>${d.title}</h3>${badge(d.state)}</div><p>${e(d.scope)}</p><small>Última consulta: ${e(d.source?.fetchedAt ? date(d.source.fetchedAt, { dateStyle: "medium", timeStyle: "short" }) : "Sin consulta exitosa")}</small>${d.source?.url ? `<a href="${e(safeSourceUrl(d.source.url))}" target="_blank" rel="noopener noreferrer">Abrir fuente ${icon("arrow")}</a>` : ""}</article>`,
-    )
-    .join("");
+  setTrustedHtml(
+    q("#source-details"),
+    trustedHtml(
+      descriptions
+        .map(
+          (d) =>
+            `<article class="source-card"><div><h3>${d.title}</h3>${badge(d.state)}</div><p>${e(d.scope)}</p><small>Última consulta: ${e(d.source?.fetchedAt ? date(d.source.fetchedAt, { dateStyle: "medium", timeStyle: "short" }) : "Sin consulta exitosa")}</small>${d.source?.url ? `<a href="${e(safeSourceUrl(d.source.url))}" target="_blank" rel="noopener noreferrer">Abrir fuente ${icon("arrow")}</a>` : ""}</article>`,
+        )
+        .join(""),
+      "Static municipal markup; source text is escaped with e(), URLs are protocol-validated, and numeric values pass the snapshot contract.",
+    ),
+  );
   updateMapProjects();
 }
 
