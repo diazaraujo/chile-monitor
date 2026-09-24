@@ -92,3 +92,5 @@ Solo LAN por ahora (`http://10.0.0.3:8142/dashboard`, Twingate). El Vercel antig
 - Capa `fires`: requiere `NASA_FIRMS_API_KEY` (gratis). El cron ya está y se activa solo.
 - Clima: `seed-climate-anomalies` necesita la base `climate:zone-normals`, cuyo fetch excede 240 s desde Enigma; `seed-climate-disasters` exige un appname aprobado por ReliefWeb. Ambos fuera hasta resolverlo.
 - Dominio público con HTTPS.
+
+La vista de Independencia integra la base de **Monitor Municipios**: 32 dimensiones consultadas por CUT, con inventario de seguridad, presupuesto, compras, fiscalización, riesgos, salud, educación y concejo. Cada registro conserva su período y fecha de carga. Ver [operación e integración](docs/independencia-en-linea.md).

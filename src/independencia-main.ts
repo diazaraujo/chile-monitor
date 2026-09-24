@@ -1,3 +1,7 @@
+import {
+  renderMunicipality,
+  setupMunicipality,
+} from "@/components/independencia/MunicipalityView";
 import { setTrustedHtml, trustedHtml } from "@/utils/dom-utils";
 import * as maplibregl from "maplibre-gl";
 import mapWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
@@ -96,6 +100,7 @@ setTrustedHtml(
       <div id="connection-banner" class="connection-banner" role="status">Conectando las fuentes de Independencia…</div>
       <section class="metric-grid" id="metrics" aria-label="Panorama comunal"></section>
       <section class="briefing" id="briefing" aria-label="Resumen de la mañana"></section>
+      <section id="municipality-overview" class="municipality-overview panel" aria-label="Base comunal de Monitor Municipios"></section>
       <section class="operations-grid">
         <article class="map-panel panel">
           <div class="panel-heading"><div><span class="eyebrow">TERRITORIO</span><h2>La comuna, en perspectiva</h2></div><span class="small-tag">MAPA INTERACTIVO</span></div>
@@ -103,27 +108,24 @@ setTrustedHtml(
           <div class="map-stage"><div id="commune-map" aria-label="Mapa de Independencia"></div><div class="map-caption"><span class="map-caption-line"></span><div><strong>INDEPENDENCIA</strong><span>Contexto territorial · no representa incidentes</span></div></div><div id="map-message" class="map-message" role="status">Cargando cartografía…</div></div>
           <div class="map-footer"><span id="cartography-credit">Cartografía de referencia · coordenadas geográficas</span><span id="project-date">SEIA · contexto acumulado</span></div>
         </article>
-        <aside class="news-panel panel"><div class="panel-heading"><div><span class="eyebrow">PULSO LOCAL</span><h2>Lo que está pasando</h2></div>${icon("news")}</div><p class="panel-intro">Publicaciones de la municipalidad. No equivalen a incidentes activos.</p><div id="news-list" class="news-list"></div><div class="panel-bottom"><a href="https://www.independencia.cl/" target="_blank" rel="noopener noreferrer">Ir al sitio municipal ${icon("arrow")}</a><span id="news-updated">Sin consulta</span></div></aside>
+        <aside class="news-panel panel"><div class="panel-heading"><div><span class="eyebrow">PULSO LOCAL</span><h2>Lo que está pasando</h2></div>${icon("news")}</div><p class="panel-intro">Publicaciones de la municipalidad. No equivalen a incidentes activos.</p><div id="dispatch-context"></div><div id="news-list" class="news-list"></div><div class="panel-bottom"><a href="https://www.independencia.cl/" target="_blank" rel="noopener noreferrer">Ir al sitio municipal ${icon("arrow")}</a><span id="news-updated">Sin consulta</span></div></aside>
       </section>
       <section class="bottom-grid">
         <article class="panel weather-panel"><div class="panel-heading"><div><span class="eyebrow">PRÓXIMAS HORAS</span><h2>Clima para planificar</h2></div>${icon("sun")}</div><div id="weather-detail"></div></article>
-        <article class="panel dispatch-panel"><div class="panel-heading"><div><span class="eyebrow">CENTRO DE DESPACHO</span><h2>Capacidad operativa</h2></div><span class="small-tag amber">POR CONECTAR</span></div><div class="dispatch-systems">
-          <div>${icon("shield")}<span><strong>Incidentes 1469</strong><small>Sin acceso al registro municipal</small></span><b>—</b></div>
-          <div>${icon("truck")}<span><strong>Móviles en terreno</strong><small>Ubicación y disponibilidad pendientes</small></span><b>—</b></div>
-          <div>${icon("camera")}<span><strong>Cámaras municipales</strong><small>Sin acceso a las señales autorizadas</small></span><b>—</b></div>
-          <div>${icon("drop")}<span><strong>Servicios y cortes</strong><small>Agua, energía y aseo por integrar</small></span><b>—</b></div>
-        </div><button class="text-button" data-action="sources">Ver qué falta para operar en vivo ${icon("arrow")}</button></article>
+        <article class="panel dispatch-panel"><div class="panel-heading"><div><span class="eyebrow">MONITOR MUNICIPIOS</span><h2>Capacidad municipal</h2></div><span class="small-tag">SINIM</span></div><div id="municipal-capacity" class="dispatch-systems"></div><button class="text-button" data-municipality-section="seguridad">Ver inventario y períodos ${icon("arrow")}</button></article>
         <article class="panel territory-panel"><div class="panel-heading"><div><span class="eyebrow">CONTEXTO COMUNAL</span><h2>Proyectos y territorio</h2></div>${icon("pin")}</div><div id="territory-detail"></div></article>
       </section>
       <footer class="page-footer"><span><i class="status-dot"></i> Independencia en línea <span class="footer-separator">/</span> Chile Monitor</span><button data-action="sources" id="source-footer">Consultar fuentes y cobertura ${icon("arrow")}</button></footer>
     </main>
   </div>
-  <dialog id="sources-dialog" aria-labelledby="sources-title"><div class="dialog-heading"><div><span class="eyebrow">TRAZABILIDAD</span><h2 id="sources-title">Qué estamos viendo</h2></div><button class="icon-button" data-action="close-sources" aria-label="Cerrar fuentes">${icon("close")}</button></div><div id="source-details"></div><div class="integration-note"><h3>Para conectar el despacho municipal</h3><p>Hace falta una integración autorizada con el 1469, la flota, las cámaras y los servicios. Cada evento debe incluir fecha de origen, estado, ubicación y responsable. Esta pantalla no envía instrucciones a equipos ni confirma emergencias.</p><p>Los datos ausentes se muestran como «por conectar»; nunca como cero incidentes.</p></div></dialog>
+  <dialog id="municipality-dialog" aria-labelledby="municipality-title"><div class="dialog-heading"><div><span class="eyebrow">MONITOR MUNICIPIOS · INDEPENDENCIA</span><h2 id="municipality-title">Toda la comuna, con sus fuentes</h2></div><button class="icon-button" data-close-municipality aria-label="Cerrar base municipal">${icon("close")}</button></div><div class="municipality-explorer"><nav id="municipality-tabs" aria-label="Dimensiones comunales"></nav><div id="municipality-detail"></div></div></dialog>
+  <dialog id="sources-dialog" aria-labelledby="sources-title"><div class="dialog-heading"><div><span class="eyebrow">TRAZABILIDAD</span><h2 id="sources-title">Qué estamos viendo</h2></div><button class="icon-button" data-action="close-sources" aria-label="Cerrar fuentes">${icon("close")}</button></div><div id="source-details"></div><div class="integration-note"><h3>Para conectar el despacho municipal</h3><p>Monitor Municipios aporta inventario de seguridad, prestadores, presupuesto, gestión y contexto comunal. La disponibilidad del turno, los incidentes 1469 y las señales de video requieren sus registros operativos. Cada evento debe incluir fecha de origen, estado, ubicación y responsable. Esta pantalla no envía instrucciones a equipos ni confirma emergencias.</p><p>Cada indicador muestra su período. Una consulta reciente a la base no convierte una serie anual en un dato en vivo.</p></div></dialog>
 `,
     "Static municipal markup; source text is escaped with e(), URLs are protocol-validated, and numeric values pass the snapshot contract.",
   ),
 );
 
+setupMunicipality();
 let snapshot: CommuneSnapshot | undefined;
 let refreshing = false;
 let requestFailed = false;
@@ -150,19 +152,20 @@ function render(): void {
   const ws = sourceState(sources?.weather, 90);
   const ns = sourceState(sources?.municipal, 90);
   const ts = sourceState(sources?.territory, 8 * 60);
-  const fresh = [ws, ns, ts].filter((s) => s === "fresh").length;
+  const ms = sourceState(sources?.municipios, 26 * 60);
+  const fresh = [ws, ns, ts, ms].filter((s) => s === "fresh").length;
   const recent = news.filter((item) => {
     const elapsed = Date.now() - Date.parse(item.publishedAt);
     return elapsed >= 0 && elapsed < 86_400_000;
   });
   q("#connection-banner").classList.toggle(
     "warning",
-    requestFailed || fresh < 3,
+    requestFailed || fresh < 4,
   );
   setTrustedHtml(
     q("#connection-banner"),
     trustedHtml(
-      `${icon(requestFailed || fresh < 3 ? "signal" : "check")}<span>${requestFailed ? "No se pudo actualizar. Se conserva la última información recibida." : snapshot ? `${fresh} de 3 fuentes públicas al día. La información operativa municipal aún no está conectada.` : "Esperando datos públicos. No hay información operativa municipal conectada."}</span><button data-action="sources">Ver cobertura ${icon("arrow")}</button>`,
+      `${icon(requestFailed || fresh < 4 ? "signal" : "check")}<span>${requestFailed ? "No se pudo actualizar. Se conserva la última información recibida." : snapshot ? `${fresh} de 4 conexiones actualizadas · Monitor Municipios, clima, publicaciones y SEIA. Los períodos de cada indicador se muestran por separado.` : "Esperando la base comunal y las fuentes del día."}</span><button data-action="sources">Ver cobertura ${icon("arrow")}</button>`,
       "Static municipal markup; source text is escaped with e(), URLs are protocol-validated, and numeric values pass the snapshot contract.",
     ),
   );
@@ -173,7 +176,7 @@ function render(): void {
     <article class="metric"><div class="metric-label">CLIMA LOCAL ${icon("sun")}</div><div class="metric-value">${w ? n(w.temperature) : "—"}<span>${w ? "°C" : ""}</span></div><div class="metric-foot"><span>${w ? e(weatherLabel(w.code)) : "Esperando pronóstico"}</span>${badge(ws)}</div></article>
     <article class="metric"><div class="metric-label">PUBLICACIONES · 24 H ${icon("news")}</div><div class="metric-value">${sources?.municipal.data ? recent.length : "—"}<span>municipales</span></div><div class="metric-foot"><span>Ventana móvil de 24 horas</span>${badge(ns)}</div></article>
     <article class="metric"><div class="metric-label">EXPEDIENTES SEIA ${icon("pin")}</div><div class="metric-value">${t ? n(t.expedientes) : "—"}<span>en el corpus</span></div><div class="metric-foot"><span>Acumulado · no obras activas</span>${badge(ts)}</div></article>
-    <article class="metric metric-coverage"><div class="metric-label">COBERTURA OPERATIVA ${icon("signal")}</div><div class="metric-value">4<span>conexiones pendientes</span></div><div class="metric-foot"><span>1469 · móviles · cámaras · servicios</span><span class="coverage-dot"></span></div></article>`,
+    <article class="metric metric-coverage"><div class="metric-label">MONITOR MUNICIPIOS ${icon("signal")}</div><div class="metric-value">${sources?.municipios?.data ? sources.municipios.data.sections.filter((s) => s.records.length).length : "—"}<span>dimensiones con datos</span></div><div class="metric-foot"><span>Presupuesto · seguridad · gestión</span>${badge(ms)}</div></article>`,
       "Static municipal markup; source text is escaped with e(), URLs are protocol-validated, and numeric values pass the snapshot contract.",
     ),
   );
@@ -186,7 +189,7 @@ function render(): void {
   setTrustedHtml(
     q("#briefing"),
     trustedHtml(
-      `<div class="briefing-label"><span class="eyebrow">LECTURA DE 30 SEGUNDOS</span><h2>Antes de empezar<br>el día.</h2><span class="briefing-stamp">${snapshot ? `Corte de datos · ${clock(snapshot.generatedAt)}` : "Esperando actualización"}</span></div><div class="briefing-item"><span class="brief-number">01</span><div><h3>Preparar el terreno</h3><p>${e(weatherBrief)}</p></div></div><div class="briefing-item"><span class="brief-number">02</span><div><h3>Tomar el pulso local</h3><p>${ns === "fresh" ? `${recent.length} publicaciones municipales en las últimas 24 horas. ${recent.length ? "Revisar su alcance con el equipo." : "El historial reciente está disponible abajo."}` : "La fuente municipal requiere actualización; revisar el sitio de origen."}</p></div></div><div class="briefing-item"><span class="brief-number">03</span><div><h3>Confirmar con despacho</h3><p>Solicitar el parte de turno: incidentes abiertos, equipos disponibles y cortes. Aún no llegan a esta pantalla.</p></div></div>`,
+      `<div class="briefing-label"><span class="eyebrow">LECTURA DE 30 SEGUNDOS</span><h2>Antes de empezar<br>el día.</h2><span class="briefing-stamp">${snapshot ? `Corte de datos · ${clock(snapshot.generatedAt)}` : "Esperando actualización"}</span></div><div class="briefing-item"><span class="brief-number">01</span><div><h3>Preparar el terreno</h3><p>${e(weatherBrief)}</p></div></div><div class="briefing-item"><span class="brief-number">02</span><div><h3>Tomar el pulso local</h3><p>${ns === "fresh" ? `${recent.length} publicaciones municipales en las últimas 24 horas. ${recent.length ? "Revisar su alcance con el equipo." : "El historial reciente está disponible abajo."}` : "La fuente municipal requiere actualización; revisar el sitio de origen."}</p></div></div><div class="briefing-item"><span class="brief-number">03</span><div><h3>Revisar la gestión comunal</h3><p id="municipal-brief">${sources?.municipios?.data ? "Inventario de seguridad, riesgos de invierno, presupuesto y fiscalización disponibles. Abrir cada dimensión para revisar cifras, períodos y documentos." : "Sincronizando la base de Monitor Municipios."}</p></div></div>`,
       "Static municipal markup; source text is escaped with e(), URLs are protocol-validated, and numeric values pass the snapshot contract.",
     ),
   );
@@ -248,6 +251,13 @@ function render(): void {
     : "Puntos SEIA · sin fecha de actualización";
   const descriptions = [
     {
+      title: "Monitor Municipios",
+      source: sources?.municipios,
+      state: ms,
+      scope:
+        "Consulta de la base comunal por CUT 13108. Fuentes SINIM, CEAD, SENAPRED, ChileCompra, CGR, MINEDUC, FONASA y otras; año observado y fecha de carga visibles en cada registro. Sincronización horaria desde el host de Monitor Municipios.",
+    },
+    {
       title: "Clima local",
       source: sources?.weather,
       state: ws,
@@ -281,6 +291,7 @@ function render(): void {
       "Static municipal markup; source text is escaped with e(), URLs are protocol-validated, and numeric values pass the snapshot contract.",
     ),
   );
+  renderMunicipality(sources?.municipios?.data ?? null, ms);
   updateMapProjects();
 }
 

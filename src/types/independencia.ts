@@ -41,7 +41,25 @@ export interface CommuneSnapshot {
   generatedAt: string;
   sources: {
     weather: CommuneSource<CommuneWeather>;
+    municipios?: CommuneSource<MunicipalityData>;
     municipal: CommuneSource<MunicipalNews[]>;
     territory: CommuneSource<CommuneTerritory>;
   };
+}
+
+export interface MunicipalitySection {
+  id: string;
+  title: string;
+  source: string;
+  note: string;
+  columns: { key: string; label: string }[];
+  records: Record<string, string | number | boolean | null>[];
+  limit: number;
+}
+
+export interface MunicipalityData {
+  schemaVersion: 1;
+  cut: "13108";
+  exportedAt: string;
+  sections: MunicipalitySection[];
 }

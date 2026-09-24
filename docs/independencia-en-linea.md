@@ -4,7 +4,7 @@ Vista comunal de Chile Monitor para una reunión matinal y una pantalla de despa
 
 ## Lo que funciona
 
-- Resumen determinista de la mañana con clima, publicaciones de las últimas 24 horas y solicitud de parte de turno.
+- Resumen determinista de la mañana con clima, publicaciones de las últimas 24 horas y focos de revisión de riesgo invernal y fiscalización.
 - Mapa centrado en Independencia, CUT 13108, límite de referencia Censo 2024, filtro de puntos SEIA y selección de proyectos.
 - Publicaciones del RSS oficial municipal con fecha y enlace; no se clasifican como incidentes activos.
 - Pronóstico horario para el centro de la comuna, temperaturas, viento, lluvia y UV, atribuido a Open-Meteo. No son alertas oficiales.
@@ -14,7 +14,7 @@ Vista comunal de Chile Monitor para una reunión matinal y una pantalla de despa
 
 ## Datos que requieren integración municipal
 
-Incidentes 1469, móviles, cámaras y cortes/servicios aparecen como «por conectar», sin contadores ficticios. El producto no asigna unidades, envía instrucciones ni confirma ausencia de emergencias. Para operación real se necesita un conector autorizado, identidad y control de acceso, trazabilidad de cada cambio y reglas de visibilidad de datos personales. No se han conectado señales privadas ni registros de víctimas.
+La base de Monitor Municipios aporta inventario de cámaras y patrullaje, dotación y prestadores de servicios. Lo que queda sin integrar son los incidentes 1469 del turno, posiciones y disponibilidad actual de móviles, señales de video y cortes activos. El producto no asigna unidades, envía instrucciones ni confirma ausencia de emergencias. Para operación real se necesita un conector autorizado, identidad y control de acceso, trazabilidad de cada cambio y reglas de visibilidad de datos personales. No se han conectado señales privadas ni registros de víctimas.
 
 La siguiente etapa debe aportar un parte de turno común, con identificador estable de incidente, origen, hora del hecho, hora de recepción, categoría, prioridad validada, estado, ubicación, responsable, última actualización y resolución. Esos eventos deben ser compartidos desde el servidor, no guardados sólo en el navegador del alcalde.
 
@@ -22,6 +22,7 @@ La siguiente etapa debe aportar un parte de turno común, con identificador esta
 
 | Fuente | Referencia | Semántica |
 |---|---|---|
+| Monitor Municipios | https://monitor-municipios.vercel.app/es/comuna/13108 | 32 dimensiones, períodos y fechas de carga individuales |
 | Municipalidad | https://www.independencia.cl/feed/ | Títulos y enlaces, máximo diez publicaciones; no replica artículos |
 | Open-Meteo | https://open-meteo.com/en/docs | Modelo meteorológico, punto -33.416, -70.666; hora original del dato |
 | SEIA | https://seia.sea.gob.cl/ | `ficha-comuna.json`, `brief-territorial.json` y `seia-puntos.geojson` del corpus existente; cobertura parcial |
@@ -60,3 +61,21 @@ npx playwright test -c playwright.independencia.config.ts
 ```
 
 Los tests cubren fallas de fuente, preservación de fechas, ausencia frente a cero, ámbito comunal, alias sin duplicación, rechazo de URLs ejecutables, modos de pantalla y ancho móvil. La comprobación de mapa y fuentes reales se completa en la instancia de vista previa antes de considerarla operativa.
+
+## Base de Monitor Municipios
+
+El adaptador `scripts/chile-export-municipios.mjs` consulta la base existente de Monitor Municipios en una transacción de sólo lectura, por CUT 13108. Selecciona explícitamente columnas públicas en 32 dimensiones: inventario de seguridad, riesgo invernal, finanzas, compras, fiscalización, delitos, APS, educación, vivienda, tránsito, social, RSH, servicios, equipamiento, concejo, actas, acuerdos, autoridades, aire, organizaciones, economía, litigios, demografía, migración, cuidados, patrimonio, emisiones, escasez y beneficios. No consulta parentescos, conflictos privados ni RUTs.
+
+La exportación verificada contiene 28 dimensiones con registros y cuatro sin cobertura comunal. La vista muestra las 32 y distingue ausencia de registro de valor cero. `SINIM` sí informa cámaras y flota; son inventarios por año, no disponibilidad del turno. Monitor Municipios también identifica a los prestadores de electricidad y agua.
+
+El explorador conserva período observado y fecha de carga por registro. Las cuentas SINIM se seleccionan por su último año individual; no se suman períodos distintos. Las compras muestran los últimos 12 meses con registros, no necesariamente 12 meses corridos ni el año actual. Actas y acuerdos tienen límites explícitos. Los resúmenes del concejo y acuerdos son extracciones automatizadas, no estados de ejecución.
+
+```sh
+WM_SEED_ENV_FILE=/ruta/monitor-municipios/.env.neon \
+MUNICIPIOS_REPO=/ruta/monitor-municipios \
+node scripts/chile-export-municipios.mjs /ruta/municipios-13108.json
+```
+
+Se reutiliza `pg` del checkout de Monitor Municipios. La conexión permanece en su host; sólo se transfiere el JSON de columnas públicas a Enigma. El colector de Independencia lee ese archivo sin rejuvenecer `exportedAt`. Si falla la exportación se conserva el snapshot anterior, y después de 26 horas la pantalla señala sincronización desactualizada. Las credenciales nunca van al navegador ni al JSON.
+
+El sincronizador `scripts/chile-sync-municipios.sh` ejecuta esa exportación y transfiere sólo el JSON mediante SSH, con reemplazo atómico en destino. Se programa cada hora en el host que ya tiene acceso a Monitor Municipios. Requiere ese host encendido y conectado a Enigma; un corte conserva datos y fechas sin aparentar una actualización.

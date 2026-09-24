@@ -61,6 +61,17 @@ class IndependenciaSourceTests(unittest.TestCase):
             self.assertEqual(path.stat().st_mode & 0o777, 0o644)
             self.assertEqual(len(list(Path(directory).iterdir())), 1)
 
+    def test_municipios_keeps_export_time_and_rejects_other_communes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            d = {'schemaVersion': 1, 'cut': '13108', 'exportedAt': '2026-07-03T00:00:00Z', 'sections': []}
+            (path/'municipios-13108.json').write_text(json.dumps(d))
+            self.assertEqual(seed.municipios(path)['fetchedAt'], d['exportedAt'])
+            d['cut'] = '13101'
+            (path/'municipios-13108.json').write_text(json.dumps(d))
+            with self.assertRaises(ValueError):
+                seed.municipios(path)
+
     def test_missing_weather_value_is_not_zero(self):
         for invalid in [None, float('nan'), float('inf'), '0', True]:
             with self.assertRaises(ValueError):

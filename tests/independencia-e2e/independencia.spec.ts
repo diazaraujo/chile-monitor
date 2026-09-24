@@ -1,16 +1,30 @@
 import { test, expect } from "@playwright/test";
 
-test("remote titles remain text and executable URLs are rejected", async ({ page }) => {
+test("remote titles remain text and executable URLs are rejected", async ({
+  page,
+}) => {
   const stamp = new Date().toISOString();
   const unavailable = { status: "error", fetchedAt: null, url: "", data: null };
   const title = '<img src=x onerror="document.body.dataset.injected=1">';
-  await page.route("**/chile/independencia.json", route => route.fulfill({ json: {
-    schemaVersion: 1, commune: { cut: "13108", name: "Independencia" }, generatedAt: stamp,
-    sources: { weather: unavailable, territory: unavailable, municipal: {
-      status: "ok", fetchedAt: stamp, url: "https://www.independencia.cl/feed/",
-      data: [{ title, url: "javascript:alert(1)", publishedAt: stamp }],
-    } },
-  } }));
+  await page.route("**/chile/independencia.json", (route) =>
+    route.fulfill({
+      json: {
+        schemaVersion: 1,
+        commune: { cut: "13108", name: "Independencia" },
+        generatedAt: stamp,
+        sources: {
+          weather: unavailable,
+          territory: unavailable,
+          municipal: {
+            status: "ok",
+            fetchedAt: stamp,
+            url: "https://www.independencia.cl/feed/",
+            data: [{ title, url: "javascript:alert(1)", publishedAt: stamp }],
+          },
+        },
+      },
+    }),
+  );
   await page.goto("/independencia.html");
   await expect(page.locator(".news-item h3")).toHaveText(title);
   await expect(page.locator(".news-item")).toHaveAttribute("href", "#");
@@ -29,11 +43,9 @@ test("public-source screen renders, switches to dispatch and opens traceability"
   await expect(page.locator("#connection-banner")).not.toContainText(
     "Conectando",
   );
+  await expect(page.locator("#municipal-capacity")).toBeVisible();
   await expect(
-    page.getByText("Incidentes 1469", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByText("Sin acceso al registro municipal"),
+    page.getByText("Incidentes 1469: sin acceso", { exact: false }),
   ).toBeVisible();
   await expect(page.locator("#commune-map canvas")).toBeVisible();
   await page
@@ -78,7 +90,7 @@ test("missing data shows unknowns and connection gaps, not a false all-clear", a
   await expect(page.locator(".metric-value").nth(0)).toHaveText("—");
   await expect(page.locator(".metric-value").nth(1)).toHaveText("—municipales");
   await expect(page.locator("#metrics .source-state.fresh")).toHaveCount(0);
-  await expect(page.locator(".dispatch-systems")).toContainText("Sin acceso");
+  await expect(page.locator(".dispatch-systems")).toContainText("sin acceso");
 });
 
 test("phone layout keeps actions reachable without horizontal scrolling", async ({
@@ -94,4 +106,43 @@ test("phone layout keeps actions reachable without horizontal scrolling", async 
     viewport: innerWidth,
   }));
   expect(width.document).toBeLessThanOrEqual(width.viewport);
+});
+
+test("Monitor Municipios exposes actual inventory, periods and all dimensions", async ({
+  page,
+}) => {
+  await page.goto("/independencia.html");
+  await expect(page.locator("#municipality-overview")).toContainText(
+    "28 dimensiones con datos de 32 consultadas",
+  );
+  await expect(page.locator(".municipality-card").first()).toContainText("100");
+  await expect(page.locator(".municipality-card").first()).toContainText(
+    "2025",
+  );
+  await page.locator(".municipality-card").first().click();
+  await expect(page.locator("#municipality-dialog")).toBeVisible();
+  await expect(page.locator("#municipality-tabs button")).toHaveCount(32);
+  await expect(page.locator("#municipality-detail")).toContainText(
+    "Cámaras de vigilancia",
+  );
+  await expect(page.locator("#municipality-detail")).toContainText("2025");
+  await page
+    .locator('#municipality-tabs [data-municipality-section="presupuesto"]')
+    .click();
+  await expect(page.locator("#municipality-detail")).toContainText(
+    "39.055.551.000",
+  );
+  await page
+    .locator('#municipality-tabs [data-municipality-section="aire"]')
+    .click();
+  await expect(page.locator("#municipality-detail")).toContainText(
+    "Sin registros para Independencia",
+  );
+  await page.getByRole("button", { name: "Cerrar base municipal" }).click();
+  await page.locator('.mode-switch [data-mode="dispatch"]').click();
+  await expect(page.locator("#dispatch-context")).toBeVisible();
+  await expect(page.locator("#dispatch-context")).toContainText("100");
+  expect(
+    await page.evaluate(() => document.documentElement.scrollHeight),
+  ).toBeLessThanOrEqual(1100);
 });

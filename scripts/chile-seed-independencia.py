@@ -125,6 +125,17 @@ def territory(data_dir):
             }}
 
 
+def municipios(data_dir):
+    data = json.loads((data_dir / 'municipios-13108.json').read_text())
+    if data.get('cut') != CUT or data.get('schemaVersion') != 1 or not isinstance(data.get('sections'), list):
+        raise ValueError('invalid Monitor Municipios commune snapshot')
+    stamp = datetime.fromisoformat(data['exportedAt'].replace('Z', '+00:00'))
+    if stamp.tzinfo is None or stamp.timestamp() > datetime.now(timezone.utc).timestamp() + 300:
+        raise ValueError('invalid export timestamp')
+    return {'status': 'ok', 'fetchedAt': data['exportedAt'], 'observedAt': data['exportedAt'],
+            'url': 'https://monitor-municipios.vercel.app/es/comuna/13108', 'data': data}
+
+
 def collect_source(key, loader, previous):
     try:
         return loader()
@@ -159,7 +170,7 @@ def main():
             previous = {}
     except (OSError, ValueError):
         previous = {}
-    loaders = {'weather': weather, 'municipal': municipal, 'territory': lambda: territory(args.data_dir)}
+    loaders = {'weather': weather, 'municipal': municipal, 'territory': lambda: territory(args.data_dir), 'municipios': lambda: municipios(args.data_dir)}
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
         futures = {k: pool.submit(collect_source, k, loader, previous) for k, loader in loaders.items()}
         sources = {k: f.result() for k, f in futures.items()}

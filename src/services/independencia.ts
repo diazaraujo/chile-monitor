@@ -1,4 +1,8 @@
-import type { CommuneSnapshot, CommuneSource } from "@/types/independencia";
+import type {
+  CommuneSnapshot,
+  CommuneSource,
+  MunicipalityData,
+} from "@/types/independencia";
 
 export const COMMUNE_TIMEZONE = "America/Santiago";
 export const COMMUNE_REFRESH_MS = 60_000;
@@ -102,7 +106,56 @@ export function isCommuneSnapshot(value: unknown): value is CommuneSnapshot {
       ))
   )
     return false;
+  const m = sources.municipios;
+  if (
+    m &&
+    (!["ok", "error", "not-connected"].includes(m.status) ||
+      typeof m.url !== "string" ||
+      (m.fetchedAt !== null && typeof m.fetchedAt !== "string") ||
+      (m.data !== null && !isMunicipalityData(m.data)))
+  )
+    return false;
   return true;
+}
+
+export function isMunicipalityData(value: unknown): value is MunicipalityData {
+  if (!value || typeof value !== "object") return false;
+  const m = value as MunicipalityData;
+  return (
+    m.schemaVersion === 1 &&
+    m.cut === "13108" &&
+    Number.isFinite(Date.parse(m.exportedAt)) &&
+    Array.isArray(m.sections) &&
+    m.sections.length <= 64 &&
+    m.sections.every(
+      (s) =>
+        s &&
+        typeof s.id === "string" &&
+        typeof s.title === "string" &&
+        typeof s.source === "string" &&
+        typeof s.note === "string" &&
+        Number.isInteger(s.limit) &&
+        s.limit > 0 &&
+        Array.isArray(s.columns) &&
+        s.columns.every(
+          (c) => c && typeof c.key === "string" && typeof c.label === "string",
+        ) &&
+        Array.isArray(s.records) &&
+        s.records.length <= 100 &&
+        s.records.every(
+          (r) =>
+            r &&
+            typeof r === "object" &&
+            Object.values(r).every(
+              (v) =>
+                v === null ||
+                typeof v === "string" ||
+                typeof v === "boolean" ||
+                (typeof v === "number" && Number.isFinite(v)),
+            ),
+        ),
+    )
+  );
 }
 
 export async function fetchCommuneSnapshot(
