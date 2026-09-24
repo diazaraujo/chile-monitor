@@ -83,6 +83,8 @@ CI del fork: `Test` corre en cada PR y push a `main`. El E2E `dashboard-news-req
 
 ## Acceso
 
+**Independencia en línea:** la variante Chile incluye `/independencia.html` para la lectura matinal y `/independencia.html?modo=despacho` para una pantalla permanente. Integra fuentes públicas fechadas y contexto comunal; los incidentes, cámaras y móviles municipales requieren conexiones autorizadas. [Fuentes, operación y cobertura](docs/independencia-en-linea.md).
+
 Solo LAN por ahora (`http://10.0.0.3:8142/dashboard`, Twingate). El Vercel antiguo devuelve 410. Para exponerlo con HTTPS, la receta ya usada en Enigma es un túnel Cloudflare apuntando a `127.0.0.1:8142`; falta decidir dominio.
 
 ## Pendientes conocidos
