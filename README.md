@@ -83,6 +83,8 @@ CI del fork: `Test` corre en cada PR y push a `main`. El E2E `dashboard-news-req
 
 ## Acceso
 
+**Independencia en línea:** la variante Chile incluye `/independencia.html` para la lectura matinal y `/independencia.html?modo=despacho` para una pantalla permanente. Integra fuentes públicas fechadas y contexto comunal; los incidentes, cámaras y móviles municipales requieren conexiones autorizadas. [Fuentes, operación y cobertura](docs/independencia-en-linea.md).
+
 Solo LAN por ahora (`http://10.0.0.3:8142/dashboard`, Twingate). El Vercel antiguo devuelve 410. Para exponerlo con HTTPS, la receta ya usada en Enigma es un túnel Cloudflare apuntando a `127.0.0.1:8142`; falta decidir dominio.
 
 ## Pendientes conocidos
@@ -90,3 +92,5 @@ Solo LAN por ahora (`http://10.0.0.3:8142/dashboard`, Twingate). El Vercel antig
 - Capa `fires`: requiere `NASA_FIRMS_API_KEY` (gratis). El cron ya está y se activa solo.
 - Clima: `seed-climate-anomalies` necesita la base `climate:zone-normals`, cuyo fetch excede 240 s desde Enigma; `seed-climate-disasters` exige un appname aprobado por ReliefWeb. Ambos fuera hasta resolverlo.
 - Dominio público con HTTPS.
+
+La vista de Independencia integra la base de **Monitor Municipios**: 32 dimensiones consultadas por CUT, con inventario de seguridad, presupuesto, compras, fiscalización, riesgos, salud, educación y concejo. Cada registro conserva su período y fecha de carga. Ver [operación e integración](docs/independencia-en-linea.md).

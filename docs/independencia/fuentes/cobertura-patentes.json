@@ -1,0 +1,36 @@
+{
+  "municipality_code": "13108",
+  "municipality_name": "Independencia",
+  "parcel_sii_code": "13167",
+  "publisher": "Municipalidad de Independencia vía datos.gob.cl",
+  "source_status": "active",
+  "releases": [
+    {
+      "release_id": "independencia-2015-10-13",
+      "data_as_of": "2015-10-13",
+      "license": "CC-BY",
+      "rights_status": "open_data_license",
+      "rights_uri": "https://creativecommons.org/licenses/by/4.0/",
+      "dataset_id": "7f65e28e-8cb8-413a-a46b-00fdc21f93ef",
+      "resource_id": "18445048-1baf-43e9-bdce-9ff97c141068",
+      "format": "xlsx-independencia-v1",
+      "url": "https://datos.gob.cl/dataset/7f65e28e-8cb8-413a-a46b-00fdc21f93ef/resource/18445048-1baf-43e9-bdce-9ff97c141068/download/copia-de-rol-general-de-patentes.xlsx",
+      "sha256": "fedf3149f2ab4db57af52967910aafe9929bc20cfc4caba1e5e7101487085fdd",
+      "parser": {
+        "header_row": 8,
+        "municipal_patent_id_pattern": "^\\d+$",
+        "columns": {
+          "municipal_patent_id": 0,
+          "holder_tax_id": 1,
+          "holder_name": 2,
+          "original_address": 3,
+          "activity": 4,
+          "patent_type": 6
+        },
+        "constants": {
+          "status": "VIGENTE"
+        }
+      }
+    }
+  ]
+}

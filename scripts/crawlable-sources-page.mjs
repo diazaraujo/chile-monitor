@@ -107,6 +107,12 @@ const SOURCE_DOMAIN_MATCHERS = [
 // Keep ambiguous structured providers explicit so a new unmatched provider
 // fails the build instead of silently becoming "geopolitics".
 const SOURCE_DOMAIN_OVERRIDES = new Map([
+  ['datos.sinim.gov.cl', 'finance'],
+  ['subprevenciondeldelito.gob.cl', 'geopolitics'],
+  ['www.bcn.cl', 'geopolitics'],
+  ['www.contraloria.cl', 'finance'],
+  ['www.independencia.cl', 'news'],
+  ['www.senapred.cl', 'environment'],
   ['Alberta Emergency Alert', 'environment'],
   ['B.C. Evacuation Orders and Alerts', 'environment'],
   ['SaskAlert', 'environment'],

@@ -79,6 +79,8 @@ World Monitor is a real-time global intelligence dashboard built as a TypeScript
 
 ### Entry and Initialization
 
+The Chile variant also emits `independencia.html`, an independent municipal dashboard (`src/independencia-main.ts`). It reads the on-demand, same-origin `/chile/independencia.json` snapshot produced atomically by `scripts/chile-seed-independencia.py`. The snapshot is not added to the national bootstrap. Public weather, municipal RSS and existing SEIA corpus records retain individual source timestamps and degraded states; municipal dispatch telemetry is explicitly unconnected. See [Independencia operations](docs/independencia-en-linea.md).
+
 `src/main.ts` initializes Sentry error tracking, Vercel analytics, dynamic meta tags, runtime fetch patches (desktop sidecar redirection), theme application, and creates the `App` instance.
 
 `App.init()` runs in 8 phases:
