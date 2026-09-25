@@ -1,0 +1,751 @@
+{
+  "cut": "13108",
+  "consultado": "2026-09-25T13:33:48.830Z",
+  "consultas": {
+    "delitos": "select anio,delito,casos,tasa_100k from delito where cut=$1 and anio>=2023 order by delito,anio",
+    "remedios": "select anio,gasto,gasto_comparable,ahorro_p50,n_productos from remedios_comuna where cut=$1",
+    "productos": "select producto,unidad,gasto,precio_pag,ref_p50,ahorro_p50 from remedios_producto where cut=$1 order by ahorro_p50 desc limit 8",
+    "dom": "select permisos,permisos_12m,con_plazo,dias_mediana,dias_p90,pct_en_plazo,estado_publicacion from v_dom_ranking_tramitacion where cut=$1",
+    "inversion": "select p.nombre,p.estado,p.fecha_presentacion,p.fecha_calificacion,pc.inversion_prorrateada,p.url from seia_proyecto_comuna pc join seia_proyecto p on pc.id_expediente=p.id_expediente where pc.cut=$1 order by p.fecha_presentacion desc limit 10",
+    "residuos": "select sitio_nombre,ton,distancia_km,costo_ton from carga_residuos_relacion where cut_cliente=$1",
+    "compradores": "select sistema,external_id from fuente_ref where cut=$1",
+    "poblacion": "select anio,poblacion,es_estimacion from proyeccion_poblacion where cut=$1 and anio in (2024,2025,2026)",
+    "medios": "select organizacion,tipo,dominio from medio_catastro where cut=$1"
+  },
+  "delitos": [
+    {
+      "anio": 2023,
+      "delito": "Abusos sexuales",
+      "casos": 112,
+      "tasa_100k": "72.9"
+    },
+    {
+      "anio": 2024,
+      "delito": "Abusos sexuales",
+      "casos": 74,
+      "tasa_100k": "48.2"
+    },
+    {
+      "anio": 2025,
+      "delito": "Abusos sexuales",
+      "casos": 78,
+      "tasa_100k": "50.8"
+    },
+    {
+      "anio": 2023,
+      "delito": "Acosos sexuales",
+      "casos": 8,
+      "tasa_100k": "5.2"
+    },
+    {
+      "anio": 2024,
+      "delito": "Acosos sexuales",
+      "casos": 23,
+      "tasa_100k": "15"
+    },
+    {
+      "anio": 2025,
+      "delito": "Acosos sexuales",
+      "casos": 16,
+      "tasa_100k": "10.4"
+    },
+    {
+      "anio": 2023,
+      "delito": "Amenaza falta o riña",
+      "casos": 61,
+      "tasa_100k": "39.7"
+    },
+    {
+      "anio": 2024,
+      "delito": "Amenaza falta o riña",
+      "casos": 55,
+      "tasa_100k": "35.8"
+    },
+    {
+      "anio": 2025,
+      "delito": "Amenaza falta o riña",
+      "casos": 61,
+      "tasa_100k": "39.7"
+    },
+    {
+      "anio": 2023,
+      "delito": "Amenazas",
+      "casos": 773,
+      "tasa_100k": "503.2"
+    },
+    {
+      "anio": 2024,
+      "delito": "Amenazas",
+      "casos": 864,
+      "tasa_100k": "562.4"
+    },
+    {
+      "anio": 2025,
+      "delito": "Amenazas",
+      "casos": 961,
+      "tasa_100k": "625.6"
+    },
+    {
+      "anio": 2023,
+      "delito": "Consumo de alcohol y drogas en la vía pública",
+      "casos": 3236,
+      "tasa_100k": "2106.4"
+    },
+    {
+      "anio": 2024,
+      "delito": "Consumo de alcohol y drogas en la vía pública",
+      "casos": 2481,
+      "tasa_100k": "1615"
+    },
+    {
+      "anio": 2025,
+      "delito": "Consumo de alcohol y drogas en la vía pública",
+      "casos": 804,
+      "tasa_100k": "523.4"
+    },
+    {
+      "anio": 2023,
+      "delito": "Crímenes y simples delitos ley de armas",
+      "casos": 46,
+      "tasa_100k": "29.9"
+    },
+    {
+      "anio": 2024,
+      "delito": "Crímenes y simples delitos ley de armas",
+      "casos": 108,
+      "tasa_100k": "70.3"
+    },
+    {
+      "anio": 2025,
+      "delito": "Crímenes y simples delitos ley de armas",
+      "casos": 165,
+      "tasa_100k": "107.4"
+    },
+    {
+      "anio": 2023,
+      "delito": "Daños",
+      "casos": 567,
+      "tasa_100k": "369.1"
+    },
+    {
+      "anio": 2024,
+      "delito": "Daños",
+      "casos": 583,
+      "tasa_100k": "379.5"
+    },
+    {
+      "anio": 2025,
+      "delito": "Daños",
+      "casos": 672,
+      "tasa_100k": "437.4"
+    },
+    {
+      "anio": 2023,
+      "delito": "Delitos asociados a armas",
+      "casos": 99,
+      "tasa_100k": "64.4"
+    },
+    {
+      "anio": 2024,
+      "delito": "Delitos asociados a armas",
+      "casos": 134,
+      "tasa_100k": "87.2"
+    },
+    {
+      "anio": 2025,
+      "delito": "Delitos asociados a armas",
+      "casos": 185,
+      "tasa_100k": "120.4"
+    },
+    {
+      "anio": 2023,
+      "delito": "Delitos asociados a drogas",
+      "casos": 78,
+      "tasa_100k": "50.8"
+    },
+    {
+      "anio": 2024,
+      "delito": "Delitos asociados a drogas",
+      "casos": 100,
+      "tasa_100k": "65.1"
+    },
+    {
+      "anio": 2025,
+      "delito": "Delitos asociados a drogas",
+      "casos": 93,
+      "tasa_100k": "60.5"
+    },
+    {
+      "anio": 2023,
+      "delito": "Desórdenes públicos",
+      "casos": 8,
+      "tasa_100k": "5.2"
+    },
+    {
+      "anio": 2024,
+      "delito": "Desórdenes públicos",
+      "casos": 2,
+      "tasa_100k": "1.3"
+    },
+    {
+      "anio": 2025,
+      "delito": "Desórdenes públicos",
+      "casos": 2,
+      "tasa_100k": "1.3"
+    },
+    {
+      "anio": 2024,
+      "delito": "Femicidios",
+      "casos": 1,
+      "tasa_100k": "0.7"
+    },
+    {
+      "anio": 2025,
+      "delito": "Femicidios",
+      "casos": 1,
+      "tasa_100k": "0.7"
+    },
+    {
+      "anio": 2023,
+      "delito": "Homicidios",
+      "casos": 7,
+      "tasa_100k": "4.6"
+    },
+    {
+      "anio": 2024,
+      "delito": "Homicidios",
+      "casos": 22,
+      "tasa_100k": "14.3"
+    },
+    {
+      "anio": 2025,
+      "delito": "Homicidios",
+      "casos": 7,
+      "tasa_100k": "4.6"
+    },
+    {
+      "anio": 2023,
+      "delito": "Hurtos",
+      "casos": 577,
+      "tasa_100k": "375.6"
+    },
+    {
+      "anio": 2024,
+      "delito": "Hurtos",
+      "casos": 854,
+      "tasa_100k": "555.9"
+    },
+    {
+      "anio": 2025,
+      "delito": "Hurtos",
+      "casos": 892,
+      "tasa_100k": "580.6"
+    },
+    {
+      "anio": 2023,
+      "delito": "Lesiones graves o gravísimas",
+      "casos": 74,
+      "tasa_100k": "48.2"
+    },
+    {
+      "anio": 2024,
+      "delito": "Lesiones graves o gravísimas",
+      "casos": 73,
+      "tasa_100k": "47.5"
+    },
+    {
+      "anio": 2025,
+      "delito": "Lesiones graves o gravísimas",
+      "casos": 76,
+      "tasa_100k": "49.5"
+    },
+    {
+      "anio": 2023,
+      "delito": "Lesiones leves",
+      "casos": 402,
+      "tasa_100k": "261.7"
+    },
+    {
+      "anio": 2024,
+      "delito": "Lesiones leves",
+      "casos": 456,
+      "tasa_100k": "296.8"
+    },
+    {
+      "anio": 2025,
+      "delito": "Lesiones leves",
+      "casos": 446,
+      "tasa_100k": "290.3"
+    },
+    {
+      "anio": 2023,
+      "delito": "Lesiones menos graves",
+      "casos": 58,
+      "tasa_100k": "37.8"
+    },
+    {
+      "anio": 2024,
+      "delito": "Lesiones menos graves",
+      "casos": 57,
+      "tasa_100k": "37.1"
+    },
+    {
+      "anio": 2025,
+      "delito": "Lesiones menos graves",
+      "casos": 43,
+      "tasa_100k": "28"
+    },
+    {
+      "anio": 2023,
+      "delito": "Otros delitos sexuales",
+      "casos": 7,
+      "tasa_100k": "4.6"
+    },
+    {
+      "anio": 2024,
+      "delito": "Otros delitos sexuales",
+      "casos": 5,
+      "tasa_100k": "3.3"
+    },
+    {
+      "anio": 2025,
+      "delito": "Otros delitos sexuales",
+      "casos": 5,
+      "tasa_100k": "3.3"
+    },
+    {
+      "anio": 2023,
+      "delito": "Otros robos con fuerza en las cosas",
+      "casos": 68,
+      "tasa_100k": "44.3"
+    },
+    {
+      "anio": 2024,
+      "delito": "Otros robos con fuerza en las cosas",
+      "casos": 63,
+      "tasa_100k": "41"
+    },
+    {
+      "anio": 2025,
+      "delito": "Otros robos con fuerza en las cosas",
+      "casos": 67,
+      "tasa_100k": "43.6"
+    },
+    {
+      "anio": 2023,
+      "delito": "Porte de arma cortante o punzante",
+      "casos": 53,
+      "tasa_100k": "34.5"
+    },
+    {
+      "anio": 2024,
+      "delito": "Porte de arma cortante o punzante",
+      "casos": 26,
+      "tasa_100k": "16.9"
+    },
+    {
+      "anio": 2025,
+      "delito": "Porte de arma cortante o punzante",
+      "casos": 20,
+      "tasa_100k": "13"
+    },
+    {
+      "anio": 2023,
+      "delito": "Receptación",
+      "casos": 78,
+      "tasa_100k": "50.8"
+    },
+    {
+      "anio": 2024,
+      "delito": "Receptación",
+      "casos": 72,
+      "tasa_100k": "46.9"
+    },
+    {
+      "anio": 2025,
+      "delito": "Receptación",
+      "casos": 77,
+      "tasa_100k": "50.1"
+    },
+    {
+      "anio": 2023,
+      "delito": "Robo de objetos de o desde vehículo",
+      "casos": 410,
+      "tasa_100k": "266.9"
+    },
+    {
+      "anio": 2024,
+      "delito": "Robo de objetos de o desde vehículo",
+      "casos": 395,
+      "tasa_100k": "257.1"
+    },
+    {
+      "anio": 2025,
+      "delito": "Robo de objetos de o desde vehículo",
+      "casos": 325,
+      "tasa_100k": "211.6"
+    },
+    {
+      "anio": 2023,
+      "delito": "Robo de vehículo motorizado",
+      "casos": 278,
+      "tasa_100k": "181"
+    },
+    {
+      "anio": 2024,
+      "delito": "Robo de vehículo motorizado",
+      "casos": 291,
+      "tasa_100k": "189.4"
+    },
+    {
+      "anio": 2025,
+      "delito": "Robo de vehículo motorizado",
+      "casos": 287,
+      "tasa_100k": "186.8"
+    },
+    {
+      "anio": 2023,
+      "delito": "Robo en lugar habitado",
+      "casos": 106,
+      "tasa_100k": "69"
+    },
+    {
+      "anio": 2024,
+      "delito": "Robo en lugar habitado",
+      "casos": 118,
+      "tasa_100k": "76.8"
+    },
+    {
+      "anio": 2025,
+      "delito": "Robo en lugar habitado",
+      "casos": 128,
+      "tasa_100k": "83.3"
+    },
+    {
+      "anio": 2023,
+      "delito": "Robo en lugar no habitado",
+      "casos": 184,
+      "tasa_100k": "119.8"
+    },
+    {
+      "anio": 2024,
+      "delito": "Robo en lugar no habitado",
+      "casos": 207,
+      "tasa_100k": "134.7"
+    },
+    {
+      "anio": 2025,
+      "delito": "Robo en lugar no habitado",
+      "casos": 196,
+      "tasa_100k": "127.6"
+    },
+    {
+      "anio": 2023,
+      "delito": "Robo frustrado",
+      "casos": 43,
+      "tasa_100k": "28"
+    },
+    {
+      "anio": 2024,
+      "delito": "Robo frustrado",
+      "casos": 40,
+      "tasa_100k": "26"
+    },
+    {
+      "anio": 2025,
+      "delito": "Robo frustrado",
+      "casos": 27,
+      "tasa_100k": "17.6"
+    },
+    {
+      "anio": 2023,
+      "delito": "Robo por sorpresa",
+      "casos": 401,
+      "tasa_100k": "261"
+    },
+    {
+      "anio": 2024,
+      "delito": "Robo por sorpresa",
+      "casos": 428,
+      "tasa_100k": "278.6"
+    },
+    {
+      "anio": 2025,
+      "delito": "Robo por sorpresa",
+      "casos": 480,
+      "tasa_100k": "312.5"
+    },
+    {
+      "anio": 2023,
+      "delito": "Robo violento de vehículo motorizado",
+      "casos": 67,
+      "tasa_100k": "43.6"
+    },
+    {
+      "anio": 2024,
+      "delito": "Robo violento de vehículo motorizado",
+      "casos": 67,
+      "tasa_100k": "43.6"
+    },
+    {
+      "anio": 2025,
+      "delito": "Robo violento de vehículo motorizado",
+      "casos": 70,
+      "tasa_100k": "45.6"
+    },
+    {
+      "anio": 2023,
+      "delito": "Robos con violencia o intimidación",
+      "casos": 1004,
+      "tasa_100k": "653.5"
+    },
+    {
+      "anio": 2024,
+      "delito": "Robos con violencia o intimidación",
+      "casos": 750,
+      "tasa_100k": "488.2"
+    },
+    {
+      "anio": 2025,
+      "delito": "Robos con violencia o intimidación",
+      "casos": 728,
+      "tasa_100k": "473.9"
+    },
+    {
+      "anio": 2023,
+      "delito": "Violaciones",
+      "casos": 36,
+      "tasa_100k": "23.4"
+    },
+    {
+      "anio": 2024,
+      "delito": "Violaciones",
+      "casos": 34,
+      "tasa_100k": "22.1"
+    },
+    {
+      "anio": 2025,
+      "delito": "Violaciones",
+      "casos": 22,
+      "tasa_100k": "14.3"
+    },
+    {
+      "anio": 2023,
+      "delito": "Violencia intrafamiliar",
+      "casos": 593,
+      "tasa_100k": "386"
+    },
+    {
+      "anio": 2024,
+      "delito": "Violencia intrafamiliar",
+      "casos": 693,
+      "tasa_100k": "451.1"
+    },
+    {
+      "anio": 2025,
+      "delito": "Violencia intrafamiliar",
+      "casos": 781,
+      "tasa_100k": "508.4"
+    }
+  ],
+  "remedios": [
+    {
+      "anio": 2024,
+      "gasto": "156988979",
+      "gasto_comparable": "144802546",
+      "ahorro_p50": "12199303",
+      "n_productos": 105
+    }
+  ],
+  "productos": [
+    {
+      "producto": "Lágrimas artificiales",
+      "unidad": "Unidad",
+      "gasto": "10837790",
+      "precio_pag": "3756",
+      "ref_p50": "3030",
+      "ahorro_p50": "2081090"
+    },
+    {
+      "producto": "Lágrimas artificiales",
+      "unidad": "Frasco",
+      "gasto": "1564400",
+      "precio_pag": "3911",
+      "ref_p50": "956",
+      "ahorro_p50": "1182000"
+    },
+    {
+      "producto": "Nafazolina",
+      "unidad": "Unidad",
+      "gasto": "1649900",
+      "precio_pag": "3338",
+      "ref_p50": "1000",
+      "ahorro_p50": "1149900"
+    },
+    {
+      "producto": "Tartrato de zolpidem",
+      "unidad": "Comprimido",
+      "gasto": "2745000",
+      "precio_pag": "183",
+      "ref_p50": "106",
+      "ahorro_p50": "1147500"
+    },
+    {
+      "producto": "Timolol",
+      "unidad": "Unidad",
+      "gasto": "1617700",
+      "precio_pag": "8951",
+      "ref_p50": "6904",
+      "ahorro_p50": "931140"
+    },
+    {
+      "producto": "Hipromelosa",
+      "unidad": "Unidad",
+      "gasto": "1074400",
+      "precio_pag": "5372",
+      "ref_p50": "760",
+      "ahorro_p50": "922400"
+    },
+    {
+      "producto": "Clorhidrato de lidocaína",
+      "unidad": "Ampolla",
+      "gasto": "1350000",
+      "precio_pag": "1350",
+      "ref_p50": "508",
+      "ahorro_p50": "842500"
+    },
+    {
+      "producto": "Timolol",
+      "unidad": "Frasco",
+      "gasto": "1390000",
+      "precio_pag": "13900",
+      "ref_p50": "6000",
+      "ahorro_p50": "790000"
+    }
+  ],
+  "dom": [
+    {
+      "permisos": 153,
+      "permisos_12m": 9,
+      "con_plazo": null,
+      "dias_mediana": null,
+      "dias_p90": null,
+      "pct_en_plazo": null,
+      "estado_publicacion": "publica"
+    }
+  ],
+  "inversion": [
+    {
+      "nombre": "Nuevo Establecimiento de Salud Instituto Nacional del Cáncer",
+      "estado": "Aprobado",
+      "fecha_presentacion": "2024-07-02T03:00:00.000Z",
+      "fecha_calificacion": "2026-02-16T03:00:00.000Z",
+      "inversion_prorrateada": "184.3",
+      "url": "https://seia.sea.gob.cl/expediente/expediente.php?id_expediente=2161803152"
+    },
+    {
+      "nombre": "Línea 9 Metro de Santiago",
+      "estado": "Aprobado",
+      "fecha_presentacion": "2023-11-08T03:00:00.000Z",
+      "fecha_calificacion": "2025-05-05T03:00:00.000Z",
+      "inversion_prorrateada": "243.2625",
+      "url": "https://seia.sea.gob.cl/expediente/expediente.php?id_expediente=2160253047"
+    },
+    {
+      "nombre": "Vivaceta 2598",
+      "estado": "Aprobado",
+      "fecha_presentacion": "2019-10-15T03:00:00.000Z",
+      "fecha_calificacion": "2020-03-30T03:00:00.000Z",
+      "inversion_prorrateada": "84.122",
+      "url": "https://seia.sea.gob.cl/expediente/expediente.php?id_expediente=2144392173"
+    },
+    {
+      "nombre": "Jardines de Alvarado y Las Araucarias I y II",
+      "estado": "Aprobado",
+      "fecha_presentacion": "2019-09-11T03:00:00.000Z",
+      "fecha_calificacion": "2020-04-27T03:00:00.000Z",
+      "inversion_prorrateada": "31.483",
+      "url": "https://seia.sea.gob.cl/expediente/expediente.php?id_expediente=2144162634"
+    },
+    {
+      "nombre": "Edificio Santos Dumont",
+      "estado": "Aprobado",
+      "fecha_presentacion": "2018-10-11T03:00:00.000Z",
+      "fecha_calificacion": "2019-05-13T03:00:00.000Z",
+      "inversion_prorrateada": "34.26",
+      "url": "https://seia.sea.gob.cl/expediente/expediente.php?id_expediente=2141515098"
+    },
+    {
+      "nombre": "Edificio Carrión",
+      "estado": "Aprobado",
+      "fecha_presentacion": "2017-07-14T03:00:00.000Z",
+      "fecha_calificacion": "2018-04-03T03:00:00.000Z",
+      "inversion_prorrateada": "32.6",
+      "url": "https://seia.sea.gob.cl/expediente/expediente.php?id_expediente=2132545511"
+    },
+    {
+      "nombre": "Edificio Carrión",
+      "estado": "Desistido",
+      "fecha_presentacion": "2017-07-03T03:00:00.000Z",
+      "fecha_calificacion": "2017-07-11T03:00:00.000Z",
+      "inversion_prorrateada": "32.6",
+      "url": "https://seia.sea.gob.cl/expediente/expediente.php?id_expediente=2132521902"
+    },
+    {
+      "nombre": "Edificio Vivaceta - Independencia",
+      "estado": "Aprobado",
+      "fecha_presentacion": "2017-02-27T03:00:00.000Z",
+      "fecha_calificacion": "2017-11-14T02:00:00.000Z",
+      "inversion_prorrateada": "29",
+      "url": "https://seia.sea.gob.cl/expediente/expediente.php?id_expediente=2132193113"
+    },
+    {
+      "nombre": "Proyecto Inmobiliario \"Edificio López de Alcázar\"",
+      "estado": "Aprobado",
+      "fecha_presentacion": "2016-11-29T02:00:00.000Z",
+      "fecha_calificacion": "2017-09-27T03:00:00.000Z",
+      "inversion_prorrateada": "18.65693",
+      "url": "https://seia.sea.gob.cl/expediente/expediente.php?id_expediente=2131958792"
+    },
+    {
+      "nombre": "EDIFICIO LÓPEZ DE ALCÁZAR",
+      "estado": "No Admitido a Tramitación",
+      "fecha_presentacion": "2016-10-25T02:00:00.000Z",
+      "fecha_calificacion": "2016-10-26T02:00:00.000Z",
+      "inversion_prorrateada": "18.65693",
+      "url": "https://seia.sea.gob.cl/expediente/expediente.php?id_expediente=2131888311"
+    }
+  ],
+  "residuos": [
+    {
+      "sitio_nombre": "Relleno Sanitario Loma Los Colorados",
+      "ton": "46674.39",
+      "distancia_km": null,
+      "costo_ton": "13770.178506885683"
+    }
+  ],
+  "compradores": [
+    {
+      "sistema": "bdcut",
+      "external_id": "13108"
+    }
+  ],
+  "poblacion": [
+    {
+      "anio": 2024,
+      "poblacion": 153624,
+      "es_estimacion": false
+    },
+    {
+      "anio": 2025,
+      "poblacion": 155387,
+      "es_estimacion": false
+    },
+    {
+      "anio": 2026,
+      "poblacion": 157214,
+      "es_estimacion": false
+    }
+  ],
+  "medios": []
+}

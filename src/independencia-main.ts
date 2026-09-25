@@ -1,4 +1,8 @@
 import {
+  renderIssues,
+  setupIssues,
+} from "@/components/independencia/IssuesView";
+import {
   renderMunicipality,
   setupMunicipality,
 } from "@/components/independencia/MunicipalityView";
@@ -7,6 +11,7 @@ import * as maplibregl from "maplibre-gl";
 import mapWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./styles/independencia.css";
+import "./styles/independencia-issues.css";
 import { FALLBACK_DARK_STYLE } from "@/config/basemap";
 import {
   COMMUNE_REFRESH_MS,
@@ -99,6 +104,11 @@ setTrustedHtml(
       </section>
       <div id="connection-banner" class="connection-banner" role="status">Conectando las fuentes de Independencia…</div>
       <section class="metric-grid" id="metrics" aria-label="Panorama comunal"></section>
+      <section class="commune-agenda" aria-label="Agenda de problemas comunales">
+        <div class="agenda-hero"><div><span class="eyebrow">LA COMUNA QUE IMPORTA</span><h2>Del problema<br>al seguimiento<span>.</span></h2><p>La calle, las personas y los compromisos del municipio.<br>Una agenda compartida, con evidencia detrás de cada tema.</p><div class="agenda-meta"><span>10 temas investigados</span><span>Corte · 25 SEP 2026</span></div></div><aside id="daily-pulse"></aside></div>
+        <div class="agenda-toolbar"><div class="issue-filters" role="group" aria-label="Filtrar problemas"><button data-issue-filter="todos" aria-pressed="true">Todos</button><button data-issue-filter="calle" aria-pressed="false">Calle y servicios</button><button data-issue-filter="cuidados" aria-pressed="false">Personas y cuidados</button><button data-issue-filter="gestion" aria-pressed="false">Gestión y control</button></div><span id="issue-count"></span></div><div id="issue-cards" class="issue-cards"></div>
+      </section>
+      <section class="everyday-section" aria-label="Problemas cotidianos"><div class="everyday-heading"><div><span class="eyebrow">VIDA COTIDIANA</span><h2>Lo que el vecino necesita resolver</h2></div><span>Consulta la cobertura de cada servicio</span></div><div id="everyday-services"></div></section>
       <section class="briefing" id="briefing" aria-label="Resumen de la mañana"></section>
       <section id="municipality-overview" class="municipality-overview panel" aria-label="Base comunal de Monitor Municipios"></section>
       <section class="operations-grid">
@@ -118,6 +128,7 @@ setTrustedHtml(
       <footer class="page-footer"><span><i class="status-dot"></i> Independencia en línea <span class="footer-separator">/</span> Chile Monitor</span><button data-action="sources" id="source-footer">Consultar fuentes y cobertura ${icon("arrow")}</button></footer>
     </main>
   </div>
+  <dialog id="issue-dialog" aria-labelledby="issue-title"><button class="icon-button issue-close" data-close-issue aria-label="Cerrar problema">×</button><div id="issue-detail"></div></dialog>
   <dialog id="municipality-dialog" aria-labelledby="municipality-title"><div class="dialog-heading"><div><span class="eyebrow">MONITOR MUNICIPIOS · INDEPENDENCIA</span><h2 id="municipality-title">Toda la comuna, con sus fuentes</h2></div><button class="icon-button" data-close-municipality aria-label="Cerrar base municipal">${icon("close")}</button></div><div class="municipality-explorer"><nav id="municipality-tabs" aria-label="Dimensiones comunales"></nav><div id="municipality-detail"></div></div></dialog>
   <dialog id="sources-dialog" aria-labelledby="sources-title"><div class="dialog-heading"><div><span class="eyebrow">TRAZABILIDAD</span><h2 id="sources-title">Qué estamos viendo</h2></div><button class="icon-button" data-action="close-sources" aria-label="Cerrar fuentes">${icon("close")}</button></div><div id="source-details"></div><div class="integration-note"><h3>Para conectar el despacho municipal</h3><p>Monitor Municipios aporta inventario de seguridad, prestadores, presupuesto, gestión y contexto comunal. La disponibilidad del turno, los incidentes 1469 y las señales de video requieren sus registros operativos. Cada evento debe incluir fecha de origen, estado, ubicación y responsable. Esta pantalla no envía instrucciones a equipos ni confirma emergencias.</p><p>Cada indicador muestra su período. Una consulta reciente a la base no convierte una serie anual en un dato en vivo.</p></div></dialog>
 `,
@@ -126,6 +137,7 @@ setTrustedHtml(
 );
 
 setupMunicipality();
+setupIssues();
 let snapshot: CommuneSnapshot | undefined;
 let refreshing = false;
 let requestFailed = false;
@@ -292,6 +304,7 @@ function render(): void {
     ),
   );
   renderMunicipality(sources?.municipios?.data ?? null, ms);
+  renderIssues(snapshot);
   updateMapProjects();
 }
 
@@ -325,6 +338,7 @@ function initMap(): void {
       maxZoom: 18,
       minZoom: 10,
     });
+    new ResizeObserver(() => map?.resize()).observe(q("#commune-map"));
     map.addControl(
       new maplibregl.NavigationControl({ showCompass: false }),
       "top-right",

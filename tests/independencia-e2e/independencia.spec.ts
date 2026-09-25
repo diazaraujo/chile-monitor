@@ -146,3 +146,52 @@ test("Monitor Municipios exposes actual inventory, periods and all dimensions", 
     await page.evaluate(() => document.documentElement.scrollHeight),
   ).toBeLessThanOrEqual(1100);
 });
+
+test("communal problems preserve research dates, filter and explain daily coverage", async ({
+  page,
+}) => {
+  await page.goto("/independencia.html");
+  await expect(page.locator(".issue-card")).toHaveCount(10);
+  await expect(page.locator(".agenda-meta")).toContainText("25 SEP 2026");
+  await page
+    .getByRole("button", { name: "Calle y servicios", exact: true })
+    .click();
+  await expect(page.locator(".issue-card")).toHaveCount(4);
+  await page.locator('[data-issue="aseo"]').click();
+  await expect(page.locator("#issue-dialog")).toContainText(
+    "Compras no prueban prestación",
+  );
+  await expect(page.locator("#issue-dialog")).toContainText("2025");
+  await page.getByRole("button", { name: "Cerrar problema" }).click();
+  await page.locator('[data-everyday="3"]').click();
+  await expect(page.locator("#issue-dialog")).toContainText(
+    "Sin mediciones de ruido ni denuncias recientes integradas",
+  );
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Todos", exact: true }).click();
+  await page.locator('[data-issue="medicamentos"]').click();
+  await expect(page.locator("#issue-dialog")).toContainText(
+    "No ahorro confirmado ni sobreprecio probado",
+  );
+  await page
+    .getByRole("button", { name: "Consultar registros de Monitor Municipios" })
+    .click();
+  await expect(page.locator("#municipality-dialog")).toBeVisible();
+  await expect(page.locator("#municipality-detail")).toContainText("Salud");
+});
+
+test("dispatch fits a full HD wall with problems and everyday services", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto("/independencia.html?modo=despacho");
+  await expect(page.locator(".commune-agenda")).toBeVisible();
+  await expect(page.locator("#everyday-services button")).toHaveCount(6);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollHeight),
+  ).toBeLessThanOrEqual(1080);
+  await page.locator('[data-issue="vif_amenazas"]').click();
+  await expect(page.locator("#issue-dialog")).toContainText(
+    "Sin registros recientes de derivación",
+  );
+});
