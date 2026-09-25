@@ -3068,6 +3068,20 @@
       ]
     },
     {
+      "host": "datos.sinim.gov.cl",
+      "provider": "datos.sinim.gov.cl",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit datos.sinim.gov.cl and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "src/config/independencia/issues.ts"
+        }
+      ]
+    },
+    {
       "host": "de.euronews.com",
       "provider": "de.euronews.com",
       "kind": "feed",
@@ -9154,6 +9168,20 @@
       ]
     },
     {
+      "host": "subprevenciondeldelito.gob.cl",
+      "provider": "subprevenciondeldelito.gob.cl",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit subprevenciondeldelito.gob.cl and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "src/config/independencia/issues.ts"
+        }
+      ]
+    },
+    {
       "host": "suspilne.media",
       "provider": "suspilne.media",
       "kind": "feed",
@@ -11195,6 +11223,20 @@
       ]
     },
     {
+      "host": "www.bcn.cl",
+      "provider": "www.bcn.cl",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit www.bcn.cl and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "src/config/independencia/issues.ts"
+        }
+      ]
+    },
+    {
       "host": "www.bgs.ac.uk",
       "provider": "British Geological Survey World Mineral Statistics",
       "kind": "structured",
@@ -11581,6 +11623,20 @@
       "references": [
         {
           "path": "scripts/seed-global-tenders.mjs"
+        }
+      ]
+    },
+    {
+      "host": "www.contraloria.cl",
+      "provider": "www.contraloria.cl",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit www.contraloria.cl and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "src/config/independencia/issues.ts"
         }
       ]
     },
@@ -12542,6 +12598,20 @@
         },
         {
           "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "www.independencia.cl",
+      "provider": "www.independencia.cl",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit www.independencia.cl and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "src/config/independencia/issues.ts"
         }
       ]
     },
@@ -13786,6 +13856,20 @@
         },
         {
           "path": "src/config/variants/tech.ts"
+        }
+      ]
+    },
+    {
+      "host": "www.senapred.cl",
+      "provider": "www.senapred.cl",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit www.senapred.cl and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "src/config/independencia/issues.ts"
         }
       ]
     },
