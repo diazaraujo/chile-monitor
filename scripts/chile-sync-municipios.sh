@@ -10,5 +10,4 @@ set -eu
 case "$MUNICIPIOS_REMOTE_DIR" in *[!a-zA-Z0-9/_-]*) exit 2;; esac
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 "$MUNICIPIOS_NODE" "$script_dir/chile-export-municipios.mjs" "$MUNICIPIOS_OUTPUT"
-scp -q -o BatchMode=yes -o ConnectTimeout=15 "$MUNICIPIOS_OUTPUT" "$MUNICIPIOS_REMOTE:$MUNICIPIOS_REMOTE_DIR/municipios-13108.json.incoming"
-ssh -o BatchMode=yes -o ConnectTimeout=15 "$MUNICIPIOS_REMOTE" "mv '$MUNICIPIOS_REMOTE_DIR/municipios-13108.json.incoming' '$MUNICIPIOS_REMOTE_DIR/municipios-13108.json'"
+ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 "$MUNICIPIOS_REMOTE" "cat > '$MUNICIPIOS_REMOTE_DIR/municipios-13108.json.incoming' && mv '$MUNICIPIOS_REMOTE_DIR/municipios-13108.json.incoming' '$MUNICIPIOS_REMOTE_DIR/municipios-13108.json'" < "$MUNICIPIOS_OUTPUT"
