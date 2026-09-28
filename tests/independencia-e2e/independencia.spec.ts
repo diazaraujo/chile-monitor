@@ -153,6 +153,7 @@ test("communal problems preserve research dates, filter and explain daily covera
   await page.goto("/independencia.html");
   await expect(page.locator(".issue-card")).toHaveCount(10);
   await expect(page.locator(".agenda-meta")).toContainText("25 SEP 2026");
+  await page.locator(".management-context > summary").click();
   await page
     .getByRole("button", { name: "Calle y servicios", exact: true })
     .click();
@@ -185,14 +186,14 @@ test("dispatch fits a full HD wall with problems and everyday services", async (
 }) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto("/independencia.html?modo=despacho");
-  await expect(page.locator(".commune-agenda")).toBeVisible();
+  await expect(page.locator("#management-workspace")).toBeVisible();
   await expect(page.locator("#everyday-services button")).toHaveCount(6);
   expect(
     await page.evaluate(() => document.documentElement.scrollHeight),
   ).toBeLessThanOrEqual(1080);
-  await page.locator('[data-issue="vif_amenazas"]').click();
-  await expect(page.locator("#issue-dialog")).toContainText(
-    "Sin registros recientes de derivación",
+  await page.locator('.mgmt-sector [data-management-open="seguridad"]').click();
+  await expect(page.locator("#management-dialog")).toContainText(
+    "Solicitudes 1469",
   );
 });
 
@@ -226,6 +227,7 @@ test("light and dark appearances persist independently of dispatch mode", async 
     path: testInfo.outputPath("clara.png"),
     fullPage: true,
   });
+  await page.locator(".management-context > summary").click();
   await page.locator('[data-issue="aseo"]').click();
   await expect(page.locator("#issue-dialog")).toBeVisible();
   await page.keyboard.press("Escape");
@@ -253,4 +255,63 @@ test("light and dark appearances persist independently of dispatch mode", async 
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(390);
+});
+
+test("management perspectives connect sector evidence without inventing operational state", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/independencia.html");
+  await expect(page.locator(".mgmt-sector")).toHaveCount(3);
+  await expect(page.locator("#management-workspace")).toContainText(
+    "Operación diaria: sin registros conectados",
+  );
+  await expect(page.locator(".mgmt-sector").nth(2)).toContainText("5.812");
+  await expect(page.locator(".mgmt-sector").nth(2)).toContainText("19.313");
+  await expect(page.locator(".mgmt-sector").nth(2)).toContainText(
+    "Todas las dependencias",
+  );
+  await page.getByRole("button", { name: "Concejo", exact: true }).click();
+  await expect(page.locator("#management-review")).toContainText("85,6%");
+  await expect(page.locator("#management-review")).toContainText(
+    "No mide saldo libre",
+  );
+  await expect(page).toHaveURL(/vista=concejo/);
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Concejo", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Dirección", exact: true }).click();
+  await expect(page.locator("#management-review")).toContainText(
+    "Qué falta validar",
+  );
+  await page.locator('.mgmt-sector [data-management-open="salud"]').click();
+  await expect(page.locator("#management-dialog")).toContainText("DEIS");
+  await expect(page.locator("#management-dialog")).toContainText(
+    "Responsable asignado, plazo y resultado: no registrados",
+  );
+  const download = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Descargar ficha de revisión" })
+    .click();
+  expect((await download).suggestedFilename()).toBe(
+    "independencia-salud-revision.md",
+  );
+  await page.getByRole("button", { name: "Cerrar ficha de gestión" }).click();
+  await page.getByRole("button", { name: "Alcaldía", exact: true }).click();
+  await page.screenshot({
+    path: testInfo.outputPath("gestion-alcaldia.png"),
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Clara", exact: true }).click();
+  await page.locator('.mgmt-sector [data-management-open="educacion"]').click();
+  await expect(page.locator("#management-dialog")).toContainText(
+    "Municipal: 5812",
+  );
+  await expect(page.locator("#management-dialog")).toContainText(
+    "Particular subvencionado: 12615",
+  );
+  await page.screenshot({
+    path: testInfo.outputPath("gestion-ficha-clara.png"),
+    fullPage: true,
+  });
 });

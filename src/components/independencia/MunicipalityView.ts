@@ -96,9 +96,9 @@ function cards(): {
     },
     {
       id: "educacion",
-      label: "Matrícula escolar",
+      label: "Matrícula de toda la comuna",
       value: num(edu.value),
-      detail: `MINEDUC ${edu.period}`,
+      detail: `MINEDUC ${edu.period} · todas las dependencias`,
     },
     {
       id: "rsh",

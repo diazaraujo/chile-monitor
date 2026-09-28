@@ -115,7 +115,7 @@ export function renderIssues(snapshot?: CommuneSnapshot): void {
     }) ?? [];
   put(
     "daily-pulse",
-    `<span class="eyebrow">EL DÍA, DE UN VISTAZO</span><strong>${news?.data ? recent.length : "—"} <span>publicaciones en 24 h</span></strong><p>${e(recent[0]?.title ?? (news?.data ? "Sin publicaciones municipales en esta ventana. Revisa el pulso local para consultar las más recientes." : "Esperando publicaciones municipales."))}</p><span class="source-note">${sourceState(news, 90) === "fresh" ? "Consulta actualizada" : "Consulta pendiente o desactualizada"} · no es un registro de incidentes</span><a href="#news-list">Abrir pulso local ↓</a>`,
+    `<span class="eyebrow">EL DÍA, DE UN VISTAZO</span><strong>${sourceState(news, 90) === "fresh" ? recent.length : "—"} <span>publicaciones en 24 h</span></strong><p>${e(recent[0]?.title ?? (news?.data ? "Sin publicaciones municipales en esta ventana. Revisa el pulso local para consultar las más recientes." : "Esperando publicaciones municipales."))}</p><span class="source-note">${sourceState(news, 90) === "fresh" ? "Consulta actualizada" : "Consulta pendiente o desactualizada"} · no es un registro de incidentes</span><a href="#news-list">Abrir pulso local ↓</a>`,
   );
 }
 export function setupIssues(): void {
