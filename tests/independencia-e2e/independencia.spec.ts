@@ -43,10 +43,12 @@ test("public-source screen renders, switches to dispatch and opens traceability"
   await expect(page.locator("#connection-banner")).not.toContainText(
     "Conectando",
   );
+  await page.locator(".dashboard-archive > summary").click();
   await expect(page.locator("#municipal-capacity")).toBeVisible();
   await expect(
     page.getByText("Incidentes 1469: sin acceso", { exact: false }),
   ).toBeVisible();
+  await page.locator(".dashboard-archive > summary").click();
   await expect(page.locator("#commune-map canvas")).toBeVisible();
   await page
     .locator("#map-message")
@@ -119,6 +121,7 @@ test("Monitor Municipios exposes actual inventory, periods and all dimensions", 
   await expect(page.locator(".municipality-card").first()).toContainText(
     "2025",
   );
+  await page.locator(".dashboard-archive > summary").click();
   await page.locator(".municipality-card").first().click();
   await expect(page.locator("#municipality-dialog")).toBeVisible();
   await expect(page.locator("#municipality-tabs button")).toHaveCount(32);
@@ -140,8 +143,8 @@ test("Monitor Municipios exposes actual inventory, periods and all dimensions", 
   );
   await page.getByRole("button", { name: "Cerrar base municipal" }).click();
   await page.locator('.mode-switch [data-mode="dispatch"]').click();
-  await expect(page.locator("#dispatch-context")).toBeVisible();
-  await expect(page.locator("#dispatch-context")).toContainText("100");
+  await expect(page.locator("#civic-summary")).toBeVisible();
+  await expect(page.locator(".mgmt-sector").first()).toContainText("100");
   expect(
     await page.evaluate(() => document.documentElement.scrollHeight),
   ).toBeLessThanOrEqual(1100);
@@ -271,6 +274,7 @@ test("management perspectives connect sector evidence without inventing operatio
     "Todas las dependencias",
   );
   await page.getByRole("button", { name: "Concejo", exact: true }).click();
+  await page.locator(".management-analysis > summary").click();
   await expect(page.locator("#management-review")).toContainText("85,6%");
   await expect(page.locator("#management-review")).toContainText(
     "No mide saldo libre",

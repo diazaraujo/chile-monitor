@@ -18,6 +18,7 @@ import "./styles/independencia.css";
 import "./styles/independencia-issues.css";
 import "./styles/independencia-theme.css";
 import "./styles/independencia-management.css";
+import "./styles/independencia-cockpit.css";
 import { FALLBACK_DARK_STYLE, FALLBACK_LIGHT_STYLE } from "@/config/basemap";
 import {
   COMMUNE_REFRESH_MS,
@@ -136,14 +137,14 @@ setTrustedHtml(
           <div class="map-stage"><div id="commune-map" aria-label="Mapa de Independencia"></div><div class="map-caption"><span class="map-caption-line"></span><div><strong>INDEPENDENCIA</strong><span>Contexto territorial · no representa incidentes</span></div></div><div id="map-message" class="map-message" role="status">Cargando cartografía…</div></div>
           <div class="map-footer"><span id="cartography-credit">Cartografía de referencia · coordenadas geográficas</span><span id="project-date">SEIA · contexto acumulado</span></div>
         </article>
-        <aside class="news-panel panel"><div class="panel-heading"><div><span class="eyebrow">PULSO LOCAL</span><h2>Lo que está pasando</h2></div>${icon("news")}</div><p class="panel-intro">Publicaciones de la municipalidad. No equivalen a incidentes activos.</p><div id="dispatch-context"></div><div id="news-list" class="news-list"></div><div class="panel-bottom"><a href="https://www.independencia.cl/" target="_blank" rel="noopener noreferrer">Ir al sitio municipal ${icon("arrow")}</a><span id="news-updated">Sin consulta</span></div></aside>
+        <aside id="civic-summary" aria-label="Recursos y composición comunal"></aside><aside class="news-panel panel"><div class="panel-heading"><div><span class="eyebrow">PULSO LOCAL</span><h2>Lo que está pasando</h2></div>${icon("news")}</div><p class="panel-intro">Publicaciones de la municipalidad. No equivalen a incidentes activos.</p><div id="dispatch-context"></div><div id="news-list" class="news-list"></div><div class="panel-bottom"><a href="https://www.independencia.cl/" target="_blank" rel="noopener noreferrer">Ir al sitio municipal ${icon("arrow")}</a><span id="news-updated">Sin consulta</span></div></aside>
       </section>
       <section class="bottom-grid">
         <article class="panel weather-panel"><div class="panel-heading"><div><span class="eyebrow">PRÓXIMAS HORAS</span><h2>Clima para planificar</h2></div>${icon("sun")}</div><div id="weather-detail"></div></article>
         <article class="panel dispatch-panel"><div class="panel-heading"><div><span class="eyebrow">MONITOR MUNICIPIOS</span><h2>Capacidad municipal</h2></div><span class="small-tag">SINIM</span></div><div id="municipal-capacity" class="dispatch-systems"></div><button class="text-button" data-municipality-section="seguridad">Ver inventario y períodos ${icon("arrow")}</button></article>
         <article class="panel territory-panel"><div class="panel-heading"><div><span class="eyebrow">CONTEXTO COMUNAL</span><h2>Proyectos y territorio</h2></div>${icon("pin")}</div><div id="territory-detail"></div></article>
       </section>
-      <footer class="page-footer"><span><i class="status-dot"></i> Independencia en línea <span class="footer-separator">/</span> Chile Monitor</span><button data-action="sources" id="source-footer">Consultar fuentes y cobertura ${icon("arrow")}</button></footer>
+      <details class="dashboard-archive"><summary>Explorar la comuna <span>Publicaciones, clima y base municipal ↗</span></summary><div id="dashboard-archive-content"></div></details><footer class="page-footer"><span><i class="status-dot"></i> Independencia en línea <span class="footer-separator">/</span> Chile Monitor</span><button data-action="sources" id="source-footer">Consultar fuentes y cobertura ${icon("arrow")}</button></footer>
     </main>
   </div>
   <dialog id="management-dialog" aria-labelledby="management-title"><button class="icon-button mgmt-close" data-close-management aria-label="Cerrar ficha de gestión">×</button><div id="management-detail"></div></dialog>
@@ -155,6 +156,14 @@ setTrustedHtml(
   ),
 );
 
+const archive = document.getElementById("dashboard-archive-content")!;
+for (const selector of [
+  "#metrics",
+  "#municipality-overview",
+  ".news-panel",
+  ".bottom-grid",
+])
+  archive.append(document.querySelector(selector)!);
 setupMunicipality();
 setupIssues();
 setupManagement();

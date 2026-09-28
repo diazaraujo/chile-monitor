@@ -1,0 +1,563 @@
+/* The first screen is a visual overview; document-heavy views are disclosures. */
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 24px;
+}
+.page-heading {
+  order: 0;
+  margin: 0;
+}
+.page-heading h1 {
+  font-size: 36px;
+  margin: 5px 0;
+}
+.page-heading .eyebrow {
+  font-size: 9px;
+}
+.connection-banner {
+  order: 1;
+  margin: 0;
+  padding: 9px 14px;
+  font-size: 11px;
+}
+#management-workspace {
+  display: contents;
+}
+.mgmt-header {
+  order: 2;
+  margin-top: 6px;
+}
+.mgmt-header .eyebrow {
+  display: none;
+}
+.mgmt-header h2 {
+  font-size: 18px;
+  letter-spacing: -0.4px;
+  margin: 0;
+}
+.mgmt-view-switch button {
+  padding: 7px 13px;
+  font-size: 11px;
+}
+.mgmt-coverage {
+  order: 4;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  font-size: 9px;
+}
+.mgmt-sector-grid {
+  order: 3;
+  gap: 14px;
+}
+.mgmt-sector {
+  position: relative;
+  padding: 18px 20px 12px;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  --sector-accent: #8ab9fa;
+}
+.mgmt-sector[data-sector="salud"] {
+  --sector-accent: #82d8bc;
+}
+.mgmt-sector[data-sector="educacion"] {
+  --sector-accent: #c2abfa;
+}
+.mgmt-sector::before {
+  content: "";
+  position: absolute;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  right: -45px;
+  top: -65px;
+  background: var(--sector-accent);
+  opacity: 0.08;
+  pointer-events: none;
+}
+.mgmt-sector-heading {
+  margin-bottom: 12px;
+  gap: 10px;
+}
+.mgmt-sector-heading h3 {
+  font-size: 15px;
+  font-weight: 600;
+}
+.mgmt-sector-heading .sector-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--sector-accent);
+  background: color-mix(in srgb, var(--sector-accent) 12%, transparent);
+  border-radius: 9px;
+}
+.mgmt-historical {
+  display: block;
+  color: var(--muted);
+  border: 0;
+  font-size: 10px;
+}
+.mgmt-sector-metrics {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 1fr;
+  gap: 14px;
+  align-items: center;
+}
+.mgmt-sector-metrics .mgmt-metric:first-child {
+  grid-column: auto;
+  border: 0;
+  padding: 0;
+}
+.mgmt-sector-metrics .mgmt-metric {
+  gap: 5px;
+}
+.mgmt-sector-metrics .mgmt-metric:not(:first-child) {
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+.mgmt-sector-metrics .mgmt-metric strong {
+  font-family: "DM Sans", sans-serif;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -1px;
+  white-space: nowrap;
+}
+.mgmt-sector-metrics .mgmt-metric:first-child strong {
+  font-size: 37px;
+  line-height: 1.15;
+}
+.mgmt-sector-metrics .mgmt-metric span {
+  font-size: 10px;
+  color: var(--muted);
+}
+.mgmt-sector-metrics .mgmt-metric small {
+  display: none;
+}
+.mgmt-sector-metrics .mgmt-metric:not(:first-child) small:first-of-type {
+  display: block;
+  font-size: 8px;
+  line-height: 1.2;
+}
+.mgmt-sector > button {
+  margin-top: 14px;
+  padding-top: 9px;
+  font-size: 10px;
+  color: var(--sector-accent);
+  border-color: var(--line);
+}
+.operations-grid {
+  order: 5;
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.85fr) minmax(300px, 1fr);
+  gap: 14px;
+}
+.map-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.map-panel .panel-heading {
+  padding: 15px 18px 8px;
+}
+.map-panel .panel-heading .eyebrow {
+  display: none;
+}
+.map-panel .panel-heading h2 {
+  font-size: 17px;
+  margin: 0;
+}
+.map-toolbar {
+  padding: 5px 14px 10px;
+}
+.map-stage {
+  height: 300px;
+  min-height: 180px;
+  flex: 1;
+}
+.map-caption {
+  display: none;
+}
+.map-footer {
+  padding: 9px 16px;
+  font-size: 9px;
+}
+#civic-summary {
+  display: grid;
+  grid-template-rows: 1.1fr 1fr;
+  gap: 14px;
+  min-width: 0;
+}
+#civic-summary > button {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  padding: 18px 22px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  min-width: 0;
+}
+#civic-summary > button:hover {
+  border-color: var(--mint);
+}
+.visual-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font: 9px var(--mono);
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.budget-visual {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  margin: 15px 0;
+}
+.budget-ring {
+  width: 118px;
+  height: 118px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(var(--mint) var(--progress), var(--line) 0);
+  transform: rotate(-90deg);
+}
+.budget-ring > div {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(90deg);
+}
+.budget-ring strong {
+  font-size: 27px;
+  letter-spacing: -1px;
+}
+.budget-ring span {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.budget-values {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.budget-values span {
+  font-size: 10px;
+  color: var(--muted);
+}
+.budget-values strong {
+  font-size: 19px;
+  letter-spacing: -0.6px;
+  margin-bottom: 7px;
+}
+#civic-summary small {
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: auto;
+}
+.education-total {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 14px 0;
+}
+.education-total strong {
+  font-size: 35px;
+  letter-spacing: -1.3px;
+}
+.education-total > span {
+  font-size: 10px;
+  color: var(--muted);
+  max-width: 130px;
+}
+.enrollment-track {
+  height: 10px;
+  border-radius: 4px;
+  background: var(--line);
+  overflow: hidden;
+}
+.enrollment-track > span {
+  display: block;
+  height: 100%;
+  background: #b7a1ed;
+  border-radius: 4px;
+}
+.enrollment-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0 14px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.enrollment-legend b {
+  color: var(--light-ink, #e6ece9);
+  margin-left: 5px;
+}
+.enrollment-legend i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: #b7a1ed;
+  border-radius: 2px;
+  margin-right: 5px;
+}
+.everyday-section {
+  order: 6;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.everyday-heading {
+  margin: 0 0 9px;
+}
+.everyday-heading h2 {
+  font-size: 14px;
+}
+.everyday-heading .eyebrow,
+.everyday-heading > span {
+  display: none;
+}
+#everyday-services {
+  gap: 10px;
+}
+.everyday-service {
+  padding: 12px;
+  min-height: 0;
+  border-radius: 11px;
+}
+.everyday-service small,
+.everyday-service .service-number {
+  display: none;
+}
+.everyday-service strong {
+  font-size: 12px;
+}
+.everyday-service > span:last-child {
+  font-size: 9px;
+  margin-top: 8px;
+}
+.management-analysis,
+.management-context,
+.dashboard-archive {
+  order: 8;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 0;
+}
+.management-analysis > summary,
+.management-context > summary,
+.dashboard-archive > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+}
+.management-analysis > summary > span,
+.dashboard-archive > summary > span {
+  float: right;
+  font-size: 10px;
+}
+.page-footer {
+  order: 9;
+  margin: 0;
+  padding: 12px 0;
+}
+.dashboard-archive .news-panel {
+  margin: 20px 0;
+}
+.dashboard-archive .bottom-grid {
+  display: grid;
+}
+html[data-commune-theme="light"] .mgmt-sector {
+  --sector-accent: #365fa7;
+}
+html[data-commune-theme="light"] .mgmt-sector[data-sector="salud"] {
+  --sector-accent: #197b62;
+}
+html[data-commune-theme="light"] .mgmt-sector[data-sector="educacion"] {
+  --sector-accent: #7950b1;
+}
+@media (min-width: 1100px) and (min-height: 700px) {
+  .dispatch-mode main {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: calc(100dvh - 68px);
+    padding-top: 14px;
+  }
+  .dispatch-mode #management-workspace {
+    display: contents;
+  }
+  .dispatch-mode .mgmt-header {
+    display: flex;
+    margin: 0;
+  }
+  .dispatch-mode .mgmt-header h2 {
+    font-size: 16px;
+    margin: 0;
+  }
+  .dispatch-mode .mgmt-sector-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .dispatch-mode .mgmt-sector {
+    padding: 12px 16px 9px;
+  }
+  .dispatch-mode .mgmt-sector-heading {
+    margin-bottom: 8px;
+  }
+  .dispatch-mode .mgmt-sector-heading h3 {
+    font-size: 14px;
+  }
+  .dispatch-mode .mgmt-sector-metrics {
+    grid-template-columns: 1.15fr 1fr 1fr;
+  }
+  .dispatch-mode .mgmt-sector-metrics .mgmt-metric:not(:first-child) {
+    display: flex;
+  }
+  .dispatch-mode .mgmt-sector-metrics .mgmt-metric:first-child {
+    padding: 0;
+  }
+  .dispatch-mode .mgmt-sector-metrics .mgmt-metric:first-child strong {
+    font-size: 32px;
+  }
+  .dispatch-mode .mgmt-historical {
+    display: block;
+  }
+  .dispatch-mode .mgmt-coverage {
+    margin: 0;
+    padding: 0;
+  }
+  .dispatch-mode .mgmt-coverage > span:last-child {
+    margin-left: auto;
+  }
+  .dispatch-mode .operations-grid {
+    grid-template-columns: minmax(0, 1.85fr) minmax(300px, 1fr);
+    flex: 1;
+    min-height: 0;
+  }
+  .dispatch-mode .map-stage {
+    min-height: 0;
+  }
+  .dispatch-mode .management-analysis,
+  .dispatch-mode .dashboard-archive,
+  .dispatch-mode .management-context {
+    display: none;
+  }
+  .dispatch-mode #civic-summary {
+    min-height: 0;
+    gap: 10px;
+  }
+  .dispatch-mode #civic-summary > button {
+    padding: 14px 20px;
+  }
+  .dispatch-mode .everyday-section {
+    padding: 0;
+  }
+  .dispatch-mode .everyday-heading {
+    margin-bottom: 7px;
+  }
+  .dispatch-mode .everyday-heading h2 {
+    font-size: 13px;
+  }
+  .dispatch-mode .page-footer {
+    padding: 0;
+  }
+}
+@media (max-width: 1250px) {
+  .mgmt-sector-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+  .mgmt-sector-metrics .mgmt-metric:first-child {
+    grid-column: 1/-1;
+  }
+  .mgmt-sector-metrics .mgmt-metric:not(:first-child) {
+    border: 0;
+    padding: 0;
+  }
+  .budget-visual {
+    gap: 15px;
+  }
+  .budget-ring {
+    width: 100px;
+    height: 100px;
+  }
+  .budget-ring > div {
+    width: 84px;
+    height: 84px;
+  }
+}
+@media (max-width: 800px) {
+  .operations-grid,
+  .dispatch-mode .operations-grid {
+    grid-template-columns: 1fr;
+  }
+  .mgmt-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .mgmt-sector-grid {
+    grid-template-columns: 1fr;
+  }
+  .mgmt-sector-metrics {
+    grid-template-columns: 1.2fr 1fr 1fr;
+  }
+  .mgmt-sector-metrics .mgmt-metric:first-child {
+    grid-column: auto;
+  }
+  #civic-summary {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+  }
+  .map-stage {
+    height: 300px;
+  }
+  .page-heading h1 {
+    font-size: 30px;
+  }
+  .mgmt-coverage > span:last-child {
+    margin-left: 0;
+  }
+}
+@media (max-width: 550px) {
+  #civic-summary {
+    grid-template-columns: 1fr;
+  }
+  .mgmt-sector {
+    padding: 16px;
+  }
+  .mgmt-sector-metrics .mgmt-metric strong {
+    font-size: 18px;
+  }
+  .mgmt-sector-metrics .mgmt-metric:first-child strong {
+    font-size: 30px;
+  }
+  .management-analysis > summary > span,
+  .dashboard-archive > summary > span {
+    display: none;
+  }
+  .map-home {
+    font-size: 10px;
+  }
+}
+.mgmt-sector-metrics .mgmt-metric[data-unit="clp"] strong {
+  font-size: clamp(13px, 1.15vw, 19px);
+  letter-spacing: -0.7px;
+}
