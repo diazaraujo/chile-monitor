@@ -228,7 +228,8 @@ function brotliPrecompressPlugin(): Plugin {
 function htmlVariantPlugin(activeMeta: VariantMeta, activeVariant: string, isDesktopBuild: boolean): Plugin {
   return {
     name: 'html-variant',
-    transformIndexHtml(html) {
+    transformIndexHtml(html, context) {
+      if (context.filename.endsWith('/independencia.html')) return html;
       let result = html
         .replace(/<title>.*?<\/title>/, `<title>${activeMeta.title}</title>`)
         .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${activeMeta.title}" />`)
@@ -1218,6 +1219,7 @@ export default defineConfig(({ mode }) => {
           settings: resolve(__dirname, 'settings.html'),
           liveChannels: resolve(__dirname, 'live-channels.html'),
           mcpGrant: resolve(__dirname, 'mcp-grant.html'),
+          ...(activeVariant === 'chile' ? { independencia: resolve(__dirname, 'independencia.html') } : {}),
         },
         output: {
           // onlyExplicitManualChunks keeps the panel clusters from forming

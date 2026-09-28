@@ -1,0 +1,246 @@
+{
+  "schema": "independencia-problemas-monitores/v1",
+  "cut": "13108",
+  "fecha_investigacion": "2026-09-25",
+  "naturaleza": "Investigación y propuesta; no alertas activas ni ranking oficial",
+  "metodo_prioridad": "Urgencia documentada, impacto en personas, capacidad municipal de actuar y verificabilidad",
+  "problemas": [
+    {
+      "id": "seguridad_camaras",
+      "problema": "Seguridad y televigilancia",
+      "frecuencia_sugerida": "diaria",
+      "monitores": [
+        "municipios",
+        "mercado-publico",
+        "chile-monitor"
+      ],
+      "llaves": [
+        "CUT",
+        "RUT comprador institucional",
+        "licitacion_codigo",
+        "oc_codigo",
+        "id_activo"
+      ],
+      "evidencia": [
+        "SINIM 2025: 100 cámaras; flota 4 autos, 5 camionetas y 8 motos",
+        "OC 584264-233-SE25: $90.315.806, 2026-01-26, recepción conforme",
+        "Anuncio de 99 cámaras en julio de 2026"
+      ],
+      "pregunta_de_gestion": "Resolver si anuncio, OC e inventario describen los mismos activos; comprobar funcionamiento",
+      "limites": "Sin unión anuncio/activo ni estado del turno"
+    },
+    {
+      "id": "vif_amenazas",
+      "problema": "Violencia intrafamiliar y amenazas",
+      "frecuencia_sugerida": "diaria",
+      "monitores": [
+        "municipios",
+        "chile-monitor"
+      ],
+      "llaves": [
+        "CUT",
+        "periodo",
+        "tipo de registro"
+      ],
+      "evidencia": [
+        "VIF 693 a 781 casos, 2024 a 2025",
+        "Amenazas 864 a 961 casos, 2024 a 2025"
+      ],
+      "pregunta_de_gestion": "Revisar atención y coordinación pendientes con indicadores agregados",
+      "limites": "Sin registros recientes de derivación; no publicar datos de víctimas"
+    },
+    {
+      "id": "comercio",
+      "problema": "Comercio y accesibilidad del espacio público",
+      "frecuencia_sugerida": "territorial",
+      "monitores": [
+        "municipios",
+        "inteligencia-inmobiliaria",
+        "datos-sii",
+        "chile-monitor"
+      ],
+      "llaves": [
+        "CUT 13108",
+        "codigo SII 13167",
+        "patente_id",
+        "direccion validada"
+      ],
+      "evidencia": [
+        "Fiscalización pública 2026 en Profesor Zañartu y Av. La Paz",
+        "Fuente admitida de patentes con corte 2015-10-13"
+      ],
+      "pregunta_de_gestion": "Evaluar accesibilidad y continuidad del uso del espacio tras intervenciones",
+      "limites": "No hay padrón vigente verificado para 2026"
+    },
+    {
+      "id": "aseo",
+      "problema": "Aseo, microbasurales y áreas verdes",
+      "frecuencia_sugerida": "diaria",
+      "monitores": [
+        "municipios",
+        "mercado-publico",
+        "integridad",
+        "inteligencia-ambiental"
+      ],
+      "llaves": [
+        "oc_codigo",
+        "licitacion_codigo",
+        "sector",
+        "acta inspeccion"
+      ],
+      "evidencia": [
+        "Gasto SINIM 2025 aseo: $4.300.753.000",
+        "OC 584264-1-SE25 áreas verdes: $952.188.897",
+        "Antecedente de denuncia municipal 2025, sin estado judicial actual verificado"
+      ],
+      "pregunta_de_gestion": "Cruzar servicio contratado, inspección y reclamo resuelto",
+      "limites": "Compras no prueban prestación; no vincular automáticamente OCs con denuncia"
+    },
+    {
+      "id": "riesgo_invernal",
+      "problema": "Anegamientos y continuidad de servicios",
+      "frecuencia_sugerida": "condicionada a amenaza",
+      "monitores": [
+        "municipios",
+        "chile-monitor",
+        "inteligencia-ambiental",
+        "inteligencia-inmobiliaria",
+        "monitorelectrico"
+      ],
+      "llaves": [
+        "CUT",
+        "punto critico",
+        "tiempo pronostico",
+        "infraestructura"
+      ],
+      "evidencia": [
+        "16 puntos críticos 2026, uno alto",
+        "Prestadores: Aguas Andinas y Enel"
+      ],
+      "pregunta_de_gestion": "Verificar mantenimiento de puntos y continuidad en equipamientos sensibles",
+      "limites": "Unión espacial no ejecutada; sin feed de cortes en vivo acreditado"
+    },
+    {
+      "id": "vivienda",
+      "problema": "Vivienda, hacinamiento y obras",
+      "frecuencia_sugerida": "semanal",
+      "monitores": [
+        "municipios",
+        "inteligencia-inmobiliaria",
+        "inteligencia-ambiental"
+      ],
+      "llaves": [
+        "CUT",
+        "codigo SII",
+        "rol",
+        "permiso",
+        "id_expediente"
+      ],
+      "evidencia": [
+        "BCN RSH junio 2026: hacinamiento 9,4%",
+        "Base municipal vivienda 2024: déficit cuantitativo 7.502",
+        "DOM: 153 permisos; sin mediana de plazos"
+      ],
+      "pregunta_de_gestion": "Localizar presión habitacional y servicios; verificar proyectos y obras",
+      "limites": "Universos no sumables; no hay evidencia de demora DOM"
+    },
+    {
+      "id": "medicamentos",
+      "problema": "Acceso a medicamentos y cuidados",
+      "frecuencia_sugerida": "semanal",
+      "monitores": [
+        "municipios",
+        "mercado-publico",
+        "remedios"
+      ],
+      "llaves": [
+        "oc_codigo",
+        "registro ISP",
+        "dosis",
+        "forma",
+        "presentacion",
+        "periodo"
+      ],
+      "evidencia": [
+        "2024: gasto $156.988.979",
+        "Referencia P50: diferencia potencial $12.199.303",
+        "Algoritmo actual usa código/unidad; no homologación ISP"
+      ],
+      "pregunta_de_gestion": "Homologar productos y revisar contratos, precios y stock",
+      "limites": "No ahorro confirmado ni sobreprecio probado; no stock consultado"
+    },
+    {
+      "id": "vialidad",
+      "problema": "Seguridad vial y accesibilidad",
+      "frecuencia_sugerida": "territorial",
+      "monitores": [
+        "municipios",
+        "mercado-publico",
+        "inteligencia-inmobiliaria"
+      ],
+      "llaves": [
+        "punto accidente",
+        "tramo",
+        "establecimiento",
+        "obra"
+      ],
+      "evidencia": [
+        "CONASET integrado 2024: 376 siniestros, 30 atropellos",
+        "Acciones municipales 2026 sobre veredas Vivaceta y ciclovías de hospitales"
+      ],
+      "pregunta_de_gestion": "Cruzar accidentes con recorridos y obras que requieren recepción",
+      "limites": "Cruce espacial pendiente; cobertura georreferenciada parcial"
+    },
+    {
+      "id": "educacion",
+      "problema": "Trayectorias educativas",
+      "frecuencia_sugerida": "semanal",
+      "monitores": [
+        "municipios",
+        "mercado-publico"
+      ],
+      "llaves": [
+        "establecimiento",
+        "periodo",
+        "acuerdo",
+        "oc_codigo"
+      ],
+      "evidencia": [
+        "2025: matrícula 19.313, asistencia 89,1%, retiro 3,04%"
+      ],
+      "pregunta_de_gestion": "Revisar barreras de acceso y compromisos de apoyo e infraestructura",
+      "limites": "Retiro no equivale a abandono definitivo; falta corte reciente"
+    },
+    {
+      "id": "control",
+      "problema": "Presupuesto, fiscalización y acuerdos",
+      "frecuencia_sugerida": "semanal",
+      "monitores": [
+        "municipios",
+        "mercado-publico",
+        "integridad"
+      ],
+      "llaves": [
+        "cuenta",
+        "anio",
+        "informe",
+        "hallazgo",
+        "acuerdo",
+        "documento cierre"
+      ],
+      "evidencia": [
+        "Ejecución aritmética 2025: 85,6%",
+        "CGR 2025: 30 hallazgos, 17 altamente complejos"
+      ],
+      "pregunta_de_gestion": "Vincular cada compromiso u observación con responsable, plazo y cierre",
+      "limites": "No estado de subsanación; diferencia presupuestaria no es caja libre"
+    }
+  ],
+  "fuentes_datos": [
+    "fuentes/municipios-13108.json",
+    "fuentes/cruces-municipios.json",
+    "fuentes/mercado-publico.json",
+    "fuentes/cobertura-patentes.json"
+  ],
+  "informe": "investigacion-2026-09-25.md"
+}

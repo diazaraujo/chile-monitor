@@ -1,0 +1,280 @@
+{
+  "snapshot_mtime": "2026-08-22T13:44:38.385995+00:00",
+  "comprador_rut": "69255500-7",
+  "queries": {
+    "estados": "select estado,count(*) n from oc where comprador_rut in ('69255500-7','69.255.500-7','069255500-7') and fecha_envio >= date '2024-01-01' group by estado order by n desc",
+    "cobertura": "select min(fecha_envio) desde,max(fecha_envio) hasta,count(*) n from oc where comprador_rut in ('69255500-7','69.255.500-7','069255500-7') and fecha_envio >= date '2024-01-01'",
+    "ejemplos": "select codigo,licitacion_codigo,nombre,fecha_envio,estado,monto_total_clp from oc where comprador_rut in ('69255500-7','69.255.500-7','069255500-7') and fecha_envio >= date '2024-01-01' and regexp_matches(lower(nombre),'c[aá]mara|televigil|patrull|basura|residuo|[aá]reas verdes|alumbrado|sumidero') order by fecha_envio desc limit 30"
+  },
+  "estados": [
+    {
+      "estado": "Aceptada",
+      "n": 3158
+    },
+    {
+      "estado": "Recepcion Conforme",
+      "n": 2109
+    },
+    {
+      "estado": "Enviada a proveedor",
+      "n": 38
+    },
+    {
+      "estado": "Cancelacion solicitada",
+      "n": 11
+    },
+    {
+      "estado": "En proceso",
+      "n": 4
+    }
+  ],
+  "cobertura": [
+    {
+      "desde": "2024-01-02",
+      "hasta": "2026-08-21",
+      "n": 5320
+    }
+  ],
+  "ejemplos": [
+    {
+      "codigo": "2676-503-AG26",
+      "licitacion_codigo": null,
+      "nombre": "ADQ. 5000 BOLSAS DE BASURA - DIMAP.",
+      "fecha_envio": "2026-08-14",
+      "estado": "Aceptada",
+      "monto_total_clp": 1416100
+    },
+    {
+      "codigo": "2676-489-AG26",
+      "licitacion_codigo": null,
+      "nombre": "HERRAMIENTAS MANTENCIÓN ÁREAS VERDES- ENTREGAR EN TENIENTE BISSON 543 - DIMAP -  COMPRA ÁGIL 2676-554-COT26 - MEMO 198 - CGM",
+      "fecha_envio": "2026-08-12",
+      "estado": "Aceptada",
+      "monto_total_clp": 5550160
+    },
+    {
+      "codigo": "2682-281-AG26",
+      "licitacion_codigo": null,
+      "nombre": "Adquisición de Bolsas de BASURA para REAS",
+      "fecha_envio": "2026-08-11",
+      "estado": "Recepcion Conforme",
+      "monto_total_clp": 191590
+    },
+    {
+      "codigo": "2676-462-AG26",
+      "licitacion_codigo": null,
+      "nombre": "REPOSICION DE CAMARA DE TELEVIGILANCIA TIPO PTZ SSPP",
+      "fecha_envio": "2026-07-29",
+      "estado": "Aceptada",
+      "monto_total_clp": 2062055
+    },
+    {
+      "codigo": "2676-436-AG26",
+      "licitacion_codigo": null,
+      "nombre": "CAMARA INTELIGENTE CON INSTALACION, DIDECO, MEMO 901, 2676-487-COT26, EBR",
+      "fecha_envio": "2026-07-21",
+      "estado": "Aceptada",
+      "monto_total_clp": 1820700
+    },
+    {
+      "codigo": "2680-90-AG26",
+      "licitacion_codigo": null,
+      "nombre": "MEMO 65, CDP 173, ADQUISICION CAMARA ENDOSCOPICA,  FINANCIAMIENTO MANTENCION, PARA ESTABLECIMEITOS EDUCACIONALES,Orden de Compra generada por invitación a compra ágil: 2680-73-COT26",
+      "fecha_envio": "2026-05-12",
+      "estado": "Recepcion Conforme",
+      "monto_total_clp": 1725500
+    },
+    {
+      "codigo": "2676-285-AG26",
+      "licitacion_codigo": null,
+      "nombre": "3 CAMARAS BODYCAM CON ARNES",
+      "fecha_envio": "2026-05-08",
+      "estado": "Aceptada",
+      "monto_total_clp": 1995273
+    },
+    {
+      "codigo": "2676-167-AG26",
+      "licitacion_codigo": null,
+      "nombre": "6000 BOLSA DE BASURA CARGA PESADA",
+      "fecha_envio": "2026-03-13",
+      "estado": "Aceptada",
+      "monto_total_clp": 1405866
+    },
+    {
+      "codigo": "584264-233-SE25",
+      "licitacion_codigo": "584264-53-LP25",
+      "nombre": "\"53-LP25\" RECAMBIO CÁMARAS DE TELEVIGILANCIA",
+      "fecha_envio": "2026-01-26",
+      "estado": "Recepcion Conforme",
+      "monto_total_clp": 90315806
+    },
+    {
+      "codigo": "2676-5-AG26",
+      "licitacion_codigo": null,
+      "nombre": "6 CÁMARAS DE SEGURIDAD CON DVR +HDD Y OTROS CON INSTALACIÓN - ENTREGAR EN PASAJE NUEVA COLON 1065 - SEGURIDAD PÚBLICA - COMPRA ÁGIL 2676-1201-COT25 - MEMO 227 - CGM ",
+      "fecha_envio": "2026-01-07",
+      "estado": "Aceptada",
+      "monto_total_clp": 972230
+    },
+    {
+      "codigo": "584264-218-SE25",
+      "licitacion_codigo": null,
+      "nombre": "TD CONEXO SERVICIO MANTENCIÓN ÁREAS VERDES COMUNA INDEPENDENCIA BOSQUES MIYAHUAKI PAGOS OCTUBRE A DICIEMBRE 2025 REAJUSTE POR IPC",
+      "fecha_envio": "2025-11-12",
+      "estado": "Recepcion Conforme",
+      "monto_total_clp": 27316212
+    },
+    {
+      "codigo": "584264-217-SE25",
+      "licitacion_codigo": "584264-32-R122",
+      "nombre": "\"32-R122\" Serv. de mant. de areas verdes Comuna de Independencia Aumento de Contrato reajustado IPC de Octubre a Diciembre 2025",
+      "fecha_envio": "2025-11-12",
+      "estado": "Recepcion Conforme",
+      "monto_total_clp": 36293402
+    },
+    {
+      "codigo": "2676-819-AG25",
+      "licitacion_codigo": null,
+      "nombre": "150 PAQUETES DE BOLSAS DE BASURA TIPO CAMISETA 100 UNIDADES C/U - ENTREGAR EN EL PISO 1 DE LA MUNICIPALIDAD - DIDECO / AYUDA SOCIAL - COMPRA ÁGIL 2676-899-COT25 - MEMO 2055 - CGM ",
+      "fecha_envio": "2025-10-15",
+      "estado": "Aceptada",
+      "monto_total_clp": 535500
+    },
+    {
+      "codigo": "2676-630-AG25",
+      "licitacion_codigo": null,
+      "nombre": "TRITURADORA DE RESIDUOS ORGÁNICOS / PROTECTOR FACIL / GUANTES ANTICORTE - ENTREGAR EN TENIENTE BISSON 549 - DIMAP / ASEO - COMPRA ÁGIL 2676-700-COT25 - MEMO 478 - CGM ",
+      "fecha_envio": "2025-08-12",
+      "estado": "Aceptada",
+      "monto_total_clp": 824268
+    },
+    {
+      "codigo": "2682-296-AG25",
+      "licitacion_codigo": null,
+      "nombre": "Timbre Video Portero con Camara CCR",
+      "fecha_envio": "2025-08-08",
+      "estado": "Recepcion Conforme",
+      "monto_total_clp": 80801
+    },
+    {
+      "codigo": "2676-598-AG25",
+      "licitacion_codigo": null,
+      "nombre": "9 CÁMARAS WEB - ENTREGAR EN 1ER PISO DE LA MUNICIPALIDAD - DIDECO /PRLAC - COMPRA ÁGIL 2676-669-COT25 - MEMO 1602 - CGM",
+      "fecha_envio": "2025-08-05",
+      "estado": "Aceptada",
+      "monto_total_clp": 96069
+    },
+    {
+      "codigo": "2676-458-AG25",
+      "licitacion_codigo": null,
+      "nombre": "3 CAMARA WEB ",
+      "fecha_envio": "2025-06-13",
+      "estado": "Aceptada",
+      "monto_total_clp": 227927
+    },
+    {
+      "codigo": "2676-368-AG25",
+      "licitacion_codigo": null,
+      "nombre": "MANTENCIÓN E INSTALACIÓN DE CÁMARAS DE VIGILANCIA, DIMAP, MEMO 75, C.ÁGIL2676-389-COT25, VFV",
+      "fecha_envio": "2025-05-07",
+      "estado": "Aceptada",
+      "monto_total_clp": 814448
+    },
+    {
+      "codigo": "2676-206-AG25",
+      "licitacion_codigo": null,
+      "nombre": "CAMARA , LENTES Y FLASH  -COMUNICACIONES",
+      "fecha_envio": "2025-03-06",
+      "estado": "Aceptada",
+      "monto_total_clp": 6214961
+    },
+    {
+      "codigo": "2676-195-AG25",
+      "licitacion_codigo": null,
+      "nombre": "BOLSAS DE BASURA, DIMAP, MEM111, CPLA, 2676-214-COT25",
+      "fecha_envio": "2025-03-04",
+      "estado": "Cancelacion solicitada",
+      "monto_total_clp": 499800
+    },
+    {
+      "codigo": "584264-28-SE25",
+      "licitacion_codigo": "584264-59-LE24",
+      "nombre": "MANEJO DE RESIDUOS DE ESTABLECIMIENTOS DE SALUD ID 584264-59-LE24",
+      "fecha_envio": "2025-02-06",
+      "estado": "Aceptada",
+      "monto_total_clp": 26560800
+    },
+    {
+      "codigo": "584264-33-SE25",
+      "licitacion_codigo": null,
+      "nombre": "TD CONEXO SERVICIO MANTENCIÓN ÁREAS VERDES COMUNA INDEPENDENCIA BOSQUES MIYAHUAKI PAGOS ENERO A SEPTIEMBRE  2025",
+      "fecha_envio": "2025-01-22",
+      "estado": "Recepcion Conforme",
+      "monto_total_clp": 79254000
+    },
+    {
+      "codigo": "584264-1-SE25",
+      "licitacion_codigo": "584264-32-R122",
+      "nombre": "\"32-R122\" Serv. de mant. de areas verdes Comuna de Independencia pagos enero a diciembre 2025",
+      "fecha_envio": "2025-01-16",
+      "estado": "Recepcion Conforme",
+      "monto_total_clp": 952188897
+    },
+    {
+      "codigo": "2676-1237-AG24",
+      "licitacion_codigo": null,
+      "nombre": "3 CÁMARAS DIGITALES - ENTREGAR EN 3ER PISO DE LA MUNICIPALIDAD - DEPTO. FISCALIZACIÓN - COMPRA ÁGIL 2676-1352-COT24 - MEMO 138 - CGM",
+      "fecha_envio": "2024-12-26",
+      "estado": "Aceptada",
+      "monto_total_clp": 489090
+    },
+    {
+      "codigo": "2682-571-AG24",
+      "licitacion_codigo": null,
+      "nombre": "DVR PARA CAMARAS DE SEGURIDAD",
+      "fecha_envio": "2024-12-26",
+      "estado": "Recepcion Conforme",
+      "monto_total_clp": 249888
+    },
+    {
+      "codigo": "2682-559-AG24",
+      "licitacion_codigo": null,
+      "nombre": "Adquisición Cámara Fotográfica COSAM",
+      "fecha_envio": "2024-12-18",
+      "estado": "Recepcion Conforme",
+      "monto_total_clp": 207643
+    },
+    {
+      "codigo": "584264-295-SE24",
+      "licitacion_codigo": "584264-36-LE22",
+      "nombre": "36-LE22\" Manejo de residuos de estab. de salud 2022-2024 EP noviembre 24",
+      "fecha_envio": "2024-12-13",
+      "estado": "Recepcion Conforme",
+      "monto_total_clp": 692794
+    },
+    {
+      "codigo": "2676-1133-SE24",
+      "licitacion_codigo": null,
+      "nombre": "CAMBIO DE ENLACE DE ANTENA DE SERVIDOR DE CAMARAS",
+      "fecha_envio": "2024-12-03",
+      "estado": "Aceptada",
+      "monto_total_clp": 1432263
+    },
+    {
+      "codigo": "584264-277-SE24",
+      "licitacion_codigo": null,
+      "nombre": "TRATO DIRECTO PRÓRROGA 3 MESES SERV.RESIDUOS SALUD",
+      "fecha_envio": "2024-11-20",
+      "estado": "Aceptada",
+      "monto_total_clp": 2180742
+    },
+    {
+      "codigo": "2676-1039-AG24",
+      "licitacion_codigo": null,
+      "nombre": "5000 BOLSAS DE BASURA CARGA PESADA",
+      "fecha_envio": "2024-11-14",
+      "estado": "Aceptada",
+      "monto_total_clp": 1309000
+    }
+  ]
+}

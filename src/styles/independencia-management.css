@@ -1,0 +1,520 @@
+#management-workspace {
+  margin: 28px 0;
+  --mgmt-ink: var(--light-ink, #e6ece9);
+  --mgmt-muted: var(--light-muted, #a8bcb2);
+  --mgmt-surface: var(--light-surface, #182523);
+  --mgmt-tint: var(--light-surface-tint, #20392f);
+  --mgmt-border: var(--light-border, #385148);
+}
+.mgmt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+.mgmt-header h2 {
+  font-size: clamp(26px, 3vw, 44px);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -1.5px;
+  margin: 12px 0;
+}
+.mgmt-header p {
+  color: var(--mgmt-muted);
+  font-size: 13px;
+  line-height: 1.7;
+  max-width: 650px;
+}
+.mgmt-view-switch,
+.mgmt-area-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.mgmt-view-switch button,
+.mgmt-area-tabs button {
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  padding: 10px 14px;
+  font-size: 12px;
+}
+.mgmt-view-switch button[aria-pressed="true"],
+.mgmt-area-tabs button[aria-pressed="true"] {
+  background: var(--mint);
+  color: var(--bg);
+}
+.mgmt-coverage {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  font: 10px var(--mono);
+  color: var(--mgmt-muted);
+  margin: 20px 0;
+  padding: 13px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.mgmt-coverage > span:last-child {
+  margin-left: auto;
+  color: var(--amber);
+}
+.mgmt-coverage-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.mgmt-sector-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.mgmt-sector {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  border: 1px solid var(--mgmt-border);
+  border-radius: 15px;
+  background: linear-gradient(
+    145deg,
+    var(--mgmt-tint),
+    var(--mgmt-surface) 65%
+  );
+  min-width: 0;
+}
+.mgmt-sector-heading {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.mgmt-sector-heading > span:first-child {
+  font: 11px var(--mono);
+  color: var(--mint);
+}
+.mgmt-sector-heading h3 {
+  font-weight: 500;
+  font-size: 21px;
+  margin: 0;
+}
+.mgmt-historical {
+  margin-left: auto;
+  font: 8px var(--mono);
+  color: var(--mgmt-muted);
+  border: 1px solid var(--mgmt-border);
+  border-radius: 4px;
+  padding: 5px;
+}
+.mgmt-sector h4 {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.5;
+  min-height: 46px;
+  margin: 18px 0;
+}
+.mgmt-sector-metrics {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr 1fr;
+}
+.mgmt-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.mgmt-metric strong {
+  font: 23px var(--mono);
+  letter-spacing: -1px;
+  color: var(--light-ink, #d9eedf);
+}
+.mgmt-metric span {
+  font-size: 11px;
+  line-height: 1.4;
+}
+.mgmt-metric small {
+  color: var(--light-muted, #a8bcb2);
+  font-size: 9px;
+  line-height: 1.6;
+}
+.mgmt-sector-metrics .mgmt-metric:first-child {
+  grid-column: 1/-1;
+  border-bottom: 1px solid var(--mgmt-border);
+  padding-bottom: 16px;
+}
+.mgmt-sector-metrics .mgmt-metric:first-child strong {
+  font-size: 38px;
+}
+.mgmt-sector-gap {
+  margin-top: auto;
+  padding-top: 22px;
+}
+.mgmt-sector-gap > span {
+  font: 9px var(--mono);
+  color: var(--amber);
+}
+.mgmt-sector-gap p {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--mgmt-muted);
+  min-height: 36px;
+}
+.mgmt-sector > button {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 0 0;
+  border: 0;
+  border-top: 1px solid var(--mgmt-border);
+  background: transparent;
+  color: var(--mint);
+  font-size: 12px;
+}
+.mgmt-review {
+  margin: 28px 0;
+}
+.mgmt-review-heading h3,
+.mgmt-resource-title h3 {
+  font-size: 21px;
+  font-weight: 500;
+  margin: 8px 0 18px;
+}
+.mgmt-review-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.mgmt-review-grid > button {
+  background: var(--mgmt-surface);
+  color: var(--mgmt-ink);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 18px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mgmt-review-grid > button:hover,
+.mgmt-sector > button:hover {
+  border-color: var(--mint);
+}
+.mgmt-review-index {
+  font: 10px var(--mono);
+  color: var(--mint);
+}
+.mgmt-review-grid h4 {
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 500;
+  margin: 0;
+}
+.mgmt-review-grid small {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--mgmt-muted);
+}
+.mgmt-review-grid strong {
+  font: 27px var(--mono);
+}
+.mgmt-review-link {
+  font-size: 11px;
+  color: var(--mint);
+  margin-top: auto;
+}
+.mgmt-resources {
+  padding: 24px;
+  border: 1px solid var(--mgmt-border);
+  border-radius: 14px;
+  background: var(--mgmt-surface);
+}
+.mgmt-resource-title {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.mgmt-resource-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  margin: 18px 0;
+}
+.management-context {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+  margin: 22px 0;
+}
+.management-context > summary {
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--mint);
+}
+.management-context > summary > span {
+  float: right;
+  font-size: 11px;
+  color: var(--muted);
+}
+.management-context .agenda-hero {
+  display: none;
+}
+#briefing {
+  display: none;
+}
+#management-dialog {
+  width: min(1100px, 95vw);
+  padding: 0;
+  overflow: auto;
+  max-height: 90dvh;
+  border-radius: 16px;
+}
+.mgmt-close {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  font-size: 25px;
+  z-index: 1;
+}
+.mgmt-detail-heading {
+  padding: 32px 60px 24px 30px;
+  background: var(--light-surface-tint, #20392f);
+}
+.mgmt-detail-heading h2 {
+  font-size: 28px;
+  line-height: 1.3;
+  font-weight: 500;
+  margin: 14px 0;
+}
+.mgmt-detail-heading p,
+.mgmt-detail-body p,
+.mgmt-detail-body li {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--light-muted, #b0c5b9);
+}
+.mgmt-detail-body {
+  padding: 28px;
+}
+.mgmt-detail-body h3 {
+  font-size: 19px;
+  font-weight: 500;
+}
+.mgmt-chain {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 28px;
+}
+.mgmt-chain > div {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+.mgmt-chain span {
+  font: 10px var(--mono);
+  color: var(--mint);
+}
+.mgmt-chain strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.mgmt-chain small {
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.mgmt-detail-columns,
+.mgmt-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  margin: 25px 0;
+}
+.mgmt-detail-columns > section,
+.mgmt-options > article {
+  padding: 20px;
+  background: var(--light-surface, #1c2b26);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.mgmt-options h4 {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+}
+.mgmt-options small {
+  font-size: 11px;
+  color: var(--amber);
+}
+.mgmt-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+.mgmt-centers {
+  margin: 22px 0;
+}
+.mgmt-centers > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.mgmt-centers span,
+.mgmt-centers small {
+  color: var(--muted);
+}
+@media (max-width: 1100px) {
+  .mgmt-header {
+    flex-direction: column;
+    align-items: start;
+  }
+  .mgmt-sector {
+    padding: 16px;
+  }
+  .mgmt-historical {
+    display: none;
+  }
+  .mgmt-sector-metrics {
+    grid-template-columns: 1fr;
+  }
+  .mgmt-chain {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .mgmt-sector-grid,
+  .mgmt-review-grid,
+  .mgmt-detail-columns,
+  .mgmt-options {
+    grid-template-columns: 1fr;
+  }
+  .mgmt-sector-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+  .mgmt-resource-title {
+    flex-direction: column;
+  }
+  .mgmt-resource-metrics {
+    grid-template-columns: 1fr;
+  }
+  .mgmt-coverage > span:last-child {
+    margin-left: 0;
+  }
+  .mgmt-header h2 {
+    font-size: 29px;
+  }
+  .mgmt-chain {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .management-context > summary > span {
+    display: none;
+  }
+  .mgmt-detail-heading {
+    padding: 24px 48px 18px 20px;
+  }
+  .mgmt-detail-heading h2 {
+    font-size: 23px;
+  }
+  .mgmt-detail-body {
+    padding: 20px;
+  }
+}
+@media (min-width: 1100px) and (min-height: 700px) {
+  .dispatch-mode .management-context {
+    display: none;
+  }
+  .dispatch-mode #management-workspace {
+    grid-row: 3;
+    grid-column: 1;
+    margin: 0;
+    overflow: auto;
+    min-height: 0;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  .dispatch-mode .mgmt-header {
+    display: block;
+  }
+  .dispatch-mode .mgmt-header h2 {
+    font-size: 21px;
+    letter-spacing: -0.4px;
+    margin: 10px 0;
+  }
+  .dispatch-mode .mgmt-header p,
+  .dispatch-mode .mgmt-header .eyebrow {
+    display: none;
+  }
+  .dispatch-mode .mgmt-view-switch button {
+    padding: 6px 9px;
+    font-size: 11px;
+  }
+  .dispatch-mode .mgmt-view-switch {
+    width: fit-content;
+  }
+  .dispatch-mode .mgmt-coverage {
+    font-size: 9px;
+    margin: 12px 0;
+    padding: 9px 0;
+  }
+  .dispatch-mode .mgmt-coverage > span:last-child {
+    margin-left: 0;
+  }
+  .dispatch-mode .mgmt-sector-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .dispatch-mode .mgmt-sector {
+    padding: 14px;
+  }
+  .dispatch-mode .mgmt-sector-heading h3 {
+    font-size: 18px;
+  }
+  .dispatch-mode .mgmt-sector h4 {
+    display: none;
+  }
+  .dispatch-mode .mgmt-sector-heading {
+    margin-bottom: 10px;
+  }
+  .dispatch-mode .mgmt-sector > button {
+    padding-top: 9px;
+  }
+  .dispatch-mode .mgmt-sector-metrics {
+    grid-template-columns: 1fr;
+  }
+  .dispatch-mode .mgmt-sector-metrics .mgmt-metric:not(:first-child),
+  .dispatch-mode .mgmt-sector-gap,
+  .dispatch-mode .mgmt-review,
+  .dispatch-mode .mgmt-resources {
+    display: none;
+  }
+  .dispatch-mode .mgmt-sector-metrics .mgmt-metric:first-child {
+    border: 0;
+    padding: 0 0 12px;
+  }
+  .dispatch-mode .mgmt-sector-metrics .mgmt-metric:first-child strong {
+    font-size: 27px;
+  }
+  .dispatch-mode .mgmt-metric small:last-child {
+    display: none;
+  }
+  .dispatch-mode .mgmt-historical {
+    display: none;
+  }
+}
