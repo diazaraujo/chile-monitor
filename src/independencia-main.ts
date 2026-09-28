@@ -12,7 +12,8 @@ import mapWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./styles/independencia.css";
 import "./styles/independencia-issues.css";
-import { FALLBACK_DARK_STYLE } from "@/config/basemap";
+import "./styles/independencia-theme.css";
+import { FALLBACK_DARK_STYLE, FALLBACK_LIGHT_STYLE } from "@/config/basemap";
 import {
   COMMUNE_REFRESH_MS,
   COMMUNE_TIMEZONE,
@@ -79,6 +80,15 @@ const icon = (name: string): string => {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.grid}</svg>`;
 };
 
+type CommuneTheme = "dark" | "light";
+const themeKey = "independencia-theme";
+let theme: CommuneTheme = "dark";
+try {
+  if (localStorage.getItem(themeKey) === "light") theme = "light";
+} catch {
+  /* Storage is optional. */
+}
+document.documentElement.dataset.communeTheme = theme;
 const root = document.querySelector<HTMLDivElement>("#independencia-app")!;
 // All remote text passes through e(); remote links pass through safeSourceUrl().
 setTrustedHtml(
@@ -95,7 +105,7 @@ setTrustedHtml(
   <div class="workspace">
     <header class="topbar">
       <div class="breadcrumb"><a href="/dashboard">CHILE MONITOR</a><span>/</span><strong>COMUNAS</strong></div>
-      <div class="topbar-right"><span class="public-label"><i></i> FUENTES PÚBLICAS</span><time id="wall-clock"></time><button class="icon-button" data-action="fullscreen" title="Pantalla completa" aria-label="Pantalla completa">${icon("expand")}</button></div>
+      <div class="topbar-right"><div class="theme-switch" role="group" aria-label="Apariencia"><button data-theme="light" aria-pressed="false">Clara</button><button data-theme="dark" aria-pressed="true">Oscura</button></div><span class="public-label"><i></i> FUENTES PÚBLICAS</span><time id="wall-clock"></time><button class="icon-button" data-action="fullscreen" title="Pantalla completa" aria-label="Pantalla completa">${icon("expand")}</button></div>
     </header>
     <main>
       <section class="page-heading">
@@ -331,7 +341,7 @@ function initMap(): void {
     maplibregl.setWorkerUrl(mapWorkerUrl);
     map = new maplibregl.Map({
       container: "commune-map",
-      style: FALLBACK_DARK_STYLE,
+      style: theme === "light" ? FALLBACK_LIGHT_STYLE : FALLBACK_DARK_STYLE,
       center: [-70.665, -33.416],
       zoom: 13.3,
       attributionControl: { compact: true },
@@ -352,9 +362,10 @@ function initMap(): void {
         "Parte de la cartografía no está disponible. Las fuentes siguen visibles.";
       q("#map-message").hidden = false;
     });
+    const initialTheme = theme;
     map.on("load", async () => {
       if (!map) return;
-      mapReady = true;
+
       q("#map-message").hidden = true;
       map.addSource("commune-projects", {
         type: "geojson",
@@ -437,7 +448,7 @@ function initMap(): void {
           type: "line",
           source: "commune-boundary",
           paint: {
-            "line-color": "#82d6c1",
+            "line-color": theme === "light" ? "#176044" : "#82d6c1",
             "line-width": 2,
             "line-dasharray": [3, 2],
           },
@@ -456,11 +467,64 @@ function initMap(): void {
           "Límite comunal no disponible · mapa de contexto";
         q<HTMLButtonElement>('[data-layer="boundary"]').disabled = true;
       }
+      mapReady = true;
+      updateMapProjects();
+      if (theme !== initialTheme) setTheme(theme);
     });
   } catch (error) {
     console.warn("[Independencia] Map startup failed", error);
     q("#map-message").textContent =
       "Este equipo no pudo iniciar el mapa. El resto del monitor permanece disponible.";
+  }
+}
+
+function setTheme(next: CommuneTheme): void {
+  theme = next;
+  document.documentElement.dataset.communeTheme = theme;
+  document.querySelectorAll<HTMLElement>("[data-theme]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.theme === theme));
+  });
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", theme === "light" ? "#f3f6f2" : "#101719");
+  try {
+    localStorage.setItem(themeKey, theme);
+  } catch {
+    /* Keep the in-memory choice. */
+  }
+  if (mapReady && map) {
+    map.setStyle(
+      theme === "light" ? FALLBACK_LIGHT_STYLE : FALLBACK_DARK_STYLE,
+      {
+        transformStyle: (previous, nextStyle) => ({
+          ...nextStyle,
+          sources: {
+            ...nextStyle.sources,
+            ...Object.fromEntries(
+              Object.entries(previous?.sources ?? {}).filter(([id]) =>
+                id.startsWith("commune-"),
+              ),
+            ),
+          },
+          layers: [
+            ...nextStyle.layers,
+            ...(previous?.layers ?? [])
+              .filter((layer) => layer.id.startsWith("commune-"))
+              .map((layer) =>
+                layer.id === "commune-boundary-line" && layer.type === "line"
+                  ? {
+                      ...layer,
+                      paint: {
+                        ...layer.paint,
+                        "line-color": theme === "light" ? "#176044" : "#82d6c1",
+                      },
+                    }
+                  : layer,
+              ),
+          ],
+        }),
+      },
+    );
   }
 }
 
@@ -521,6 +585,8 @@ root.addEventListener("click", (event) => {
   if (!button) return;
   if (button.dataset.mode === "morning" || button.dataset.mode === "dispatch")
     setMode(button.dataset.mode);
+  if (button.dataset.theme === "light" || button.dataset.theme === "dark")
+    setTheme(button.dataset.theme);
   const action = button.dataset.action;
   if (action === "refresh") void refresh();
   if (action === "sources") q<HTMLDialogElement>("#sources-dialog").showModal();
@@ -556,6 +622,7 @@ root.addEventListener("click", (event) => {
   }
 });
 
+setTheme(theme);
 tick();
 render();
 setMode(mode);

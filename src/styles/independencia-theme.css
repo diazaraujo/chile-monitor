@@ -1,0 +1,81 @@
+/* Light tokens override the dark palette fallbacks in the municipal styles. */
+:root[data-commune-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f6f2;
+  --panel: #ffffff;
+  --line: #ccd8d1;
+  --muted: #52675f;
+  --mint: #18634d;
+  --amber: #84551c;
+  --light-surface: #ffffff;
+  --light-surface-tint: #e6f0e8;
+  --light-border: #bdcec3;
+  --light-ink: #1d342c;
+  --light-muted: #4b6257;
+  --light-accent: #176044;
+  --light-warning: #805018;
+  background: var(--bg);
+  color: var(--light-ink);
+}
+.theme-switch {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.theme-switch button {
+  border: 0;
+  border-radius: 5px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--muted);
+  background: transparent;
+}
+.theme-switch button[aria-pressed="true"] {
+  color: var(--bg);
+  background: var(--mint);
+}
+:root[data-commune-theme="light"] .workspace {
+  background: var(--bg);
+}
+:root[data-commune-theme="light"] .issue-filters button[aria-pressed="true"] {
+  background: #18634d;
+  color: white;
+  border-color: #18634d;
+}
+:root[data-commune-theme="light"] .agenda-hero {
+  background:
+    radial-gradient(ellipse at 15% 0%, #d1e9d7, transparent 75%), #eef5ed;
+}
+:root[data-commune-theme="light"] .issue-detail-hero {
+  background: linear-gradient(110deg, #dceee0, #f6faf4);
+}
+:root[data-commune-theme="light"] .issue-card {
+  background: linear-gradient(140deg, #ffffff, #f0f6ee);
+}
+:root[data-commune-theme="light"] .connection-banner.warning {
+  background: #fff3df;
+}
+:root[data-commune-theme="light"] dialog::backdrop {
+  background: #19382c66;
+}
+:root[data-commune-theme="light"] .maplibregl-popup-content {
+  background: #fff;
+  color: #1d342c;
+}
+:root[data-commune-theme="light"] .maplibregl-popup-tip {
+  border-top-color: #fff;
+}
+@media (max-width: 700px) {
+  .topbar-right {
+    gap: 8px;
+  }
+  .theme-switch button {
+    padding: 6px 7px;
+  }
+}
+
+:root[data-commune-theme="light"] .maplibregl-ctrl-icon {
+  filter: none;
+}

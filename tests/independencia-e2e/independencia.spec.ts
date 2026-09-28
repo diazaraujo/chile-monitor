@@ -195,3 +195,62 @@ test("dispatch fits a full HD wall with problems and everyday services", async (
     "Sin registros recientes de derivación",
   );
 });
+
+test("light and dark appearances persist independently of dispatch mode", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/independencia.html");
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-commune-theme",
+    "dark",
+  );
+  await page.getByRole("button", { name: "Clara", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-commune-theme",
+    "light",
+  );
+  await expect(
+    page.getByRole("button", { name: "Clara", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-commune-theme",
+    "light",
+  );
+  await page.locator("#commune-map canvas").waitFor();
+  await page
+    .locator("#map-message")
+    .waitFor({ state: "hidden", timeout: 20000 })
+    .catch(() => {});
+  await page.screenshot({
+    path: testInfo.outputPath("clara.png"),
+    fullPage: true,
+  });
+  await page.locator('[data-issue="aseo"]').click();
+  await expect(page.locator("#issue-dialog")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.locator('.mode-switch [data-mode="dispatch"]').click();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollHeight),
+  ).toBeLessThanOrEqual(1100);
+  await page.screenshot({
+    path: testInfo.outputPath("clara-despacho.png"),
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Oscura", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-commune-theme",
+    "dark",
+  );
+  await page.reload();
+  await expect(page.locator("body")).toHaveClass(/dispatch-mode/);
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-commune-theme",
+    "dark",
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Clara", exact: true }).click();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(390);
+});
